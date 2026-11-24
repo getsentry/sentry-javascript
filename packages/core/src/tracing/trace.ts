@@ -7,7 +7,10 @@ import { getClient, getCurrentScope, getIsolationScope, withScope } from '../cur
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
 import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '../semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+} from '../semanticAttributes';
 import type { ClientOptions } from '../types/options';
 import type { SentrySpanArguments, Span, SpanTimeInput } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
@@ -20,7 +23,6 @@ import { shouldIgnoreSpan } from '../utils/should-ignore-span';
 import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
 import { generateTraceId } from '../utils/propagationContext';
-import { safeMathRandom } from '../utils/randomSafeContext';
 import { _setSpanForScope } from '../utils/spanOnScope';
 import {
   addChildSpanToSpan,
@@ -33,6 +35,7 @@ import {
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
+import { getHeldSamplingDecision, getSampleRandForNewTrace, holdSamplingDecision } from './consistentSampling';
 import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
@@ -292,7 +295,8 @@ export function startNewTrace<T>(callback: () => T): T {
     return withScope(scope => {
       scope.setPropagationContext({
         traceId: generateTraceId(),
-        sampleRand: safeMathRandom(),
+        // PoC: With `consistentSampling`, a new trace takes the `sample_rand` of its session or conversation
+        sampleRand: getSampleRandForNewTrace(getClient(), scope),
       });
       DEBUG_BUILD && debug.log(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
       return callback();
@@ -491,8 +495,13 @@ function _startRootSpan(
   const finalParentSampled = mutableSpanSamplingData.parentSampled ?? parentSampled;
   const finalAttributes = mutableSpanSamplingData.spanAttributes;
 
+  // PoC: With `consistentSampling`, a trace we start takes the `sample_rand` of its session or conversation.
+  // A session that already sampled a trace hands us that decision, which we treat like a parent decision.
+  const heldDecision = getHeldSamplingDecision(options, scope, isolationScope, finalParentSampled);
+
   const currentPropagationContext = scope.getPropagationContext();
   const _isTracingSuppressed = isTracingSuppressed(scope);
+  const parentSampleRate = heldDecision?.sampleRate ?? parseSampleRate(currentPropagationContext.dsc?.sample_rate);
 
   const [sampled, sampleRate, localSampleRateWasApplied, dropReason] = _isTracingSuppressed
     ? [false]
@@ -500,13 +509,23 @@ function _startRootSpan(
         options,
         {
           name,
-          parentSampled: finalParentSampled,
+          parentSampled: heldDecision ? heldDecision.sampled : finalParentSampled,
           attributes: finalAttributes,
           normalizedRequest: isolationScope.getScopeData().sdkProcessingMetadata.normalizedRequest,
-          parentSampleRate: parseSampleRate(currentPropagationContext.dsc?.sample_rate),
+          parentSampleRate,
         },
         currentPropagationContext.sampleRand,
       );
+
+  if (!_isTracingSuppressed) {
+    holdSamplingDecision(
+      options,
+      scope,
+      isolationScope,
+      sampled,
+      localSampleRateWasApplied ? sampleRate : parentSampleRate,
+    );
+  }
 
   const rootSpan = new SentrySpan({
     ...spanArguments,
@@ -514,6 +533,10 @@ function _startRootSpan(
       [SENTRY_SEGMENT_NAME_SOURCE]: 'custom',
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]:
         sampleRate !== undefined && localSampleRateWasApplied ? sampleRate : undefined,
+      // An inherited session decision was made with the rate of the session's first trace. Sentry needs that
+      // rate as `sample_rate` of this trace to extrapolate correctly.
+      [SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE]:
+        heldDecision && !localSampleRateWasApplied ? heldDecision.sampleRate : undefined,
       ...finalAttributes,
     },
     sampled,

@@ -19,6 +19,7 @@ import {
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
+  getSampleRandForNewTrace,
   hasSpansEnabled,
   hasSpanStreamingEnabled,
   NAVIGATION_SPAN_NAME_FALLBACK,
@@ -613,7 +614,8 @@ function _browserTracingIntegration(
         const scope = getCurrentScope();
         scope.setPropagationContext({
           traceId: generateTraceId(),
-          sampleRand: Math.random(),
+          // PoC: With `consistentSampling: 'session'`, a navigation trace takes the `sample_rand` of the session
+          sampleRand: getSampleRandForNewTrace(client, scope),
           propagationSpanId: hasSpansEnabled() ? undefined : generateSpanId(),
         });
 

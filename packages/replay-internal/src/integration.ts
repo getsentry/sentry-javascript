@@ -4,6 +4,7 @@ import type { BrowserClientReplayOptions } from '@sentry/core/browser';
 import {
   defineIntegration,
   consoleSandbox,
+  getConsistentSessionSampleRand,
   GLOBAL_OBJ,
   isBrowser,
   parseSampleRate,
@@ -457,6 +458,14 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions,
 
   if (replaysOnErrorSampleRate != null) {
     finalOptions.errorSampleRate = replaysOnErrorSampleRate;
+  }
+
+  // PoC: With `consistentSampling: 'session'`, `replaysSessionSampleRate` is compared against the `sample_rand` of
+  // the session instead of a new random number. With a replay rate at or below the trace sample rate, a replay is
+  // then only recorded for sessions whose traces are sampled.
+  const sessionSampleRand = getConsistentSessionSampleRand(client.getOptions());
+  if (sessionSampleRand !== undefined && replaysSessionSampleRate != null) {
+    finalOptions.sessionSampleRate = sessionSampleRand < replaysSessionSampleRate ? 1 : 0;
   }
 
   return finalOptions;

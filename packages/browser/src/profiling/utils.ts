@@ -4,6 +4,7 @@ import type { Client, ContinuousThreadCpuProfile, DebugImage, ProfileChunk, Span
 import {
   debug,
   getClient,
+  getConsistentSessionSampleRand,
   getDebugImagesForResources,
   GLOBAL_OBJ,
   _INTERNAL_performanceTimeToSeconds,
@@ -303,7 +304,12 @@ export function shouldProfileSession(options: BrowserOptions): boolean {
     return false;
   }
 
-  return Math.random() <= profileSessionSampleRate;
+  // PoC: With `consistentSampling: 'session'`, the rate is compared against the `sample_rand` of the session
+  // instead of a new random number, so the profiler runs in sessions whose traces are sampled.
+  const sessionSampleRand = getConsistentSessionSampleRand(options);
+  return sessionSampleRand !== undefined
+    ? sessionSampleRand < profileSessionSampleRate
+    : Math.random() <= profileSessionSampleRate;
 }
 
 export function setThreadAttributes(span: Span): void {
