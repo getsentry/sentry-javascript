@@ -7,7 +7,7 @@ import { solidServerTracePropagationIntegration } from './tracePropagation';
 
 // Sends the trace to the browser on every document response, so the pageload continues it, as `init` does on Node.
 const serverTimingTraceHeaderIntegration = defineIntegration((): Integration => ({
-  name: 'SolidServerTimingTraceHeader',
+  name: 'SolidServerTimingTraceHeader' as const,
   setup: addServerTimingTraceHeader,
 }));
 
