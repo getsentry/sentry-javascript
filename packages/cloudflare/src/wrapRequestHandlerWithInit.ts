@@ -50,13 +50,13 @@ function stripVinextInternalData(
     for (const name of vinextHeaders) {
       headers.delete(name);
     }
-    // The body is teed from a clone so the original request stays readable for the handler:
-    // building the new request from the original would move its body stream instead.
+    // The sanitized copy carries no body: the recording path only reads its method, URL and
+    // headers (the body is only read for the best-effort `normalizedRequest.data`, see
+    // `captureBodyFromWinterCGRequest`), and a teed body would leave an unread branch that
+    // backpressures the original body on workerd. The handler still receives the original.
     return new Request(url.toString(), {
       method: request.method,
       headers,
-      body: request.body ? request.clone().body : undefined,
-      ...(request.body ? { duplex: 'half' as const } : {}),
       signal: request.signal,
     });
   } catch {

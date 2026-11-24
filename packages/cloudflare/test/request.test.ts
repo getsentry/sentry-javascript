@@ -301,7 +301,101 @@ describe('withSentry', () => {
       const normalizedRequest = sentryEvent.sdkProcessingMetadata?.normalizedRequest;
       expect(normalizedRequest?.url).toBe('https://example.com/page');
       expect(normalizedRequest?.headers).not.toHaveProperty('x-vinext-internal-dispatch');
-      expect(normalizedRequest?.data).toBe(JSON.stringify({ username: 'test' }));
+      // The sanitized copy carries no body, so there is no body to capture from it.
+      expect(normalizedRequest?.data).toBeUndefined();
+    });
+
+    test('does not stall on a large vinext POST whose body arrives slowly', async () => {
+      // A teed body left an unread branch that backpressured the original body, so the
+      // recording path hit its two-second body-capture timeout before the handler ran.
+      // With no body on the sanitized copy, the handler runs without waiting on capture.
+      const twoMb = new Uint8Array(2 * 1024 * 1024).fill(65);
+      let sent = false;
+      const stalledBody = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (!sent) {
+            controller.enqueue(twoMb);
+            sent = true;
+            return;
+          }
+          // The source stalls here and never closes: the body keeps arriving only after this.
+          return new Promise<void>(() => {});
+        },
+      });
+      const mockRequest = new Request('https://example.com/page?__vinext_cache_key=abc123', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-vinext-internal-dispatch': 'https://example.com/page?token=secret',
+        },
+        body: stalledBody,
+        duplex: 'half' as const,
+      });
+
+      let sentryEvent: Event = {};
+      const startedAt = Date.now();
+      const response = await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            tracesSampleRate: 1,
+            beforeSendTransaction(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: mockRequest,
+          context: createMockExecutionContext(),
+        },
+        () => new Response('test'),
+      );
+
+      // Well under the two-second capture timeout the old code waited out.
+      expect(Date.now() - startedAt).toBeLessThan(1500);
+      expect(await response.text()).toBe('test');
+      await vi.waitFor(() => expect(sentryEvent.contexts?.trace).toBeDefined());
+      const data = sentryEvent.contexts?.trace?.data as Record<string, unknown> | undefined;
+      expect(data?.['url.full']).toBe('https://example.com/page');
+      expect(data).not.toHaveProperty('http.request.header.x-vinext-internal-dispatch');
+    });
+
+    test('keeps a large vinext POST body readable for the handler', async () => {
+      const largeBody = 'a'.repeat(2 * 1024 * 1024);
+      const mockRequest = new Request('https://example.com/page?__vinext_cache_key=abc123', {
+        method: 'POST',
+        headers: {
+          'content-type': 'text/plain',
+          'x-vinext-internal-dispatch': 'https://example.com/page?token=secret',
+        },
+        body: largeBody,
+      });
+
+      let sentryEvent: Event = {};
+      const response = await wrapRequestHandler(
+        {
+          options: {
+            ...MOCK_OPTIONS,
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          },
+          request: mockRequest,
+          context: createMockExecutionContext(),
+        },
+        async () => {
+          // The handler reads the original request body, not the sanitized copy's.
+          SentryCore.captureMessage('vinext large body');
+          return new Response(await mockRequest.text());
+        },
+      );
+
+      expect(await response.text()).toBe(largeBody);
+      const normalizedRequest = sentryEvent.sdkProcessingMetadata?.normalizedRequest;
+      expect(normalizedRequest?.url).toBe('https://example.com/page');
+      expect(normalizedRequest?.headers).not.toHaveProperty('x-vinext-internal-dispatch');
+      // The sanitized copy carries no body, so there is no body to capture from it.
+      expect(normalizedRequest?.data).toBeUndefined();
     });
 
     test('adds culture context', async () => {
@@ -812,8 +906,7 @@ describe('withSentry', () => {
         },
       ).then(response => response.text());
 
-      // Wait for async span end and transaction capture
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await vi.waitFor(() => expect(sentryEvent.contexts?.trace).toBeDefined());
 
       const data = sentryEvent.contexts?.trace?.data as Record<string, unknown> | undefined;
       expect(data?.['url.full']).toBe('https://example.com/page?foo=bar');
