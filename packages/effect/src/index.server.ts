@@ -1,9 +1,9 @@
 export * from '@sentry/node';
 
-export { effectLayer, init } from './server/index';
+export { layer, init } from './server/index';
 export type { EffectServerLayerOptions } from './server/index';
 
-export { SentryEffectTracer } from './server/tracer';
-export { SentryEffectExternalSpanLayer } from './tracer';
-export { SentryEffectLogger } from './logger';
-export { SentryEffectMetricsLayer } from './metrics';
+export { layerTracer } from './server/tracer';
+export { layerExternalSpan } from './tracer';
+export { layerLogger } from './logger';
+export { layerMetrics } from './metrics';

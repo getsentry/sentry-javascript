@@ -3,10 +3,10 @@
 /* eslint-disable import/export */
 export * from '@sentry/browser';
 
-export { effectLayer, init } from './client/index';
+export { layer, init } from './client/index';
 export type { EffectClientLayerOptions } from './client/index';
 
-export { SentryEffectTracer } from './client/tracer';
-export { SentryEffectExternalSpanLayer } from './tracer';
-export { SentryEffectLogger } from './logger';
-export { SentryEffectMetricsLayer } from './metrics';
+export { layerTracer } from './client/tracer';
+export { layerExternalSpan } from './tracer';
+export { layerLogger } from './logger';
+export { layerMetrics } from './metrics';

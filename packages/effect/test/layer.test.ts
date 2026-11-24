@@ -1,8 +1,9 @@
 import { describe, expect, it } from '@effect/vitest';
 import * as sentryCore from '@sentry/core';
 import * as sentryCoreBrowser from '@sentry/core/browser';
+import type { Log } from '@sentry/core';
 import { getClient, getMainCarrier, SDK_VERSION } from '@sentry/core';
-import { Effect, Layer, Logger } from 'effect';
+import { Effect, Layer } from 'effect';
 import * as References from 'effect/References';
 import { afterEach, beforeEach, vi } from 'vitest';
 import * as sentryClient from '../src/index.client';
@@ -21,163 +22,163 @@ describe.each([
   [
     {
       subSdkName: 'browser',
-      effectLayer: sentryClient.effectLayer,
-      SentryEffectTracer: sentryClient.SentryEffectTracer,
-      SentryEffectLogger: sentryClient.SentryEffectLogger,
-      SentryEffectMetricsLayer: sentryClient.SentryEffectMetricsLayer,
+      Sentry: sentryClient,
       startInactiveSpan: sentryCoreBrowser as { startInactiveSpan: typeof sentryCore.startInactiveSpan },
     },
   ],
   [
     {
       subSdkName: 'node',
-      effectLayer: sentryServer.effectLayer,
-      SentryEffectTracer: sentryServer.SentryEffectTracer,
-      SentryEffectLogger: sentryServer.SentryEffectLogger,
-      SentryEffectMetricsLayer: sentryServer.SentryEffectMetricsLayer,
+      Sentry: sentryServer,
       startInactiveSpan: sentryCore as { startInactiveSpan: typeof sentryCore.startInactiveSpan },
     },
   ],
-])(
-  'effectLayer ($subSdkName)',
-  ({ subSdkName, effectLayer, SentryEffectTracer, SentryEffectLogger, startInactiveSpan }) => {
-    beforeEach(() => {
-      getMainCarrier().__SENTRY__ = undefined;
+])('layer ($subSdkName)', ({ subSdkName, Sentry, startInactiveSpan }) => {
+  beforeEach(() => {
+    getMainCarrier().__SENTRY__ = undefined;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('creates a valid Effect layer', () => {
+    const layer = Sentry.layer({
+      dsn: TEST_DSN,
+      transport: getMockTransport(),
     });
 
-    afterEach(() => {
-      vi.restoreAllMocks();
-    });
+    expect(layer).toBeDefined();
+    expect(Layer.isLayer(layer)).toBe(true);
+  });
 
-    it('creates a valid Effect layer', () => {
-      const layer = effectLayer({
-        dsn: TEST_DSN,
-        transport: getMockTransport(),
-      });
+  it.effect('applies SDK metadata', () =>
+    Effect.gen(function* () {
+      yield* Effect.void;
 
-      expect(layer).toBeDefined();
-      expect(Layer.isLayer(layer)).toBe(true);
-    });
+      const client = getClient();
+      const metadata = client?.getOptions()._metadata?.sdk;
 
-    it.effect('applies SDK metadata', () =>
-      Effect.gen(function* () {
-        yield* Effect.void;
+      expect(metadata?.name).toBe('sentry.javascript.effect');
+      expect(metadata?.packages).toEqual([
+        { name: 'npm:@sentry/effect', version: SDK_VERSION },
+        { name: `npm:@sentry/${subSdkName}`, version: SDK_VERSION },
+      ]);
+    }).pipe(
+      Effect.provide(
+        Sentry.layer({
+          dsn: TEST_DSN,
+          transport: getMockTransport(),
+        }),
+      ),
+    ),
+  );
 
-        const client = getClient();
-        const metadata = client?.getOptions()._metadata?.sdk;
+  it.effect('layer can be provided to an Effect program', () =>
+    Effect.gen(function* () {
+      const result = yield* Effect.succeed('test-result');
+      expect(result).toBe('test-result');
+    }).pipe(
+      Effect.provide(
+        Sentry.layer({
+          dsn: TEST_DSN,
+          transport: getMockTransport(),
+        }),
+      ),
+    ),
+  );
 
-        expect(metadata?.name).toBe('sentry.javascript.effect');
-        expect(metadata?.packages).toEqual([
-          { name: 'npm:@sentry/effect', version: SDK_VERSION },
-          { name: `npm:@sentry/${subSdkName}`, version: SDK_VERSION },
-        ]);
-      }).pipe(
-        Effect.provide(
-          effectLayer({
+  it.effect('layer enables tracing when tracer is set', () =>
+    Effect.gen(function* () {
+      const startInactiveSpanMock = vi.spyOn(startInactiveSpan, 'startInactiveSpan');
+
+      const result = yield* Effect.withSpan('test-span')(Effect.succeed('traced'));
+      expect(result).toBe('traced');
+      expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'test-span' }));
+    }).pipe(
+      Effect.provide(
+        Layer.mergeAll(
+          Sentry.layer({
             dsn: TEST_DSN,
             transport: getMockTransport(),
           }),
+          Sentry.layerTracer,
         ),
       ),
-    );
+    ),
+  );
 
-    it.effect('layer can be provided to an Effect program', () =>
-      Effect.gen(function* () {
-        const result = yield* Effect.succeed('test-result');
-        expect(result).toBe('test-result');
-      }).pipe(
-        Effect.provide(
-          effectLayer({
+  it.effect('layer can be composed with tracer', () =>
+    Effect.gen(function* () {
+      const startInactiveSpanMock = vi.spyOn(startInactiveSpan, 'startInactiveSpan');
+
+      const result = yield* Effect.succeed(42).pipe(
+        Effect.map(n => n * 2),
+        Effect.withSpan('computation'),
+      );
+      expect(result).toBe(84);
+      expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'computation' }));
+    }).pipe(
+      Effect.provide(
+        Layer.mergeAll(
+          Sentry.layer({
             dsn: TEST_DSN,
             transport: getMockTransport(),
           }),
+          Sentry.layerTracer,
+        ),
+      ),
+    ),
+  );
+
+  it.effect('layer can be composed with logger', () => {
+    const logs: Log[] = [];
+
+    return Effect.gen(function* () {
+      yield* Effect.logInfo('test log');
+      expect(logs).toEqual([expect.objectContaining({ level: 'info', message: 'test log' })]);
+    }).pipe(
+      Effect.provide(
+        Layer.mergeAll(
+          Sentry.layer({
+            dsn: TEST_DSN,
+            enableLogs: true,
+            beforeSendLog: log => {
+              logs.push(log);
+              return log;
+            },
+            transport: getMockTransport(),
+          }),
+          Sentry.layerLogger,
         ),
       ),
     );
+  });
 
-    it.effect('layer enables tracing when tracer is set', () =>
-      Effect.gen(function* () {
-        const startInactiveSpanMock = vi.spyOn(startInactiveSpan, 'startInactiveSpan');
+  it.effect('layer can be composed with all Effect features', () =>
+    Effect.gen(function* () {
+      const startInactiveSpanMock = vi.spyOn(startInactiveSpan, 'startInactiveSpan');
 
-        const result = yield* Effect.withSpan('test-span')(Effect.succeed('traced'));
-        expect(result).toBe('traced');
-        expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'test-span' }));
-      }).pipe(
-        Effect.withTracer(SentryEffectTracer),
-        Effect.provide(
-          effectLayer({
+      yield* Effect.logInfo('starting computation');
+      const result = yield* Effect.succeed(42).pipe(
+        Effect.map(n => n * 2),
+        Effect.withSpan('computation'),
+      );
+      yield* Effect.logInfo('computation complete');
+      expect(result).toBe(84);
+      expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'computation' }));
+    }).pipe(
+      Effect.provideService(References.MinimumLogLevel, 'All'),
+      Effect.provide(
+        Layer.mergeAll(
+          Sentry.layer({
             dsn: TEST_DSN,
             transport: getMockTransport(),
           }),
+          Sentry.layerTracer,
+          Sentry.layerLogger,
         ),
       ),
-    );
-
-    it.effect('layer can be composed with tracer', () =>
-      Effect.gen(function* () {
-        const startInactiveSpanMock = vi.spyOn(startInactiveSpan, 'startInactiveSpan');
-
-        const result = yield* Effect.succeed(42).pipe(
-          Effect.map(n => n * 2),
-          Effect.withSpan('computation'),
-        );
-        expect(result).toBe(84);
-        expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'computation' }));
-      }).pipe(
-        Effect.withTracer(SentryEffectTracer),
-        Effect.provide(
-          effectLayer({
-            dsn: TEST_DSN,
-            transport: getMockTransport(),
-          }),
-        ),
-      ),
-    );
-
-    it.effect('layer can be composed with logger', () =>
-      Effect.gen(function* () {
-        yield* Effect.logInfo('test log');
-        const result = yield* Effect.succeed('logged');
-        expect(result).toBe('logged');
-      }).pipe(
-        Effect.provideService(References.MinimumLogLevel, 'All'),
-        Effect.provide(
-          Layer.mergeAll(
-            effectLayer({
-              dsn: TEST_DSN,
-              transport: getMockTransport(),
-            }),
-            Logger.layer([SentryEffectLogger]),
-          ),
-        ),
-      ),
-    );
-
-    it.effect('layer can be composed with all Effect features', () =>
-      Effect.gen(function* () {
-        const startInactiveSpanMock = vi.spyOn(startInactiveSpan, 'startInactiveSpan');
-
-        yield* Effect.logInfo('starting computation');
-        const result = yield* Effect.succeed(42).pipe(
-          Effect.map(n => n * 2),
-          Effect.withSpan('computation'),
-        );
-        yield* Effect.logInfo('computation complete');
-        expect(result).toBe(84);
-        expect(startInactiveSpanMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'computation' }));
-      }).pipe(
-        Effect.withTracer(SentryEffectTracer),
-        Effect.provideService(References.MinimumLogLevel, 'All'),
-        Effect.provide(
-          Layer.mergeAll(
-            effectLayer({
-              dsn: TEST_DSN,
-              transport: getMockTransport(),
-            }),
-            Logger.layer([SentryEffectLogger]),
-          ),
-        ),
-      ),
-    );
-  },
-);
+    ),
+  );
+});
