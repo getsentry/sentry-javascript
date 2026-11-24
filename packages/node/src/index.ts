@@ -253,7 +253,7 @@ export { workerThreadsIntegration } from './integrations/workerThreads';
 export { NODE_VERSION } from './nodeVersion';
 export { defaultStackParser, getSentryRelease } from './sdk/api';
 export { getHttpAgent, makeNodeTransport } from './transports';
-export { createGetModuleFromFilename } from './utils/module';
+export { createGetModuleFromFilename } from '@sentry/server-utils';
 
 export { eveConversationHook, eveIntegration, getInstrumentedModuleNames } from '@sentry/server-utils';
 export { eveInstrumentation } from './eve';
