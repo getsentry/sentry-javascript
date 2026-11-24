@@ -13,6 +13,7 @@ async function collectDbSpans() {
   const spans = await collectStreamedSpansUntilSegment(
     'nuxt-5',
     span => span.attributes['url.path']?.value === '/api/db-test',
+    span => getSpanOp(span) === 'db.query',
   );
   const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/db-test');
 
