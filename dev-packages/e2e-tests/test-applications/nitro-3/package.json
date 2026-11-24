@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "@sentry/browser": "latest || *",
-    "@sentry/nitro": "latest || *"
+    "@sentry/nitro": "latest || *",
+    "generic-pool": "^3.9.0"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
