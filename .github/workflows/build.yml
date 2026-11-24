@@ -650,11 +650,15 @@ jobs:
           - bundle: bundle_tracing_replay_feedback_logs_metrics_min
             project: 'webkit'
             shard: 1
-            shards: 2
+            shards: 3
           - bundle: bundle_tracing_replay_feedback_logs_metrics_min
             project: 'webkit'
             shard: 2
-            shards: 2
+            shards: 3
+          - bundle: bundle_tracing_replay_feedback_logs_metrics_min
+            project: 'webkit'
+            shard: 3
+            shards: 3
           - bundle: bundle_tracing_replay_feedback_logs_metrics_min
             project: 'firefox'
           - bundle: esm
