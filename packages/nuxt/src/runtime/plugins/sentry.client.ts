@@ -8,9 +8,10 @@ import {
   setRouteProvider,
   vueIntegration,
 } from '@sentry/vue';
-import { defineNuxtPlugin, isNuxtError } from 'nuxt/app';
+import { defineNuxtPlugin } from 'nuxt/app';
 import type { GlobalObjWithIntegrationOptions } from '../../client/vueIntegration';
 import { reportNuxtError } from '../utils';
+import { isIgnoredNuxtError } from '../utils/isIgnoredNuxtError';
 
 // --- Types are copied from @sentry/vue (so it does not need to be exported) ---
 // The following type is an intersection of the Route type from VueRouter v2, v3, and v4.
@@ -37,16 +38,6 @@ interface VueRouter {
 }
 
 type VueRouteProviderRouter = ReturnType<Parameters<typeof _INTERNAL_createVueRouteProvider>[0]>;
-
-// 3xx/4xx Nuxt errors are expected control flow (redirects, not-found pages), not bugs. The server skips them too.
-function isIgnoredNuxtError(error: unknown): boolean {
-  if (!isNuxtError(error)) {
-    return false;
-  }
-  // oxlint-disable-next-line typescript/no-deprecated
-  const statusCode = error?.status || error?.statusCode;
-  return !!statusCode && statusCode >= 300 && statusCode < 500;
-}
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;

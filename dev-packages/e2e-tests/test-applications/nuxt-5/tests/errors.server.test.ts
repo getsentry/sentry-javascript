@@ -114,3 +114,28 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
     });
   });
 });
+
+test.describe('SSR error boundary', () => {
+  test('captures error thrown in NuxtErrorBoundary during SSR with 200 response', async ({ page }) => {
+    const errorPromise = waitForError('nuxt-5', async errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'SSR Error inside NuxtErrorBoundary';
+    });
+
+    const response = await page.goto('/ssr-error-boundary');
+    expect(response?.status()).toBe(200);
+
+    const error = await errorPromise;
+
+    expect(error.transaction).toEqual('/ssr-error-boundary');
+    expect(error.exception.values[0]).toMatchObject({
+      type: 'Error',
+      value: 'SSR Error inside NuxtErrorBoundary',
+      mechanism: {
+        handled: false,
+        type: 'auto.function.nuxt.vue-error',
+      },
+    });
+
+    await expect(page.locator('#error-fallback')).toContainText('Caught SSR Error: SSR Error inside NuxtErrorBoundary');
+  });
+});

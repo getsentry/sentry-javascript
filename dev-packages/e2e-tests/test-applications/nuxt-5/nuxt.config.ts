@@ -14,6 +14,9 @@ function database(name: string, binding: string) {
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   imports: { autoImport: false },
+  experimental: {
+    ssrErrorBoundary: true,
+  },
 
   routeRules: {
     '/rendering-modes/client-side-only-page': { ssr: false },
