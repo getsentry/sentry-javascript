@@ -16,7 +16,7 @@ import {
 const NODE_SUITES_ROOT = fileURLToPath(new URL('../node-integration-tests', import.meta.url));
 
 // All Node suites also run on Bun. The scenarios stay in `node-integration-tests`.
-const NODE_SUITES = ['suites/**/test.ts'];
+const NODE_SUITES = ['suites/**/test.ts', 'suites/**/*.test.ts'];
 
 // Before Bun 1.4.6, `bun run` cannot load the modules that the instrumentation transforms.
 const [bunMajor = 0, bunMinor = 0, bunPatch = 0] = execFileSync('bun', ['--version'], { encoding: 'utf8' })
@@ -26,8 +26,8 @@ const [bunMajor = 0, bunMinor = 0, bunPatch = 0] = execFileSync('bun', ['--versi
 const BUN_BEFORE_1_4 = bunMajor < 1 || (bunMajor === 1 && bunMinor < 4);
 const BUN_RUN_INSTRUMENTS = bunMajor > 1 || (bunMajor === 1 && (bunMinor > 4 || (bunMinor === 4 && bunPatch >= 6)));
 
-const AUTO_INSTRUMENTATION_SUITES = NO_AUTO_INSTRUMENTATION.map(glob =>
-  glob.endsWith('/**') ? `${glob}/test.ts` : glob,
+const AUTO_INSTRUMENTATION_SUITES = NO_AUTO_INSTRUMENTATION.flatMap(glob =>
+  glob.endsWith('/**') ? [`${glob}/test.ts`, `${glob}/*.test.ts`] : glob,
 );
 
 const nodeSuitesTest = {

@@ -9,7 +9,8 @@ suites/
             |---- test.ts [assertions]
             |---- scenario.ts [Sentry initialization and test subject]
       |---- customTest/
-            |---- test.ts [assertions]
+            |---- tracing.test.ts [tracing assertions]
+            |---- errors.test.ts [error assertions]
             |---- scenario_1.ts [optional extra test scenario]
             |---- scenario_2.ts [optional extra test scenario]
             |---- server_with_mongo.ts [optional custom server]
@@ -22,12 +23,13 @@ folders containing test scenarios and assertions.
 `scenario.ts` contains the initialization logic and the test subject. By default, `{TEST_DIR}/scenario.ts` is used, but
 `runServer` also accepts an optional `scenarioPath` argument for non-standard usage.
 
-`test.ts` is required for each test case, and contains the server runner logic, request interceptors for Sentry
-requests, and assertions. Test server, interceptors and assertions are all run on the same Vitest thread.
+`test.ts` and descriptive `*.test.ts` files contain the server runner logic, request interceptors for Sentry requests,
+and assertions. A suite can use several named test files so Vitest can schedule them independently while sharing
+scenario files. Each test's server, interceptors and assertions run on the same Vitest thread.
 
 ### Utilities
 
-`utils/` contains helpers and Sentry-specific assertions that can be used in (`test.ts`).
+`utils/` contains helpers and Sentry-specific assertions for the test files.
 
 Nock interceptors are internally used to capture envelope requests by `getEnvelopeRequest` and
 `getMultipleEnvelopeRequest` helpers. After capturing required requests, the interceptors are removed. Nock can manually

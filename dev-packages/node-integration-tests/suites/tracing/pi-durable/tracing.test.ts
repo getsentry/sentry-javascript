@@ -26,22 +26,12 @@ import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
 // The provider session id that pi-durable stores with each conversation, a UUIDv7.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-const CONTENT_ATTRIBUTES = [
-  GEN_AI_INPUT_MESSAGES,
-  GEN_AI_OUTPUT_MESSAGES,
-  GEN_AI_SYSTEM_INSTRUCTIONS,
-  GEN_AI_TOOL_DEFINITIONS,
-  GEN_AI_TOOL_CALL_ARGUMENTS,
-  GEN_AI_TOOL_CALL_RESULT,
-];
-
 // The pi packages declare `engines.node >= 22.19`.
 describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  // The pi packages are ESM-only: their `exports` maps have no `require` condition.
   createEsmTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('traces each run as its own invoke_agent trace with chat and execute_tool children', async () => {
       let toolRunTraceId: string | undefined;
@@ -187,189 +177,6 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
       expect(errorTraceId).toBe(toolRunTraceId);
       expect(errorSpanId).toBe(brokenToolSpanId);
     });
-
-    for (const [setting, recording] of [
-      ['the client', 'off'],
-      ['`piDurableIntegration`', 'integration-off'],
-    ]) {
-      test(`records no message content when ${setting} turns gen_ai recording off`, async () => {
-        await createRunner()
-          .withEnv({ PI_DURABLE_RECORDING: recording })
-          .unordered()
-          .expect({
-            span: container => {
-              const spans = container.items;
-              expect(spans).toHaveLength(5);
-              for (const span of spans) {
-                for (const attribute of CONTENT_ATTRIBUTES) {
-                  expect(span.attributes[attribute]).toBeUndefined();
-                }
-              }
-              const weather = spans.find(span => span.name === 'execute_tool get_weather')!;
-              expect(weather.attributes[GEN_AI_TOOL_DESCRIPTION]?.value).toBe('Get the current weather for a city.');
-              expect(
-                spans.find(span => span.name === 'chat faux-model')!.attributes[GEN_AI_USAGE_INPUT_TOKENS]?.value,
-              ).toBeGreaterThan(0);
-            },
-          })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(2);
-              for (const span of container.items) {
-                for (const attribute of CONTENT_ATTRIBUTES) {
-                  expect(span.attributes[attribute]).toBeUndefined();
-                }
-              }
-            },
-          })
-          .expect({
-            span: container => {
-              expect(container.items).toHaveLength(1);
-              expect(container.items[0]!.name).toBe('pi-durable-request');
-            },
-          })
-          .expect({
-            event: event => {
-              expect(event.exception?.values?.[0]?.value).toBe('broken tool');
-            },
-          })
-          .start()
-          .completed();
-      });
-    }
-  });
-
-  createEsmTests(__dirname, 'scenario-tools.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('reports app tool failures but not failures of the built-in coding tools', async () => {
-      const appErrors: unknown[] = [];
-
-      // Ordered, with spans ignored: a captured failure of the built-in `bash` tool would be an
-      // extra event before the sentinel, which the scenario sends once everything else is sent.
-      // The two app failures are processed concurrently, so they may arrive in either order.
-      await createRunner()
-        .ignore('span')
-        .expect({
-          event: event => {
-            expect(['app read failed', 'Intentional pi-durable tool failure']).toContain(
-              event.exception?.values?.[0]?.value,
-            );
-            appErrors.push(event.exception?.values?.[0]?.value);
-          },
-        })
-        .expect({
-          event: event => {
-            expect(['app read failed', 'Intentional pi-durable tool failure']).toContain(
-              event.exception?.values?.[0]?.value,
-            );
-            appErrors.push(event.exception?.values?.[0]?.value);
-          },
-        })
-        .expect({
-          event: event => {
-            expect(event.message).toBe('pi-durable tools done');
-          },
-        })
-        .start()
-        .completed();
-
-      expect(appErrors.sort()).toEqual(['Intentional pi-durable tool failure', 'app read failed']);
-    });
-
-    test('records the tool result the model receives', async () => {
-      let errorSpanId: string | undefined;
-      let failingToolSpanId: string | undefined;
-
-      await createRunner()
-        .unordered()
-        .expect({
-          event: event => {
-            const exception = event.exception?.values?.[0];
-            expect(exception?.value).toBe('Intentional pi-durable tool failure');
-            expect(exception?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
-            errorSpanId = event.contexts?.trace?.span_id;
-          },
-        })
-        .expect({
-          event: event => {
-            expect(event.exception?.values?.[0]?.value).toBe('app read failed');
-          },
-        })
-        .expect({
-          span: container => {
-            const spans = container.items;
-
-            const bash = spans.find(span => span.name === 'execute_tool bash')!;
-            expect(bash.status).toBe('error');
-            expect(bash.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toMatch(/Command exited with code \d+/);
-
-            const read = spans.find(span => span.name === 'execute_tool read')!;
-            expect(read.status).toBe('error');
-            expect(read.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toContain('app read failed');
-
-            // The streamed output becomes the result, since the tool returns no content.
-            const streamer = spans.find(span => span.name === 'execute_tool streamer')!;
-            expect(streamer.status).toBe('ok');
-            expect(streamer.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toBe('line 1\nline 2\n');
-
-            const secret = spans.find(span => span.name === 'execute_tool secret')!;
-            expect(secret.attributes[GEN_AI_TOOL_CALL_RESULT]?.value).toBe('redacted by afterTool');
-
-            const failNow = spans.find(span => span.name === 'execute_tool fail_now')!;
-            expect(failNow.status).toBe('error');
-            failingToolSpanId = failNow.span_id;
-          },
-        })
-        .start()
-        .completed();
-
-      expect(errorSpanId).toBe(failingToolSpanId);
-    });
-  });
-
-  createEsmTests(__dirname, 'scenario-reports.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('captures failures pi-durable does not propagate, and tags idle compaction with its conversation', async () => {
-      let runConversationId: unknown;
-      let compactionConversationId: unknown;
-
-      await createRunner()
-        .unordered()
-        .expect({
-          event: event => {
-            const exception = event.exception?.values?.[0];
-            expect(exception?.value).toBe('afterResponse hook failed');
-            expect(exception?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
-          },
-        })
-        .expect({
-          event: event => {
-            const exception = event.exception?.values?.[0];
-            expect(exception?.value).toBe('card declined');
-            expect(exception?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
-          },
-        })
-        .expect({
-          span: container => {
-            const agent = container.items.find(span => span.is_segment)!;
-            expect(agent.name).toBe('invoke_agent');
-            runConversationId = agent.attributes[GEN_AI_CONVERSATION_ID]?.value;
-          },
-        })
-        .expect({
-          span: container => {
-            // A compaction started while idle belongs to no run, so its request is a trace of its own.
-            expect(container.items).toHaveLength(1);
-            const summary = container.items[0]!;
-            expect(summary.is_segment).toBe(true);
-            expect(summary.attributes[SENTRY_OP]?.value).toBe(GEN_AI_CHAT);
-            compactionConversationId = summary.attributes[GEN_AI_CONVERSATION_ID]?.value;
-          },
-        })
-        .start()
-        .completed();
-
-      expect(runConversationId).toMatch(UUID);
-      expect(compactionConversationId).toBe(runConversationId);
-    });
   });
 
   createEsmTests(__dirname, 'scenario-subagent.mjs', 'instrument.mjs', (createRunner, test) => {
@@ -440,59 +247,75 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
     });
   });
 
-  createEsmTests(
-    __dirname,
-    'scenario-recording-functions.mjs',
-    'instrument-with-recording-functions.mjs',
-    (createRunner, test) => {
-      test('decides content recording per call when the options are functions', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const recorded = container.items
-                .filter(span => /^(chat|execute_tool) /.test(span.name))
-                .sort((a, b) => a.start_timestamp - b.start_timestamp)
-                .map(({ name, attributes }) => [
-                  name,
-                  GEN_AI_INPUT_MESSAGES in attributes || GEN_AI_TOOL_CALL_ARGUMENTS in attributes,
-                  GEN_AI_OUTPUT_MESSAGES in attributes || GEN_AI_TOOL_CALL_RESULT in attributes,
-                ]);
-              expect(recorded).toEqual([
-                ['chat faux-model', true, true],
-                ['execute_tool get_weather', false, false],
-                ['chat faux-model', true, false],
-              ]);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
+  createEsmTests(__dirname, 'scenario-concurrent.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('keeps concurrent runs apart and out of the scopes of the requests that submitted them', async () => {
+      const runTraceIds = new Set<string>();
+      const errorTraceIds = new Set<string>();
 
-  createEsmTests(
-    __dirname,
-    'scenario-recording-functions.mjs',
-    'instrument-with-span-hooks.mjs',
-    (createRunner, test) => {
-      test('runs the span hooks of the model and tool calls', async () => {
-        await createRunner()
-          .expect({
-            span: container => {
-              const hooks = container.items
-                .filter(span => /^(chat|execute_tool) /.test(span.name))
-                .sort((a, b) => a.start_timestamp - b.start_timestamp)
-                .map(({ attributes }) => [attributes['test.start']?.value, attributes['test.end']?.value]);
-              expect(hooks).toEqual([
-                ['chat', 'toolUse'],
-                ['Berlin', 'It is sunny in Berlin.'],
-                ['chat', 'stop'],
-              ]);
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
+      await createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const spans = container.items;
+            const agent = spans.find(span => span.is_segment)!;
+            expect(agent.name).toBe('invoke_agent');
+            const chats = spans.filter(span => span.name === 'chat faux-model');
+            expect(JSON.parse(String(chats[0]!.attributes[GEN_AI_INPUT_MESSAGES]?.value))[0].parts[0].content).toBe(
+              'request A',
+            );
+            // The run's own conversation id, not the one the request set on its scope.
+            const conversationId = agent.attributes[GEN_AI_CONVERSATION_ID]?.value;
+            expect(conversationId).toMatch(UUID);
+            for (const span of spans) {
+              expect(span.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe(conversationId);
+              expect(span.attributes['request']).toBeUndefined();
+            }
+            expect(
+              spans.find(span => span.name === 'execute_tool work')!.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]?.value,
+            ).toBe('{"tag":"request A"}');
+            runTraceIds.add(agent.trace_id);
+          },
+        })
+        .expect({
+          span: container => {
+            const spans = container.items;
+            const agent = spans.find(span => span.is_segment)!;
+            expect(agent.name).toBe('invoke_agent');
+            const chats = spans.filter(span => span.name === 'chat faux-model');
+            expect(JSON.parse(String(chats[0]!.attributes[GEN_AI_INPUT_MESSAGES]?.value))[0].parts[0].content).toBe(
+              'request B',
+            );
+            const conversationId = agent.attributes[GEN_AI_CONVERSATION_ID]?.value;
+            expect(conversationId).toMatch(UUID);
+            for (const span of spans) {
+              expect(span.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe(conversationId);
+              expect(span.attributes['request']).toBeUndefined();
+            }
+            expect(
+              spans.find(span => span.name === 'execute_tool work')!.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]?.value,
+            ).toBe('{"tag":"request B"}');
+            runTraceIds.add(agent.trace_id);
+          },
+        })
+        .expect({
+          event: event => {
+            expect(event.exception?.values?.[0]?.value).toBe('work failed for request A');
+            expect(event.tags?.request).toBeUndefined();
+            errorTraceIds.add(String(event.contexts?.trace?.trace_id));
+          },
+        })
+        .expect({
+          event: event => {
+            expect(event.exception?.values?.[0]?.value).toBe('work failed for request B');
+            expect(event.tags?.request).toBeUndefined();
+            errorTraceIds.add(String(event.contexts?.trace?.trace_id));
+          },
+        })
+        .start()
+        .completed();
+
+      // Each tool error belongs to its run's trace.
+      expect(errorTraceIds).toEqual(runTraceIds);
+    });
+  });
 });

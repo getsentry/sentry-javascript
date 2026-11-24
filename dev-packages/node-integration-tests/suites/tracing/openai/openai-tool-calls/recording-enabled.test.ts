@@ -4,7 +4,7 @@ import {
   CHAT_STREAM_TOOL_CALLS,
   CHAT_GEMINI_STREAM_TOOL_CALLS,
   RESPONSES_TOOL_CALLS,
-} from '../expected';
+} from './expected';
 import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES,
@@ -24,18 +24,15 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../../utils/runner';
-import { dirname } from 'node:path';
-
-const scenarioDirectory = dirname(__dirname);
+import { GEN_AI_REQUEST_STREAM_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('OpenAI Tool Calls integration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(scenarioDirectory, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates openai tool calls related spans with genAI recording enabled', async () => {
       await createRunner()
         .expect({

@@ -5,16 +5,14 @@ import {
   GEN_AI_RESPONSE_FINISH_REASONS,
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_TOOL_CALL_ARGUMENTS,
+  SENTRY_OP,
   SENTRY_STATUS_MESSAGE,
 } from '@sentry/conventions/attributes';
-
+import { GEN_AI_CHAT } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 
-import { supports } from '../../../../utils';
-import { cleanupChildProcesses, createEsmTests } from '../../../../utils/runner';
-import { dirname } from 'node:path';
-
-const scenarioDirectory = dirname(__dirname);
+import { supports } from '../../../utils';
+import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
 
 // The provider session id that pi-durable stores with each conversation, a UUIDv7.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -25,7 +23,53 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
     cleanupChildProcesses();
   });
 
-  createEsmTests(scenarioDirectory, 'scenario-retention.mjs', 'instrument.mjs', (createRunner, test) => {
+  createEsmTests(__dirname, 'scenario-reports.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('captures failures pi-durable does not propagate, and tags idle compaction with its conversation', async () => {
+      let runConversationId: unknown;
+      let compactionConversationId: unknown;
+
+      await createRunner()
+        .unordered()
+        .expect({
+          event: event => {
+            const exception = event.exception?.values?.[0];
+            expect(exception?.value).toBe('afterResponse hook failed');
+            expect(exception?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
+          },
+        })
+        .expect({
+          event: event => {
+            const exception = event.exception?.values?.[0];
+            expect(exception?.value).toBe('card declined');
+            expect(exception?.mechanism).toEqual({ type: 'auto.ai.pi_durable', handled: false });
+          },
+        })
+        .expect({
+          span: container => {
+            const agent = container.items.find(span => span.is_segment)!;
+            expect(agent.name).toBe('invoke_agent');
+            runConversationId = agent.attributes[GEN_AI_CONVERSATION_ID]?.value;
+          },
+        })
+        .expect({
+          span: container => {
+            // A compaction started while idle belongs to no run, so its request is a trace of its own.
+            expect(container.items).toHaveLength(1);
+            const summary = container.items[0]!;
+            expect(summary.is_segment).toBe(true);
+            expect(summary.attributes[SENTRY_OP]?.value).toBe(GEN_AI_CHAT);
+            compactionConversationId = summary.attributes[GEN_AI_CONVERSATION_ID]?.value;
+          },
+        })
+        .start()
+        .completed();
+
+      expect(runConversationId).toMatch(UUID);
+      expect(compactionConversationId).toBe(runConversationId);
+    });
+  });
+
+  createEsmTests(__dirname, 'scenario-retention.mjs', 'instrument.mjs', (createRunner, test) => {
     // Bun does not implement `v8.setFlagsFromString`, which the scenario needs to force GC.
     test.runIf(supports({ runtimes: ['node', 'deno'] }))(
       'does not keep the traces of tool calls alive for subagent conversations that never run',
@@ -39,7 +83,7 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
     );
   });
 
-  createEsmTests(scenarioDirectory, 'scenario-restart-abort.mjs', 'instrument.mjs', (createRunner, test) => {
+  createEsmTests(__dirname, 'scenario-restart-abort.mjs', 'instrument.mjs', (createRunner, test) => {
     test('starts no run for an abort handler in a Harness that never saw the run', async () => {
       await createRunner()
         .ignore('span')
@@ -54,7 +98,7 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
     });
   });
 
-  createEsmTests(scenarioDirectory, 'scenario-interrupted.mjs', 'instrument.mjs', (createRunner, test) => {
+  createEsmTests(__dirname, 'scenario-interrupted.mjs', 'instrument.mjs', (createRunner, test) => {
     test('reports a provider that throws as a fault, and nothing for failed, aborted or closed runs', async () => {
       await createRunner()
         .ignore('span')
@@ -142,79 +186,7 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
     });
   });
 
-  createEsmTests(scenarioDirectory, 'scenario-concurrent.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('keeps concurrent runs apart and out of the scopes of the requests that submitted them', async () => {
-      const runTraceIds = new Set<string>();
-      const errorTraceIds = new Set<string>();
-
-      await createRunner()
-        .unordered()
-        .expect({
-          span: container => {
-            const spans = container.items;
-            const agent = spans.find(span => span.is_segment)!;
-            expect(agent.name).toBe('invoke_agent');
-            const chats = spans.filter(span => span.name === 'chat faux-model');
-            expect(JSON.parse(String(chats[0]!.attributes[GEN_AI_INPUT_MESSAGES]?.value))[0].parts[0].content).toBe(
-              'request A',
-            );
-            // The run's own conversation id, not the one the request set on its scope.
-            const conversationId = agent.attributes[GEN_AI_CONVERSATION_ID]?.value;
-            expect(conversationId).toMatch(UUID);
-            for (const span of spans) {
-              expect(span.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe(conversationId);
-              expect(span.attributes['request']).toBeUndefined();
-            }
-            expect(
-              spans.find(span => span.name === 'execute_tool work')!.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]?.value,
-            ).toBe('{"tag":"request A"}');
-            runTraceIds.add(agent.trace_id);
-          },
-        })
-        .expect({
-          span: container => {
-            const spans = container.items;
-            const agent = spans.find(span => span.is_segment)!;
-            expect(agent.name).toBe('invoke_agent');
-            const chats = spans.filter(span => span.name === 'chat faux-model');
-            expect(JSON.parse(String(chats[0]!.attributes[GEN_AI_INPUT_MESSAGES]?.value))[0].parts[0].content).toBe(
-              'request B',
-            );
-            const conversationId = agent.attributes[GEN_AI_CONVERSATION_ID]?.value;
-            expect(conversationId).toMatch(UUID);
-            for (const span of spans) {
-              expect(span.attributes[GEN_AI_CONVERSATION_ID]?.value).toBe(conversationId);
-              expect(span.attributes['request']).toBeUndefined();
-            }
-            expect(
-              spans.find(span => span.name === 'execute_tool work')!.attributes[GEN_AI_TOOL_CALL_ARGUMENTS]?.value,
-            ).toBe('{"tag":"request B"}');
-            runTraceIds.add(agent.trace_id);
-          },
-        })
-        .expect({
-          event: event => {
-            expect(event.exception?.values?.[0]?.value).toBe('work failed for request A');
-            expect(event.tags?.request).toBeUndefined();
-            errorTraceIds.add(String(event.contexts?.trace?.trace_id));
-          },
-        })
-        .expect({
-          event: event => {
-            expect(event.exception?.values?.[0]?.value).toBe('work failed for request B');
-            expect(event.tags?.request).toBeUndefined();
-            errorTraceIds.add(String(event.contexts?.trace?.trace_id));
-          },
-        })
-        .start()
-        .completed();
-
-      // Each tool error belongs to its run's trace.
-      expect(errorTraceIds).toEqual(runTraceIds);
-    });
-  });
-
-  createEsmTests(scenarioDirectory, 'scenario-compaction.mjs', 'instrument.mjs', (createRunner, test) => {
+  createEsmTests(__dirname, 'scenario-compaction.mjs', 'instrument.mjs', (createRunner, test) => {
     test('keeps a compaction that pi-durable starts for a run inside that run', async () => {
       await createRunner()
         .unordered()

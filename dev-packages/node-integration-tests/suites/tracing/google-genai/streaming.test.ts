@@ -18,10 +18,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
-import { dirname } from 'node:path';
-
-const scenarioDirectory = dirname(__dirname);
+import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 const EXPECTED_ORIGIN = 'auto.ai.google_genai';
 
@@ -30,7 +27,7 @@ describe('Google GenAI integration', () => {
     cleanupChildProcesses();
   });
 
-  createEsmAndCjsTests(scenarioDirectory, 'scenario-streaming.mjs', 'instrument.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates google genai streaming spans with genAI recording disabled', async () => {
       let receivedEvent: Event | undefined;
       let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
@@ -112,7 +109,7 @@ describe('Google GenAI integration', () => {
     });
   });
 
-  createEsmAndCjsTests(scenarioDirectory, 'scenario-streaming.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates google genai streaming spans with genAI recording enabled', async () => {
       let receivedEvent: Event | undefined;
       let receivedSpans: SerializedStreamedSpanContainer['items'] = [];
@@ -193,7 +190,7 @@ describe('Google GenAI integration', () => {
   });
 
   createEsmAndCjsTests(
-    scenarioDirectory,
+    __dirname,
     'scenario-stream-midway-error.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
