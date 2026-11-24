@@ -11,12 +11,14 @@ This document gives an outline for how event sending works, and which which plac
     - `baseclient.eventFromException()`
     - `baseclient._captureEvent()`
       - `baseclient._processEvent()`
-        - `baseclient._prepareEvent()`
-          - `baseclient._applyClientOptions()`
-          - `baseclient._applyIntegrationsMetadata()`
-          - `scope.applyToEvent()`
-          - `baseclient._normalizeEvent()`
-        - `baseclient._updateSessionFromEvent()`
+        - `baseclient._applyFilters()`
+          - `baseclient._prepareEvent()`
+            - `baseclient._applyClientOptions()`
+            - `baseclient._applyIntegrationsMetadata()`
+            - `scope.applyToEvent()`
+            - `baseclient._normalizeEvent()`
+          - `beforeSend()` / `beforeSendTransaction()`
+        - `baseclient._updateSessions()`
         - `baseclient.sendEvent()`
           - `createEventEnvelope()`
             - `getSdkMetadataForEnvelopeHeader()`
@@ -40,12 +42,14 @@ This document gives an outline for how event sending works, and which which plac
     - `baseclient.eventFromException()`
     - `baseclient._captureEvent()`
       - `baseclient._processEvent()`
-        - `baseclient._prepareEvent()`
-          - `baseclient._applyClientOptions()`
-          - `baseclient._applyIntegrationsMetadata()`
-          - `scope.applyToEvent()`
-          - `baseclient._normalizeEvent()`
-        - `baseclient._updateSessionFromEvent()`
+        - `baseclient._applyFilters()`
+          - `baseclient._prepareEvent()`
+            - `baseclient._applyClientOptions()`
+            - `baseclient._applyIntegrationsMetadata()`
+            - `scope.applyToEvent()`
+            - `baseclient._normalizeEvent()`
+          - `beforeSend()` / `beforeSendTransaction()`
+        - `baseclient._updateSessions()`
         - `baseclient.sendEvent()`
           - `createEventEnvelope()`
             - `getSdkMetadataForEnvelopeHeader()`
