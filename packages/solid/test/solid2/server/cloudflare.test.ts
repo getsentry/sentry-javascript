@@ -18,7 +18,14 @@ describe('defineCloudflareOptions', () => {
     const options = defineCloudflareOptions({ dsn: 'https://public@dsn.ingest.sentry.io/1337' })({});
 
     expect(options?.defaultIntegrations).toBeUndefined();
-    expect(setupIntegrationNames(options)).toEqual(expect.arrayContaining(['Dedupe', 'SolidServerErrors']));
+    expect(setupIntegrationNames(options)).toEqual(
+      expect.arrayContaining([
+        'Dedupe',
+        'SolidServerErrors',
+        'SolidServerTracePropagation',
+        'SolidServerTimingTraceHeader',
+      ]),
+    );
   });
 
   it('builds the defaults from options changed after the options are defined', () => {
