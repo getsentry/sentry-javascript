@@ -49,7 +49,8 @@
       {
         "build-command": "pnpm test:build-webpack",
         "label": "nextjs-16-cacheComponents (webpack)",
-        "assert-command": "pnpm test:assert-webpack"
+        "assert-command": "pnpm test:assert-webpack",
+        "test-shards": 2
       },
       {
         "build-command": "NEXT_PUBLIC_E2E_TEST_TRACE_LIFECYCLE=static pnpm test:build",
