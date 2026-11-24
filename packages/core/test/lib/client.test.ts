@@ -563,17 +563,29 @@ describe('Client', () => {
       expect(TestClient.instance!.event).toBeUndefined();
     });
 
-    test('(known limitation) replaces lastEventId with a sampled-out error ID when a session exists', () => {
-      // After a successfully sent error, a subsequent sampled-out error replaces lastEventId() even though that new ID has no corresponding event in Sentry.
-      // With a session, the `setLastEventId` call in `_prepareEvent` executes before the `sampleRate` check
+    test('does not set lastEventId when a sampled-out error cannot change the session', () => {
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
-      getCurrentScope().setSession(makeSession());
+      setCurrentClient(client);
+      getCurrentScope().setSession(makeSession({ status: 'crashed' }));
 
       client.captureException(new Error('sent exception'), { event_id: 'sent-event-id' });
       client.getOptions().sampleRate = 0;
       client.captureException(new Error('sampled-out exception'), { event_id: 'sampled-out-event-id' });
 
       expect(TestClient.instance!.event?.event_id).toBe('sent-event-id');
+      expect(lastEventId()).toBe('sent-event-id');
+    });
+
+    test('(known limitation) sets lastEventId to a sampled-out error ID when the error can change the session', () => {
+      // With a session that the error can change, the `setLastEventId` call in `_prepareEvent` executes before the
+      // error is dropped, even though that ID has no corresponding event in Sentry.
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 }));
+      setCurrentClient(client);
+      getCurrentScope().setSession(makeSession());
+
+      client.captureException(new Error('sampled-out exception'), { event_id: 'sampled-out-event-id' });
+
+      expect(TestClient.instance!.event).toBeUndefined();
       expect(lastEventId()).toBe('sampled-out-event-id');
     });
 
@@ -3803,6 +3815,64 @@ describe('Client', () => {
         expect(client.session?.errors).toBe(1);
         expect(client.session?.status).toBe('ok');
       });
+    });
+  });
+
+  describe('errors that are never sent', () => {
+    test('drops sampled-out errors before event processing when they cannot change the session', () => {
+      const beforeSend = vi.fn((event: ErrorEvent) => event);
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend, sampleRate: 0 }));
+      setCurrentClient(client);
+      const session = makeSession({ status: 'crashed' });
+      getCurrentScope().setSession(session);
+
+      client.captureException(new Error('sampled out'));
+
+      expect(beforeSend).not.toHaveBeenCalled();
+      expect(session.errors).toBe(0);
+      expect(client._clearOutcomes()).toEqual([{ reason: 'sample_rate', category: 'error', quantity: 1 }]);
+    });
+
+    test('counts a sampled-out message that the scope makes fatal in a session that already has an error', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      setCurrentClient(client);
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.captureException(new Error('sent'));
+      client.getOptions().sampleRate = 0;
+      getCurrentScope().setLevel('fatal');
+      client.captureMessage('sampled out');
+
+      expect(session.status).toBe('crashed');
+      expect(session.errors).toBe(1);
+    });
+
+    test('records a sampled-out error that an event processor drops as dropped by the event processor', () => {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 }));
+      setCurrentClient(client);
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+      client.addEventProcessor(() => null);
+
+      client.captureException(new Error('sampled out'));
+
+      expect(session.errors).toBe(0);
+      expect(client._clearOutcomes()).toEqual([{ reason: 'event_processor', category: 'error', quantity: 1 }]);
+    });
+
+    test('records a sampled-out error that `beforeSend` drops as dropped by `beforeSend`', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0, beforeSend: () => null }),
+      );
+      setCurrentClient(client);
+      const session = makeSession();
+      getCurrentScope().setSession(session);
+
+      client.captureException(new Error('sampled out'));
+
+      expect(session.errors).toBe(0);
+      expect(client._clearOutcomes()).toEqual([{ reason: 'before_send', category: 'error', quantity: 1 }]);
     });
   });
 

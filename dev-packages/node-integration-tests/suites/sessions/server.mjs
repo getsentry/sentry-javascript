@@ -32,4 +32,13 @@ app.get('/test/error_handled', (_req, res) => {
   res.send('Crash!');
 });
 
+app.get('/test/error_ignored', () => {
+  throw new Error('Ignored!');
+});
+
+app.get('/test/error_dropped', (_req, res) => {
+  Sentry.captureException(new Error('Dropped!'));
+  res.send('Dropped!');
+});
+
 startExpressServerAndSendPortToRunner(app);

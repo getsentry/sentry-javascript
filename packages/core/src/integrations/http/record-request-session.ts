@@ -65,11 +65,7 @@ export function startRequestSession(
   client.emit('startRequestSession');
 
   let ended = false;
-  return () => {
-    if (ended) {
-      return;
-    }
-    ended = true;
+  const record = (sendNow: boolean): void => {
     const requestSession = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession;
 
     if (client && requestSession) {
@@ -78,10 +74,19 @@ export function startRequestSession(
       const roundedDate = new Date(safeDateNow());
       roundedDate.setSeconds(0, 0);
       const dateBucketKey = roundedDate.toISOString();
+      const statusKey = ({ ok: 'exited', crashed: 'crashed', errored: 'errored' } as const)[requestSession.status];
+
+      if (sendNow) {
+        DEBUG_BUILD && debug.log('Sending request session that settled during a client flush');
+        client.sendSession({
+          aggregates: [{ started: dateBucketKey, exited: 0, errored: 0, crashed: 0, [statusKey]: 1 }],
+        });
+        return;
+      }
 
       const existingClientAggregate = clientToRequestSessionAggregatesMap.get(client);
       const bucket = existingClientAggregate?.[dateBucketKey] || { exited: 0, crashed: 0, errored: 0 };
-      bucket[({ ok: 'exited', crashed: 'crashed', errored: 'errored' } as const)[requestSession.status]]++;
+      bucket[statusKey]++;
 
       if (existingClientAggregate) {
         existingClientAggregate[dateBucketKey] = bucket;
@@ -117,5 +122,31 @@ export function startRequestSession(
         safeUnref(timeout);
       }
     }
+  };
+
+  return () => {
+    if (ended) {
+      return;
+    }
+    ended = true;
+
+    // The event pipeline decides whether an error counts towards the session, and it can still run after the
+    // response ended (e.g. async event processors), so the status is final only once those errors settle.
+    const pendingErrors = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession?.pendingErrors;
+    if (!pendingErrors?.size) {
+      record(false);
+      return;
+    }
+
+    // A flush that starts while the errors settle waits for them, but its `flush` hook runs before this session
+    // is recorded. Such a session is sent at once, so that the flush includes it.
+    let isFlushing = false;
+    const unregisterFlushHook = client.on('flush', () => {
+      isFlushing = true;
+    });
+    void Promise.allSettled(pendingErrors).then(() => {
+      unregisterFlushHook();
+      record(isFlushing);
+    });
   };
 }

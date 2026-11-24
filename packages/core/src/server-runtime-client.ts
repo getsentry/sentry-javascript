@@ -1,6 +1,6 @@
 import { SERVER_ADDRESS } from '@sentry/conventions/attributes';
 import { createCheckInEnvelope } from './checkin';
-import { Client } from './client';
+import { _makeDoNotSendEventError, Client, isExceptionEvent } from './client';
 import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import {
@@ -18,11 +18,20 @@ import type { SeverityLevel } from './types/severity';
 import type { BaseTransportOptions, Transport } from './types/transport';
 import { debug } from './utils/debug-logger';
 import { eventFromMessage, eventFromUnknownInput } from './utils/eventbuilder';
-import { uuid4 } from './utils/misc';
+import { isMarkedDuplicate, setDedupeContext } from './utils/dedupeContext';
+import { hasUnhandledException, isAlreadyCaptured, uuid4 } from './utils/misc';
+import {
+  addPendingRequestSessionError,
+  crashRequestSessionIfErrored,
+  getRequestSession,
+  setRequestSessionErroredOrCrashed,
+} from './utils/requestSession';
 import { makePromiseBuffer } from './utils/promisebuffer';
-import { resolvedSyncPromise } from './utils/syncpromise';
+import { rejectedSyncPromise, resolvedSyncPromise } from './utils/syncpromise';
 import { _getTraceInfoFromScope } from './utils/trace-info';
 import { applyServerTunnelDefaults } from './utils/tunnelDefaults';
+
+const DUPLICATE_EVENT_ERROR = 'Event is a duplicate of the previously captured event, will not send event.';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -39,6 +48,9 @@ export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
 > extends Client<O> {
   private _disposeCallbacks: (() => void)[] = [];
+
+  /** Number of errors that are never sent, but run through event processing to update sessions. */
+  private _numCountingWithoutSlot = 0;
 
   /**
    * Creates a new Edge SDK instance.
@@ -91,7 +103,9 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public captureException(exception: unknown, hint?: EventHint, scope?: Scope): string {
-    setCurrentRequestSessionErroredOrCrashed(hint);
+    if (isAlreadyCaptured(exception)) {
+      onAlreadyCapturedError(hint);
+    }
     return super.captureException(exception, hint, scope);
   }
 
@@ -99,13 +113,120 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string {
-    // If the event is of type Exception, then a request session should be captured
-    const isException = !event.type && event.exception?.values && event.exception.values.length > 0;
-    if (isException) {
-      setCurrentRequestSessionErroredOrCrashed(hint);
+    if (isExceptionEvent(event) && isAlreadyCaptured(hint?.originalException)) {
+      onAlreadyCapturedError(hint);
+    }
+    return super.captureEvent(event, hint, scope);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected override _processEvent(
+    event: Event,
+    hint: EventHint,
+    currentScope: Scope,
+    isolationScope: Scope,
+  ): PromiseLike<Event> {
+    if (!isExceptionEvent(event)) {
+      return super._processEvent(event, hint, currentScope, isolationScope);
     }
 
-    return super.captureEvent(event, hint, scope);
+    const canCountDuplicate =
+      this._canCountWithoutSlot() && this._canErrorChangeSessions(event, hint, currentScope, isolationScope);
+    setDedupeContext(
+      hint,
+      canCountDuplicate ? { mode: 'mark', isolationScope, isDuplicate: false } : { mode: 'drop', isolationScope },
+    );
+    const processedEvent = super._processEvent(event, hint, currentScope, isolationScope);
+    addPendingRequestSessionError(isolationScope, processedEvent);
+    return processedEvent;
+  }
+
+  /**
+   * Hands a duplicate that Dedupe marked over to {@link ServerRuntimeClient._countWithoutSlot}.
+   */
+  protected override _applyFilters(
+    event: Event,
+    hint: EventHint,
+    currentScope: Scope,
+    isolationScope: Scope,
+  ): PromiseLike<Event> {
+    const filtered = super._applyFilters(event, hint, currentScope, isolationScope);
+    const countDuplicate = (processedEvent: Event): void => {
+      this._updateSessions(processedEvent, currentScope, isolationScope);
+      this.recordDroppedEvent('event_processor', 'error');
+    };
+
+    // The event processors before Dedupe are usually synchronous, so most duplicates are known here.
+    if (isMarkedDuplicate(hint)) {
+      this._countWithoutSlot(filtered.then(countDuplicate), isolationScope);
+      return rejectedSyncPromise(_makeDoNotSendEventError(DUPLICATE_EVENT_ERROR));
+    }
+
+    return filtered.then(processedEvent => {
+      // Dedupe ran after an asynchronous event processor.
+      if (isMarkedDuplicate(hint)) {
+        countDuplicate(processedEvent);
+        throw _makeDoNotSendEventError(DUPLICATE_EVENT_ERROR);
+      }
+      return processedEvent;
+    });
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected override _countSampledOutError(
+    event: Event,
+    hint: EventHint,
+    currentScope: Scope,
+    isolationScope: Scope,
+  ): PromiseLike<void> {
+    if (this._canCountWithoutSlot()) {
+      this._countWithoutSlot(super._countSampledOutError(event, hint, currentScope, isolationScope), isolationScope);
+    } else {
+      this.recordDroppedEvent('sample_rate', 'error');
+    }
+    return resolvedSyncPromise();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected override _canErrorChangeSessions(
+    event: Event,
+    hint: EventHint,
+    currentScope: Scope,
+    isolationScope: Scope,
+  ): boolean {
+    if (super._canErrorChangeSessions(event, hint, currentScope, isolationScope)) {
+      return true;
+    }
+    if (!isExceptionEvent(event)) {
+      return false;
+    }
+
+    const requestSessionStatus = getRequestSession(isolationScope)?.status;
+    return requestSessionStatus === 'ok' || (requestSessionStatus === 'errored' && hasUnhandledException(event, hint));
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected override _updateSessions(event: Event, currentScope: Scope, isolationScope: Scope): void {
+    super._updateSessions(event, currentScope, isolationScope);
+    if (isExceptionEvent(event)) {
+      setRequestSessionErroredOrCrashed(isolationScope, hasUnhandledException(event));
+    }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  protected override _onQueueOverflow(hint: EventHint): void {
+    // Without the event pipeline, filters cannot drop the error, so it counts.
+    setRequestSessionErroredOrCrashed(getIsolationScope(), hint.mechanism?.handled === false);
   }
 
   /**
@@ -243,6 +364,29 @@ export class ServerRuntimeClient<
   }
 
   /**
+   * Whether an error that is never sent can still run event processing to update sessions. The limit keeps that
+   * work bounded in an error storm.
+   */
+  private _canCountWithoutSlot(): boolean {
+    return this._numCountingWithoutSlot < (this._options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
+  }
+
+  /**
+   * Tracks the session update of an error that is never sent. It runs outside of the promise buffer, so that it
+   * never takes a slot from an error that is sent.
+   */
+  private _countWithoutSlot(counting: PromiseLike<void>, isolationScope: Scope): void {
+    this._numProcessing++;
+    this._numCountingWithoutSlot++;
+    const settle = (): void => {
+      this._numProcessing--;
+      this._numCountingWithoutSlot--;
+    };
+    counting.then(settle, settle);
+    addPendingRequestSessionError(isolationScope, counting);
+  }
+
+  /**
    * Process a server-side metric before it is captured.
    */
   private _setUpMetricsProcessing(): void {
@@ -257,19 +401,12 @@ export class ServerRuntimeClient<
   }
 }
 
-function setCurrentRequestSessionErroredOrCrashed(eventHint?: EventHint): void {
-  const requestSession = getIsolationScope().getScopeData().sdkProcessingMetadata.requestSession;
-  if (requestSession) {
-    // We mutate instead of doing `setSdkProcessingMetadata` because the http integration stores away a particular
-    // isolationScope. If that isolation scope is forked, setting the processing metadata here will not mutate the
-    // original isolation scope that the http integration stored away.
-    const isHandledException = eventHint?.mechanism?.handled ?? true;
-    // A request session can go from "errored" -> "crashed" but not "crashed" -> "errored".
-    // Crashed (unhandled exception) is worse than errored (handled exception).
-    if (isHandledException && requestSession.status !== 'crashed') {
-      requestSession.status = 'errored';
-    } else if (!isHandledException) {
-      requestSession.status = 'crashed';
-    }
+/**
+ * An unhandled error that was captured before, e.g. captured as handled, then rethrown and captured again by a
+ * framework error handler, crashes the request session if the first capture counted.
+ */
+function onAlreadyCapturedError(hint: EventHint | undefined): void {
+  if (hint?.mechanism?.handled === false) {
+    crashRequestSessionIfErrored(getIsolationScope());
   }
 }
