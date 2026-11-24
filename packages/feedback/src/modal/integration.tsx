@@ -4,7 +4,7 @@ import { h, render } from 'preact';
 import * as hooks from 'preact/hooks';
 import { DOCUMENT } from '../constants';
 import { Dialog } from './components/Dialog';
-import { createDialogStyles } from './components/Dialog.css';
+import { createDialogStyles } from './components/Dialog.styles';
 
 function getUser(): User | undefined {
   const currentUser = getCurrentScope().getUser();
