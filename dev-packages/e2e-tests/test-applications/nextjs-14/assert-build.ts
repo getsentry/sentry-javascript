@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as assert from 'assert/strict';
-import { findSourceMapFiles } from '@sentry-internal/test-utils';
+import { findSourceMapFiles, findSourceMappingUrlComments } from '@sentry-internal/test-utils';
 
 const buildStdout = fs.readFileSync('.tmp_build_stdout', 'utf-8');
 const buildStderr = fs.readFileSync('.tmp_build_stderr', 'utf-8');
@@ -24,4 +24,12 @@ assert.deepEqual(
   findSourceMapFiles({ outputDir: path.join('.next', 'static') }),
   [],
   'Client bundle .map files found even though `sourcemaps.deleteSourcemapsAfterUpload` option is set!',
+);
+assert.deepEqual(
+  findSourceMappingUrlComments({
+    outputDir: path.join('.next', 'static'),
+    extensions: ['.js', '.mjs', '.cjs', '.css'],
+  }),
+  [],
+  'Client bundles reference source maps even though `sourcemaps.deleteSourcemapsAfterUpload` option is set!',
 );

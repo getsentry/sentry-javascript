@@ -1,4 +1,4 @@
-import { debug, escapeStringForRegex } from '@sentry/core';
+import { debug, escapeStringForRegex, resolveSourceMapsFeatures } from '@sentry/core';
 import * as path from 'path';
 import {
   getOrchestrionLoaderPath,
@@ -49,7 +49,7 @@ export function constructTurbopackConfig({
   // If sourcemaps are disabled, we don't need to enable native debug ids as this will add build time.
   const shouldEnableNativeDebugIds =
     (supportsNativeDebugIds(nextJsVersion ?? '') && userNextConfig?.turbopack?.debugIds) ??
-    userSentryOptions?.sourcemaps?.disable !== true;
+    resolveSourceMapsFeatures(userSentryOptions?.sourcemaps).injectDebugIds;
 
   const newConfig: TurbopackOptions = {
     ...userNextConfig.turbopack,

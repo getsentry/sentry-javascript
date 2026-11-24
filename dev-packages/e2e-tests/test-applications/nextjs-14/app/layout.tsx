@@ -1,3 +1,4 @@
+import './globals.css';
 import Link from 'next/link';
 import { SpanContextProvider } from '../components/span-context';
 

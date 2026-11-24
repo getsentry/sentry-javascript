@@ -1,7 +1,12 @@
-import type { Options as SentryBuildPluginOptions } from '@sentry/bundler-plugins/core';
+import type { InternalOptions as SentryBuildPluginOptions } from '@sentry/bundler-plugins/core';
 import * as fs from 'fs';
 import * as path from 'path';
 import { getBuildLogger } from './buildLogger';
+import {
+  getDeleteSourceMapsOption,
+  getSourceMapFeatureOptions,
+  mergeFilesToDeleteAfterUpload,
+} from './sourceMapOptions';
 import type { SentryBuildOptions } from './types';
 
 const LOGGER_PREFIXES = {
@@ -179,30 +184,39 @@ function createSourcemapUploadIgnorePattern(
 }
 
 /**
- * Creates file patterns for deletion after source map upload
+ * Creates file patterns for deletion after the source map upload that runs after the production compile.
+ * The webpack plugin removes the maps of webpack builds itself (see `deleteSourcemapsAfterUpload`).
  */
 function createFilesToDeleteAfterUploadPattern(
   normalizedDistPath: string,
   buildTool: BuildTool,
   deleteSourcemapsAfterUpload: boolean,
-  useRunAfterProductionCompileHook: boolean = false,
 ): string[] | undefined {
-  if (!deleteSourcemapsAfterUpload) {
-    return undefined;
-  }
-
-  // We don't want to delete source maps for server builds as this led to errors on Vercel in the past
-  // See: https://github.com/getsentry/sentry-javascript/issues/13099
-  if (buildTool === 'webpack-nodejs' || buildTool === 'webpack-edge') {
-    return undefined;
-  }
-
-  // Skip deletion for webpack client builds when using the experimental hook
-  if (buildTool === 'webpack-client' && useRunAfterProductionCompileHook) {
+  if (!deleteSourcemapsAfterUpload || !buildTool.startsWith('after-production-compile')) {
     return undefined;
   }
 
   return SOURCEMAP_EXTENSIONS.map(ext => path.posix.join(normalizedDistPath, 'static', '**', ext));
+}
+
+/**
+ * Whether the webpack plugin removes the source maps of this compiler from the build output.
+ */
+function shouldWebpackPluginDeleteSourcemaps(
+  buildTool: BuildTool,
+  deleteSourcemapsAfterUpload: boolean,
+  userFilesToDeleteAfterUpload: string | string[] | undefined,
+  useRunAfterProductionCompileHook: boolean = false,
+): boolean {
+  // We don't want to delete source maps for server builds as this led to errors on Vercel in the past
+  // See: https://github.com/getsentry/sentry-javascript/issues/13099
+  // With the hook, the upload runs after the compile and must still find the maps.
+  return (
+    buildTool === 'webpack-client' &&
+    !useRunAfterProductionCompileHook &&
+    userFilesToDeleteAfterUpload === undefined &&
+    deleteSourcemapsAfterUpload
+  );
 }
 
 /**
@@ -287,7 +301,10 @@ export function getBuildPluginOptions({
   const normalizedDistDirAbsPath = normalizePathForGlob(distDirAbsPath);
   const loggerPrefix = LOGGER_PREFIXES[buildTool];
   const widenClientFileUpload = sentryBuildOptions.widenClientFileUpload ?? false;
-  const deleteSourcemapsAfterUpload = sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload ?? false;
+  const userSourcemaps = sentryBuildOptions.sourcemaps;
+  const deleteSourcemapsAfterUpload = getDeleteSourceMapsOption(userSourcemaps) ?? false;
+  // `sourcemaps.delete: true` removes the source maps next to the user's `filesToDeleteAfterUpload`.
+  const userFilesReplaceDeletion = userSourcemaps?.delete !== true;
 
   const sourcemapUploadAssets = createSourcemapUploadAssetPatterns(
     normalizedDistDirAbsPath,
@@ -301,26 +318,29 @@ export function getBuildPluginOptions({
 
   const userFilesToDeleteAfterUpload = sentryBuildOptions.sourcemaps?.filesToDeleteAfterUpload;
 
-  if (sentryBuildOptions.debug && userFilesToDeleteAfterUpload !== undefined) {
+  if (sentryBuildOptions.debug && userFilesToDeleteAfterUpload !== undefined && userFilesReplaceDeletion) {
     logger.debug(
       '[@sentry/nextjs] Skipping auto-deletion of source maps as user has provided filesToDeleteAfterUpload:',
       userFilesToDeleteAfterUpload,
     );
   }
 
-  const filesToDeleteAfterUpload =
-    userFilesToDeleteAfterUpload !== undefined
-      ? Array.isArray(userFilesToDeleteAfterUpload)
-        ? userFilesToDeleteAfterUpload
-        : [userFilesToDeleteAfterUpload]
-      : createFilesToDeleteAfterUploadPattern(
-          normalizedDistDirAbsPath,
-          buildTool,
-          deleteSourcemapsAfterUpload,
-          useRunAfterProductionCompileHook,
-        );
+  const filesToDeleteAfterUpload = mergeFilesToDeleteAfterUpload(
+    createFilesToDeleteAfterUploadPattern(normalizedDistDirAbsPath, buildTool, deleteSourcemapsAfterUpload),
+    userFilesToDeleteAfterUpload,
+    userFilesReplaceDeletion,
+  );
 
   const skipSourcemapsUpload = shouldSkipSourcemapUpload(buildTool, useRunAfterProductionCompileHook);
+
+  const webpackPluginDeletesSourcemaps = buildTool.startsWith('webpack')
+    ? shouldWebpackPluginDeleteSourcemaps(
+        buildTool,
+        deleteSourcemapsAfterUpload,
+        userFilesReplaceDeletion ? userFilesToDeleteAfterUpload : undefined,
+        useRunAfterProductionCompileHook,
+      )
+    : undefined;
 
   return {
     // Only the browser reads these tags (`thirdPartyErrorFilterIntegration`), so server bundles skip the per-module cost.
@@ -343,11 +363,16 @@ export function getBuildPluginOptions({
     silent: sentryBuildOptions.silent,
     url: sentryBuildOptions.sentryUrl,
     sourcemaps: {
-      disable: skipSourcemapsUpload ? true : (sentryBuildOptions.sourcemaps?.disable ?? false),
+      ...getSourceMapFeatureOptions(userSourcemaps, skipSourcemapsUpload),
+      // `sourcemaps.delete` does not reach the plugin, which would also remove the server source maps.
       rewriteSources: sentryBuildOptions.sourcemaps?.rewriteSources ?? rewriteWebpackSources,
       assets: sentryBuildOptions.sourcemaps?.assets ?? sourcemapUploadAssets,
       ignore: finalIgnorePatterns,
       filesToDeleteAfterUpload,
+      deleteSourcemapsAfterUpload: webpackPluginDeletesSourcemaps,
+      // Every client map goes, also those the user turned on with `productionBrowserSourceMaps` or
+      // `devtool`, and those of chunks the upload leaves out.
+      sdkEnabledSourceMaps: webpackPluginDeletesSourcemaps,
       resolveSourceMap: sentryBuildOptions.sourcemaps?.resolveSourceMap,
     },
     release: createReleaseConfig(releaseName, sentryBuildOptions),
