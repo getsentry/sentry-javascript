@@ -1,3 +1,4 @@
+import * as SentryCore from '@sentry/core';
 import { describe, expect, it, type Mocked, vi } from 'vitest';
 import { instrumentContext } from '../src/utils/instrumentContext';
 
@@ -97,7 +98,32 @@ describe('instrumentContext', () => {
       expect(instrumented.originalStorage).toBeUndefined();
     });
   });
+
+  it('adds trace headers to fetch calls on an entrypoint called with props through exports', async () => {
+    vi.spyOn(SentryCore, '_INTERNAL_getTracingHeadersForFetchRequest').mockReturnValue({
+      'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+    });
+    const fetch = vi.fn().mockResolvedValue(new Response('ok'));
+    const entrypoint = createRpcStub(vi.fn((_options: { props: { id: number } }) => createRpcStub({ fetch })));
+    const context = { ...makeExecutionContextMock(), exports: { Entrypoint: entrypoint } };
+    const instrumented = instrumentContext(context);
+
+    await instrumented.exports.Entrypoint({ props: { id: 1 } }).fetch('https://loopback/');
+
+    expect(entrypoint).toHaveBeenCalledWith({ props: { id: 1 } });
+    expect(fetch).toHaveBeenCalledWith('https://loopback/', {
+      headers: { 'sentry-trace': '12345678901234567890123456789012-1234567890123456-1' },
+    });
+    expect(context.exports.Entrypoint).toBe(entrypoint);
+  });
 });
+
+/** An RPC stub returns a value for every property name, as workerd's RPC stubs do. */
+function createRpcStub<T extends object>(target: T): T {
+  return new Proxy(target, {
+    get: (stub, prop) => (prop in stub ? Reflect.get(stub, prop) : () => {}),
+  });
+}
 
 function makeExecutionContextMock<T extends ExecutionContext>() {
   return {

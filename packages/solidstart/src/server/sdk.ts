@@ -1,6 +1,6 @@
 import { URL_PATH } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
-import { applySdkMetadata } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { init as initNodeSdk } from '@sentry/node';
 
@@ -15,7 +15,7 @@ const BUILD_ASSET_REQUEST_FILTER = { op: HTTP_SERVER, attributes: { [URL_PATH]: 
  */
 export function init(options: NodeOptions): NodeClient | undefined {
   const opts = {
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
     ignoreSpans: [...(options.ignoreSpans || []), BUILD_ASSET_REQUEST_FILTER],
   };
 

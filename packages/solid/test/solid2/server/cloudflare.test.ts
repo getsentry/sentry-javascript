@@ -57,6 +57,17 @@ describe('defineCloudflareOptions', () => {
     expect(setupIntegrationNames(options).filter(name => name === 'SolidServerErrors')).toHaveLength(1);
   });
 
+  it('does not report the Solid integrations as set by the user', () => {
+    const fromArray = defineCloudflareOptions({ integrations: [{ name: 'Custom' }] })({});
+    const fromCallback = defineCloudflareOptions({
+      integrations: defaults => [...defaults, { name: 'Custom' }],
+    })({});
+    setupIntegrationNames(fromCallback);
+
+    expect(fromArray?._metadata?.integrationsSetByUser).toEqual(['Custom']);
+    expect(fromCallback?._metadata?.integrationsSetByUser).toEqual(['Custom']);
+  });
+
   it('passes the env to an options callback', () => {
     const options = defineCloudflareOptions((env: { SENTRY_DSN: string }) => ({ dsn: env.SENTRY_DSN }))({
       SENTRY_DSN: 'https://public@dsn.ingest.sentry.io/1337',

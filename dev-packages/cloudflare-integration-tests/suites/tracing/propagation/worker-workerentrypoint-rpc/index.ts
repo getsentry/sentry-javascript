@@ -27,6 +27,17 @@ export const LoopbackEntrypoint = Sentry.withSentry(
   LoopbackEntrypointBase,
 );
 
+class LoopbackFetchEntrypointBase extends WorkerEntrypoint<Env, { greeting: string }> {
+  fetch(): Response {
+    return new Response(`${this.ctx.props.greeting} from the loopback entrypoint`);
+  }
+}
+
+export const LoopbackFetchEntrypoint = Sentry.withSentry(
+  (env: Env) => ({ dsn: env.SENTRY_DSN, tracesSampleRate: 1.0 }),
+  LoopbackFetchEntrypointBase,
+);
+
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
@@ -73,6 +84,16 @@ export default Sentry.withSentry(
       if (url.pathname === '/call-entrypoint-rpc-no-propagation') {
         const result = await env.SUB_WORKER_NO_PROPAGATION.get('no-prop-key');
         return Response.json(result);
+      }
+
+      if (url.pathname === '/call-loopback-fetch') {
+        const loopback = (
+          ctx as unknown as {
+            exports: { LoopbackFetchEntrypoint(options: { props: { greeting: string } }): Fetcher };
+          }
+        ).exports.LoopbackFetchEntrypoint({ props: { greeting: 'Hello' } });
+        const response = await loopback.fetch(new Request('http://fake-host/loopback'));
+        return new Response(await response.text());
       }
 
       if (url.pathname === '/call-loopback-rpc-error') {

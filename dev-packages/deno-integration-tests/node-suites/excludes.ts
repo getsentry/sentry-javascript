@@ -101,16 +101,6 @@ const NO_CLIENT_REPORTS = [
   'suites/tracing/sampling/test.ts',
 ];
 
-// The stack frames of `@sentry/deno` have no `module`, and some have other `function` names. Their
-// `post_context` also ends with an extra empty line, and in CommonJS scenarios the line numbers can
-// be off.
-const STACK_FRAMES_DIFFER = [
-  'suites/contextLines/filename-with-spaces/test.ts',
-  'suites/public-api/captureException/catched-error/test.ts',
-  'suites/tracing/postgresjs-tracing-channel/test.ts',
-  'suites/tracing/postgresjs/test.ts',
-];
-
 export const NODE_SUITES_EXCLUDE = [
   '**/node_modules/**',
   ...NODE_ONLY,
@@ -122,5 +112,4 @@ export const NODE_SUITES_EXCLUDE = [
   ...NO_NODE_DEFAULT_INTEGRATION,
   ...GLOBAL_HANDLERS_DIFFER,
   ...NO_CLIENT_REPORTS,
-  ...STACK_FRAMES_DIFFER,
 ];

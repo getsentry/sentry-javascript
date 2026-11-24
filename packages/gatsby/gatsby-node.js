@@ -1,27 +1,40 @@
 const fs = require('fs');
 
 const { sentryWebpackPlugin } = require('@sentry/bundler-plugins/webpack');
+const { resolveSourceMapsFeatures } = require('@sentry/core');
 
 const SENTRY_USER_CONFIG = ['./sentry.config.js', './sentry.config.ts'];
 
-exports.onCreateWebpackConfig = ({ getConfig, actions }, options) => {
+exports.onCreateWebpackConfig = ({ getConfig, actions, stage }, options) => {
   const enableClientWebpackPlugin = options.enableClientWebpackPlugin !== false;
   if (process.env.NODE_ENV === 'production' && enableClientWebpackPlugin) {
     const prevSourceMapSetting = getConfig() && 'devtool' in getConfig() ? getConfig().devtool : undefined;
+    const { injectDebugIds, upload } = resolveSourceMapsFeatures(options.sourcemaps);
+    // `sourcemaps.delete` replaces the flat `deleteSourcemapsAfterUpload`.
+    const deleteOption = options.sourcemaps?.delete ?? options.deleteSourcemapsAfterUpload;
+    // Sentry turns source maps on to upload them, or when `sourcemaps.delete: false` keeps them for a manual upload.
     const shouldAutomaticallyEnableSourceMaps =
-      prevSourceMapSetting !== 'source-map' && prevSourceMapSetting !== 'hidden-source-map';
+      prevSourceMapSetting !== 'source-map' &&
+      prevSourceMapSetting !== 'hidden-source-map' &&
+      (upload || (options.sourcemaps?.delete === false && injectDebugIds));
+
+    // Gatsby reads the `build-html` maps in `.cache` to map HTML render errors. The plugin does not
+    // get `sourcemaps.delete` itself, because it would also remove those.
+    const deleteSourcemapsAfterUpload =
+      stage === 'build-javascript' && (deleteOption || (deleteOption !== false && shouldAutomaticallyEnableSourceMaps))
+        ? true
+        : undefined;
 
     if (shouldAutomaticallyEnableSourceMaps) {
       // eslint-disable-next-line no-console
       console.log(
-        '[Sentry] Automatically enabling source map generation by setting `devtool: "hidden-source-map"`. Those source maps will be deleted after they were uploaded to Sentry',
+        `[Sentry] Automatically enabling source map generation by setting \`devtool: "hidden-source-map"\`. ${
+          deleteSourcemapsAfterUpload
+            ? 'Those source maps will be deleted after they were uploaded to Sentry'
+            : 'Those source maps stay in the build output'
+        }`,
       );
     }
-
-    // Delete source maps per default or when this is explicitly set to `true` (`deleteSourceMapsAfterUpload: true` can override the default behavior)
-    const deleteSourcemapsAfterUpload =
-      options.deleteSourcemapsAfterUpload ||
-      (options.deleteSourcemapsAfterUpload !== false && shouldAutomaticallyEnableSourceMaps);
 
     actions.setWebpackConfig({
       devtool: shouldAutomaticallyEnableSourceMaps ? 'hidden-source-map' : prevSourceMapSetting,
@@ -30,8 +43,11 @@ exports.onCreateWebpackConfig = ({ getConfig, actions }, options) => {
           sourcemaps: {
             // Only include files from the build output directory
             assets: ['./public/**'],
-            // Delete source files after uploading
-            filesToDeleteAfterUpload: deleteSourcemapsAfterUpload ? ['./public/**/*.map'] : undefined,
+            upload: options.sourcemaps?.upload,
+            injectDebugIds: options.sourcemaps?.injectDebugIds,
+            deleteSourcemapsAfterUpload,
+            // Also removes CSS maps and maps of chunks that are not uploaded.
+            sdkEnabledSourceMaps: deleteSourcemapsAfterUpload,
             // Ignore files that aren't users' source code related
             ignore: [
               'polyfill-*', // related to polyfills

@@ -1,3 +1,4 @@
+import { _INTERNAL_captureOptionsSetByUser } from '@sentry/core';
 import { initBaseSdk } from './baseSdk';
 import type { CloudflareClient, CloudflareOptions } from './client';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
@@ -11,7 +12,9 @@ export { getDefaultIntegrations } from './baseSdk';
 /**
  * Initializes the cloudflare SDK.
  */
-export function init(options: CloudflareOptions): CloudflareClient | undefined {
+export function init(userOptions: CloudflareOptions): CloudflareClient | undefined {
+  const options = _INTERNAL_captureOptionsSetByUser(userOptions);
+
   // Like most Node-based SDKs, Cloudflare defaults to running without a Sentry OpenTelemetry tracer
   // provider. Scope isolation is handled by the entrypoint wrappers' AsyncLocalStorage strategy.
   options.enableOpenTelemetrySetup ??= false;

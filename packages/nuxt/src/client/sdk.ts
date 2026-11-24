@@ -1,6 +1,11 @@
 import { getDefaultIntegrations as getBrowserDefaultIntegrations, init as initBrowser } from '@sentry/browser';
 import type { Client } from '@sentry/core';
-import { applySdkMetadata, DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from '@sentry/core';
+import {
+  _INTERNAL_captureOptionsSetByUser,
+  applySdkMetadata,
+  DEFAULT_ENVIRONMENT,
+  DEV_ENVIRONMENT,
+} from '@sentry/core';
 import { applyNuxtTunnelBasePath } from '../common/tunnel';
 import type { SentryNuxtClientOptions } from '../common/types';
 
@@ -15,7 +20,7 @@ export function init(options: SentryNuxtClientOptions): Client | undefined {
     /* BrowserTracing is added later with the Nuxt client plugin */
     defaultIntegrations: [...getBrowserDefaultIntegrations(options)],
     environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
   };
 
   applyNuxtTunnelBasePath(sentryOptions);

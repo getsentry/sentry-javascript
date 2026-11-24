@@ -1,6 +1,6 @@
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
-import { applySdkMetadata, debug, getClient } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata, debug, getClient } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { init as initNodeSdk } from '@sentry/node';
 import { isDeno } from '@sentry/server-utils';
@@ -30,7 +30,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   }
 
   const opts = {
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
   };
 
   applySdkMetadata(opts, 'astro', ['astro', 'node']);

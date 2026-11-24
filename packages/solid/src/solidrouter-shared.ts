@@ -18,7 +18,13 @@ import {
 } from '@sentry/conventions/attributes';
 import { NAVIGATION } from '@sentry/conventions/op';
 import type { Integration } from '@sentry/core';
-import { filterCollectedUrl, getClient, hasSpanStreamingEnabled, NAVIGATION_SPAN_NAME_FALLBACK } from '@sentry/core';
+import {
+  defineIntegration,
+  filterCollectedUrl,
+  getClient,
+  hasSpanStreamingEnabled,
+  NAVIGATION_SPAN_NAME_FALLBACK,
+} from '@sentry/core';
 import type { Client } from '@sentry/core';
 
 /** The parts of a Solid Router location the span updates read. Shared by Solid Router 1 and 2. */
@@ -150,10 +156,7 @@ export function createRouterSpanUpdater(): {
   };
 }
 
-/**
- * A browser tracing integration that uses Solid Router to instrument navigations.
- */
-export function solidRouterBrowserTracingIntegration(
+function _solidRouterBrowserTracingIntegration(
   options: Parameters<typeof browserTracingIntegration>[0] = {},
 ): Integration {
   const integration = browserTracingIntegration({
@@ -174,3 +177,10 @@ export function solidRouterBrowserTracingIntegration(
     },
   };
 }
+
+/**
+ * A browser tracing integration that uses Solid Router to instrument navigations.
+ */
+export const solidRouterBrowserTracingIntegration: typeof _solidRouterBrowserTracingIntegration = defineIntegration(
+  _solidRouterBrowserTracingIntegration,
+);

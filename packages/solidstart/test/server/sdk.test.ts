@@ -20,6 +20,7 @@ describe('Initialize Solid Start SDK', () => {
 
     const expectedMetadata = {
       _metadata: {
+        optionsSetByUser: ['dsn'],
         sdk: {
           name: 'sentry.javascript.solidstart',
           packages: [

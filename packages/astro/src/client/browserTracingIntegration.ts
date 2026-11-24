@@ -4,7 +4,7 @@ import {
   WINDOW,
 } from '@sentry/browser';
 import type { Client, Integration, TransactionSource } from '@sentry/core';
-import { debug, hasSpanStreamingEnabled, PAGELOAD_SPAN_NAME_FALLBACK } from '@sentry/core';
+import { defineIntegration, debug, hasSpanStreamingEnabled, PAGELOAD_SPAN_NAME_FALLBACK } from '@sentry/core';
 import { _INTERNAL_withCacheOrigin } from '@sentry/core/browser';
 import { DEBUG_BUILD } from '../debug-build';
 import { SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
@@ -18,10 +18,7 @@ function getMetaContent(metaName: string): string | undefined {
   return metaTag?.getAttribute('content') || undefined;
 }
 
-/**
- * A custom browser tracing integrations for Astro.
- */
-export function browserTracingIntegration(
+function _browserTracingIntegration(
   options: Parameters<typeof originalBrowserTracingIntegration>[0] = {},
 ): Integration {
   const integration = originalBrowserTracingIntegration({ ...options, instrumentPageLoad: false });
@@ -55,6 +52,12 @@ export function browserTracingIntegration(
     },
   };
 }
+
+/**
+ * A custom browser tracing integrations for Astro.
+ */
+export const browserTracingIntegration: typeof _browserTracingIntegration =
+  defineIntegration(_browserTracingIntegration);
 
 function getPageloadSpanName(client: Client): { name: string; source: TransactionSource } {
   try {

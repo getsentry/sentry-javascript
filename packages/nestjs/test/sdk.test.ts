@@ -18,6 +18,7 @@ describe('Initialize Nest SDK', () => {
 
     const expectedMetadata = {
       _metadata: {
+        optionsSetByUser: ['dsn'],
         sdk: {
           name: 'sentry.javascript.nestjs',
           packages: [

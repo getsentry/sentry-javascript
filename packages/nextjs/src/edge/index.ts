@@ -2,6 +2,7 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import {
+  _INTERNAL_captureOptionsSetByUser,
   applySdkMetadata,
   debug,
   getGlobalScope,
@@ -107,7 +108,7 @@ export function init(options: VercelEdgeOptions = {}): void {
     defaultIntegrations: customDefaultIntegrations,
     environment: options.environment || process.env.SENTRY_ENVIRONMENT,
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
     // Override runtime to 'cloudflare' when running on OpenNext/Cloudflare
     ...(isRunningOnCloudflare && { runtime: { name: 'cloudflare' } }),
   };
