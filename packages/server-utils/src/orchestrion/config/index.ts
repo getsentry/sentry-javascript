@@ -214,3 +214,5 @@ export { remixChannels } from './remix';
 // Exported so the remix package can subscribe to the Remix 3 channels, and hand only these configs to
 // the browser transform.
 export { remixV3Channels, remixV3Config } from './remix-v3';
+// Exported for the `nitro-3-orchestrion` e2e app, which checks that these targets still exist upstream.
+export { nitroChannels, nitroRuntimeConfig } from './nitro';

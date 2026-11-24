@@ -4,6 +4,8 @@ import {
   getInstrumentedModuleNames,
   INSTRUMENTED_MODULE_NAMES,
   instrumentedModuleNames,
+  nitroChannels,
+  nitroRuntimeConfig,
   SENTRY_INSTRUMENTATIONS,
   SENTRY_RUNTIME_INSTRUMENTATIONS,
   withoutInstrumentedExternals,
@@ -76,6 +78,20 @@ describe('orchestrion config — Flue', () => {
   // Registration-only configs carry a custom transform the runtime loader cannot apply.
   it('excludes @flue/runtime from the runtime loader', () => {
     expect(SENTRY_RUNTIME_INSTRUMENTATIONS.map(i => i.module.name)).not.toContain('@flue/runtime');
+  });
+});
+
+describe('orchestrion config — Nitro runtime targets', () => {
+  it('names a channel in nitroChannels for every target', () => {
+    const channels = nitroRuntimeConfig.map(c => `orchestrion:${c.module.name}:${c.channelName}`);
+
+    expect(channels.sort()).toEqual(Object.values(nitroChannels).sort());
+  });
+
+  it('is not injected into user builds', () => {
+    for (const config of nitroRuntimeConfig) {
+      expect(SENTRY_INSTRUMENTATIONS).not.toContainEqual(config);
+    }
   });
 });
 

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "paths": {
+      "~/*": ["./*"]
+    }
+  },
+  "include": ["server/**/*.ts", "tests/**/*.ts", "nitro.config.ts", "vite.config.ts"]
+}
