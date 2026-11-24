@@ -90,8 +90,6 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                       sdkEnabledSourceMaps(environment) && !buildState.writesCloudflareWorker ? true : undefined
                   : undefined));
 
-          // The plugin loads `.env.sentry-build-plugin` into `process.env`. Create it first, so the
-          // source map setting below sees those upload credentials.
           const sentryPlugins = sentryVitePlugin({
             applicationKey,
             moduleMetadata,

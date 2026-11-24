@@ -9,6 +9,7 @@ import type {
   ModuleMetadata,
   ModuleMetadataCallback,
 } from './types';
+import { parseProjectEnvVar } from './upload-credentials';
 import { canAutoDetectRepository, readCommitEnvVar, resolveReleaseName } from './utils';
 
 export type NormalizedOptions = {
@@ -99,11 +100,7 @@ export const SENTRY_SAAS_URL = 'https://sentry.io';
 export function normalizeUserOptions(userOptions: UserOptions): NormalizedOptions {
   const options = {
     org: userOptions.org ?? process.env['SENTRY_ORG'],
-    project:
-      userOptions.project ??
-      (process.env['SENTRY_PROJECT']?.includes(',')
-        ? process.env['SENTRY_PROJECT'].split(',').map(p => p.trim())
-        : process.env['SENTRY_PROJECT']),
+    project: userOptions.project ?? parseProjectEnvVar(process.env['SENTRY_PROJECT']),
     authToken: userOptions.authToken ?? process.env['SENTRY_AUTH_TOKEN'],
     // No sentry.io default: the CLI then uses the server an `sntrys_` org token was issued for, and
     // sentry.io otherwise. A default here would send self-hosted tokens to sentry.io.

@@ -249,7 +249,7 @@ export function maybeEnableTurbopackSourcemaps(
 ): void {
   // Enable source maps for turbopack builds
   const { isTurbopack, isTurbopackSupported } = bundlerInfo;
-  if (!isTurbopackSupported || !isTurbopack || !sentryEnablesSourceMaps(userSentryOptions.sourcemaps)) {
+  if (!isTurbopackSupported || !isTurbopack || !sentryEnablesSourceMaps(userSentryOptions)) {
     return;
   }
 

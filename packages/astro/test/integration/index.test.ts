@@ -22,7 +22,8 @@ vi.mock('@sentry/bundler-plugins/vite', () => ({
 
 // Without a configured name, the real resolver falls back to the git revision of this checkout.
 const resolveReleaseName = vi.fn((name?: string) => name);
-vi.mock('@sentry/bundler-plugins/core', () => ({
+vi.mock('@sentry/bundler-plugins/core', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   resolveReleaseName: (name?: string) => resolveReleaseName(name),
 }));
 
