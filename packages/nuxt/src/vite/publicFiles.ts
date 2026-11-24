@@ -50,10 +50,10 @@ function listFiles(dir: string): string[] {
     return [];
   }
 
-  return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
-    const entryPath = path.join(dir, entry.name);
-    return entry.isDirectory() ? listFiles(entryPath) : entry.isFile() ? [entryPath] : [];
-  });
+  return fs
+    .readdirSync(dir, { recursive: true, withFileTypes: true })
+    .filter(entry => entry.isFile())
+    .map(entry => path.join(entry.parentPath, entry.name));
 }
 
 /** Also true for the dir itself. */
