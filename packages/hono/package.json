@@ -83,7 +83,7 @@
     "@sentry/cloudflare": "11.17.0",
     "@sentry/deno": "11.17.0",
     "@sentry/node": "11.17.0",
-    "hono": "^4.x"
+    "hono": "^4.x || ^5.0.0-0"
   },
   "peerDependenciesMeta": {
     "@cloudflare/workers-types": {

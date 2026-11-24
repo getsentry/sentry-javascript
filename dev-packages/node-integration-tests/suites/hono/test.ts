@@ -1,5 +1,7 @@
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../utils/runner';
+import { supports } from '../../utils';
+import { HONO_MAJORS } from './hono-majors';
 
 // Verifies that Hono is auto-instrumented out of the box by `@sentry/node` (the `honoIntegration`
 // default), without importing `@sentry/hono` or registering the `sentry()` middleware manually.
@@ -50,344 +52,365 @@ function segmentNamed(name: string, route: string): { span: (container: { items:
   };
 }
 
-describe('hono auto-instrumentation', () => {
-  afterAll(() => {
-    cleanupChildProcesses();
-  });
-
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    let scenario: ReturnType<typeof runScenario> | undefined;
-    async function runScenario() {
-      const requests: Array<{ method: 'get' | 'post'; path: string; expectError?: boolean }> = [
-        ...ROUTE_NAME_CASES,
-        { method: 'get', path: '/traced/1' },
-        { method: 'get', path: '/does-not-exist', expectError: true },
-        { method: 'get', path: '/' },
-        { method: 'get', path: '/hello/world' },
-        { method: 'get', path: '/arity-two-handler' },
-        { method: 'get', path: '/test-basepath-mw/hello' },
-        { method: 'get', path: '/sub/hello' },
-        { method: 'get', path: '/outer/self-watering-plant' },
-      ];
-      const uniqueRequests = new Map(requests.map(request => [request.path, request]));
-      const runner = createRunner().unordered();
-      const collectors = [...uniqueRequests.keys()].map(
-        path => [path, runner.collectStreamedSpansUntilSegment(span => attr(span, 'url.path') === path)] as const,
-      );
-      const started = runner.start();
-      for (const { method, path, expectError } of uniqueRequests.values()) {
-        await started.makeRequest(method, path, { expectError });
-      }
-      await started.completed();
-      return new Map(await Promise.all(collectors.map(async ([path, spans]) => [path, await spans] as const)));
-    }
-    async function getSpans(path: string) {
-      scenario ??= runScenario();
-      return (await scenario).get(path)!;
-    }
-
-    test('names each request after the route of the handler that responded', async () => {
-      for (const { path, name, route } of ROUTE_NAME_CASES) {
-        segmentNamed(name, route).span({ items: await getSpans(path) });
-      }
+for (const { major, minNode, options } of HONO_MAJORS) {
+  describe.runIf(supports({ min: minNode }))(`hono auto-instrumentation on Hono ${major}`, () => {
+    afterAll(() => {
+      cleanupChildProcesses();
     });
 
-    test('names an event captured in a route handler after that route', async () => {
-      const runner = createRunner()
-        .ignore('span')
-        .expect({ event: { message: 'Message from a route handler', transaction: 'GET /users/:id/capture' } })
-        .start();
-      runner.makeRequest('get', '/users/42/capture');
-      await runner.completed();
-    });
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario.mjs',
+      'instrument.mjs',
+      (createRunner, test) => {
+        let scenario: ReturnType<typeof runScenario> | undefined;
+        async function runScenario() {
+          const requests: Array<{ method: 'get' | 'post'; path: string; expectError?: boolean }> = [
+            ...ROUTE_NAME_CASES,
+            { method: 'get', path: '/traced/1' },
+            { method: 'get', path: '/does-not-exist', expectError: true },
+            { method: 'get', path: '/' },
+            { method: 'get', path: '/hello/world' },
+            { method: 'get', path: '/arity-two-handler' },
+            { method: 'get', path: '/test-basepath-mw/hello' },
+            { method: 'get', path: '/sub/hello' },
+            { method: 'get', path: '/outer/self-watering-plant' },
+          ];
+          const uniqueRequests = new Map(requests.map(request => [request.path, request]));
+          const runner = createRunner().unordered();
+          const collectors = [...uniqueRequests.keys()].map(
+            path => [path, runner.collectStreamedSpansUntilSegment(span => attr(span, 'url.path') === path)] as const,
+          );
+          const started = runner.start();
+          for (const { method, path, expectError } of uniqueRequests.values()) {
+            await started.makeRequest(method, path, { expectError });
+          }
+          await started.completed();
+          return new Map(await Promise.all(collectors.map(async ([path, spans]) => [path, await spans] as const)));
+        }
+        async function getSpans(path: string) {
+          scenario ??= runScenario();
+          return (await scenario).get(path)!;
+        }
 
-    test('does not rename a span that a middleware starts around the route handler', async () => {
-      const container = { items: await getSpans('/traced/1') };
+        test('names each request after the route of the handler that responded', async () => {
+          for (const { path, name, route } of ROUTE_NAME_CASES) {
+            segmentNamed(name, route).span({ items: await getSpans(path) });
+          }
+        });
 
-      const segment = container.items.find(item => item.is_segment && item.name === 'GET /traced/:id');
-      if (!segment) {
-        throw new Error('segment for `GET /traced/:id` not in this container');
-      }
-      expect(container.items.filter(item => item.name === 'user span')).toHaveLength(1);
-    });
+        test('names an event captured in a route handler after that route', async () => {
+          const runner = createRunner()
+            .ignore('span')
+            .expect({ event: { message: 'Message from a route handler', transaction: 'GET /users/:id/capture' } })
+            .start();
+          runner.makeRequest('get', '/users/42/capture');
+          await runner.completed();
+        });
 
-    test('keeps the runtime name for a request without a route', async () => {
-      const container = { items: await getSpans('/does-not-exist') };
+        test('does not rename a span that a middleware starts around the route handler', async () => {
+          const container = { items: await getSpans('/traced/1') };
 
-      const segment = container.items.find(item => item.is_segment && attr(item, 'url.path') === '/does-not-exist');
-      if (!segment) {
-        throw new Error('segment for `/does-not-exist` not in this container');
-      }
-      expect(segment.name).toBe('GET');
-      expect(attr(segment, 'sentry.segment.name.source')).toBe('url');
-      expect(attr(segment, 'http.route')).toBeUndefined();
-    });
+          const segment = container.items.find(item => item.is_segment && item.name === 'GET /traced/:id');
+          if (!segment) {
+            throw new Error('segment for `GET /traced/:id` not in this container');
+          }
+          expect(container.items.filter(item => item.name === 'user span')).toHaveLength(1);
+        });
 
-    test('names an event from the route handler that runs after next() after that route', async () => {
-      const runner = createRunner()
-        .ignore('span')
-        .expect({ event: { message: 'Message from a route handler after next()', transaction: 'GET /posts/*' } })
-        .start();
-      runner.makeRequest('get', '/posts/draft');
-      await runner.completed();
-    });
+        test('keeps the runtime name for a request without a route', async () => {
+          const container = { items: await getSpans('/does-not-exist') };
 
-    test('names a HEAD request after the GET route', async () => {
-      const runner = createRunner()
-        .unordered()
-        .expect({
-          event: {
-            exception: { values: [{ value: 'Test error from a HEAD request' }] },
-            transaction: 'HEAD /head-error/:id',
-          },
-        })
-        .start();
-      runner.makeRequest('head', '/head-error/1', { expectError: true });
-      await runner.completed();
-    });
+          const segment = container.items.find(item => item.is_segment && attr(item, 'url.path') === '/does-not-exist');
+          if (!segment) {
+            throw new Error('segment for `/does-not-exist` not in this container');
+          }
+          expect(segment.name).toBe('GET');
+          expect(attr(segment, 'sentry.segment.name.source')).toBe('url');
+          expect(attr(segment, 'http.route')).toBeUndefined();
+        });
 
-    test('creates a transaction for a basic GET request', async () => {
-      const container = { items: await getSpans('/') };
+        test('names an event from the route handler that runs after next() after that route', async () => {
+          const runner = createRunner()
+            .ignore('span')
+            .expect({ event: { message: 'Message from a route handler after next()', transaction: 'GET /posts/*' } })
+            .start();
+          runner.makeRequest('get', '/posts/draft');
+          await runner.completed();
+        });
 
-      const segment = container.items.find(item => item.is_segment && item.name === 'GET /');
-      if (!segment) {
-        throw new Error('segment for `GET /` not in this container');
-      }
-      expect(op(segment)).toBe('http.server');
-      expect(segment.status).toBe('ok');
-    });
+        test('names a HEAD request after the GET route', async () => {
+          const runner = createRunner()
+            .unordered()
+            .expect({
+              event: {
+                exception: { values: [{ value: 'Test error from a HEAD request' }] },
+                transaction: 'HEAD /head-error/:id',
+              },
+            })
+            .start();
+          runner.makeRequest('head', '/head-error/1', { expectError: true });
+          await runner.completed();
+        });
 
-    test('creates a transaction with a parametrized route name', async () => {
-      const container = { items: await getSpans('/hello/world') };
+        test('creates a transaction for a basic GET request', async () => {
+          const container = { items: await getSpans('/') };
 
-      const segment = container.items.find(item => item.is_segment && item.name === 'GET /hello/:name');
-      if (!segment) {
-        throw new Error('segment for `GET /hello/:name` not in this container');
-      }
-      expect(op(segment)).toBe('http.server');
-      expect(attr(segment, 'sentry.segment.name.source')).toBe('route');
-    });
+          const segment = container.items.find(item => item.is_segment && item.name === 'GET /');
+          if (!segment) {
+            throw new Error('segment for `GET /` not in this container');
+          }
+          expect(op(segment)).toBe('http.server');
+          expect(segment.status).toBe('ok');
+        });
 
-    test('captures an error with the correct mechanism', async () => {
-      const runner = createRunner()
-        .unordered()
-        .expect({
-          event: {
-            exception: {
-              values: [
-                {
-                  type: 'Error',
-                  value: 'Test error from Hono app',
-                  mechanism: {
-                    type: 'auto.http.hono.context_error',
-                    handled: false,
-                  },
+        test('creates a transaction with a parametrized route name', async () => {
+          const container = { items: await getSpans('/hello/world') };
+
+          const segment = container.items.find(item => item.is_segment && item.name === 'GET /hello/:name');
+          if (!segment) {
+            throw new Error('segment for `GET /hello/:name` not in this container');
+          }
+          expect(op(segment)).toBe('http.server');
+          expect(attr(segment, 'sentry.segment.name.source')).toBe('route');
+        });
+
+        test('captures an error with the correct mechanism', async () => {
+          const runner = createRunner()
+            .unordered()
+            .expect({
+              event: {
+                exception: {
+                  values: [
+                    {
+                      type: 'Error',
+                      value: 'Test error from Hono app',
+                      mechanism: {
+                        type: 'auto.http.hono.context_error',
+                        handled: false,
+                      },
+                    },
+                  ],
                 },
-              ],
-            },
-            transaction: 'GET /error/:param',
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/error/param-123', { expectError: true });
-      await runner.completed();
-    });
+                transaction: 'GET /error/:param',
+              },
+            })
+            .start();
+          runner.makeRequest('get', '/error/param-123', { expectError: true });
+          await runner.completed();
+        });
 
-    test('creates a transaction with internal_error status when an error occurs', async () => {
-      const runner = createRunner()
-        .unordered()
-        .expect({
-          span: container => {
-            const segment = container.items.find(item => item.is_segment && item.name === 'GET /error/:param');
-            if (!segment) {
-              throw new Error('segment for `GET /error/:param` not in this container');
-            }
-            expect(op(segment)).toBe('http.server');
-            expect(segment.status).toBe('error');
-            expect(attr(segment, 'http.response.status_code')).toBe(500);
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/error/param-456', { expectError: true });
-      await runner.completed();
-    });
+        test('creates a transaction with internal_error status when an error occurs', async () => {
+          const runner = createRunner()
+            .unordered()
+            .expect({
+              span: container => {
+                const segment = container.items.find(item => item.is_segment && item.name === 'GET /error/:param');
+                if (!segment) {
+                  throw new Error('segment for `GET /error/:param` not in this container');
+                }
+                expect(op(segment)).toBe('http.server');
+                expect(segment.status).toBe('error');
+                expect(attr(segment, 'http.response.status_code')).toBe(500);
+              },
+            })
+            .start();
+          runner.makeRequest('get', '/error/param-456', { expectError: true });
+          await runner.completed();
+        });
 
-    test('does not wrap a route handler declared with an unused next param as middleware', async () => {
-      const container = { items: await getSpans('/arity-two-handler') };
+        test('does not wrap a route handler declared with an unused next param as middleware', async () => {
+          const container = { items: await getSpans('/arity-two-handler') };
 
-      const segment = container.items.find(item => item.is_segment && item.name === 'GET /arity-two-handler');
-      if (!segment) {
-        throw new Error('segment for `GET /arity-two-handler` not in this container');
-      }
-      // The arity-2 handler is the route handler (last in its method+path group), so it must not
-      // produce a middleware span.
-      const middlewareSpans = container.items.filter(item => op(item) === 'middleware');
-      expect(middlewareSpans).toHaveLength(0);
-    });
+          const segment = container.items.find(item => item.is_segment && item.name === 'GET /arity-two-handler');
+          if (!segment) {
+            throw new Error('segment for `GET /arity-two-handler` not in this container');
+          }
+          // The arity-2 handler is the route handler (last in its method+path group), so it must not
+          // produce a middleware span.
+          const middlewareSpans = container.items.filter(item => op(item) === 'middleware');
+          expect(middlewareSpans).toHaveLength(0);
+        });
 
-    test('creates a middleware span for .use() on a .basePath() clone', async () => {
-      const container = { items: await getSpans('/test-basepath-mw/hello') };
+        test('creates a middleware span for .use() on a .basePath() clone', async () => {
+          const container = { items: await getSpans('/test-basepath-mw/hello') };
 
-      const segment = container.items.find(item => item.is_segment && item.name === 'GET /test-basepath-mw/hello');
-      if (!segment) {
-        throw new Error('segment for `GET /test-basepath-mw/hello` not in this container');
-      }
-      const middlewareSpan = container.items.find(
-        item => op(item) === 'middleware' && item.name === 'basepathMiddleware',
+          const segment = container.items.find(item => item.is_segment && item.name === 'GET /test-basepath-mw/hello');
+          if (!segment) {
+            throw new Error('segment for `GET /test-basepath-mw/hello` not in this container');
+          }
+          const middlewareSpan = container.items.find(
+            item => op(item) === 'middleware' && item.name === 'basepathMiddleware',
+          );
+          expect(middlewareSpan).toBeDefined();
+          expect(attr(middlewareSpan!, 'sentry.origin')).toBe('auto.middleware.hono');
+        });
+
+        test('does not create a middleware span for the Sentry middleware in a mounted sub-app', async () => {
+          const container = { items: await getSpans('/sub/hello') };
+
+          const segment = container.items.find(item => item.is_segment && item.name === 'GET /sub/hello');
+          if (!segment) {
+            throw new Error('segment for `GET /sub/hello` not in this container');
+          }
+          const middlewareNames = container.items.filter(item => op(item) === 'middleware').map(item => item.name);
+          // The sub-app's user middleware is traced …
+          expect(middlewareNames).toContain('subMiddleware');
+          // … but the sub-app's own auto-registered Sentry middleware must not appear as a span
+          // (it is copied into the parent at mount time and must stay unwrapped).
+          expect(middlewareNames).not.toContain('<anonymous>');
+        });
+
+        test('traces an internal .request() call without the inner app re-instrumenting the request', async () => {
+          const container = { items: await getSpans('/outer/self-watering-plant') };
+
+          // Transaction is named after the outer route, not the internal one.
+          const segment = container.items.find(item => item.is_segment && item.name === 'GET /outer/:itemId');
+          if (!segment) {
+            throw new Error('segment for `GET /outer/:itemId` not in this container');
+          }
+
+          // The internal dispatch is traced with the raw inner path — the inner app's Sentry
+          // middleware must not re-name it to the parametrized route.
+          const internalRequestSpans = container.items.filter(
+            item => attr(item, 'sentry.origin') === 'auto.http.hono.internal_request',
+          );
+          expect(internalRequestSpans).toHaveLength(1);
+          expect(internalRequestSpans[0]?.name).toBe('GET /item/self-watering-plant');
+
+          // The inner app's Sentry middleware must not add a middleware span.
+          const middlewareNames = container.items.filter(item => op(item) === 'middleware').map(item => item.name);
+          expect(middlewareNames).not.toContain('<anonymous>');
+        });
+
+        test('captures an error thrown inside an internal .request() even when the outer handler degrades to 200', async () => {
+          const runner = createRunner()
+            .unordered()
+            .expect({
+              event: event => {
+                expect(event.exception?.values?.[0]?.value).toBe('inventory db is down');
+                expect(event.exception?.values?.[0]?.mechanism).toEqual(
+                  expect.objectContaining({ type: 'auto.http.hono.context_error', handled: false }),
+                );
+              },
+            })
+            .start();
+          runner.makeRequest('get', '/degraded/self-watering-plant');
+          await runner.completed();
+        });
+
+        test('captures an error thrown after an internal .request() with the outer request data', async () => {
+          const runner = createRunner()
+            .unordered()
+            .expect({
+              event: event => {
+                expect(event.exception?.values?.[0]?.value).toBe(
+                  'Test error from outer Hono app after internal request',
+                );
+                // The internal `.request()` dispatch must not overwrite the request data with its own URL.
+                expect(event.request?.url).toContain('/outer-error/self-watering-plant');
+                expect(event.request?.url).not.toContain('/item/');
+              },
+            })
+            .start();
+          runner.makeRequest('get', '/outer-error/self-watering-plant', { expectError: true });
+          await runner.completed();
+        });
+
+        test('does not set the middleware span to error for a 3xx middleware error', async () => {
+          const runner = createRunner()
+            .unordered()
+            .expect({
+              span: container => {
+                const middlewareSpan = container.items.find(
+                  item => op(item) === 'middleware' && item.name === 'throwingMiddleware',
+                );
+                if (!middlewareSpan) {
+                  throw new Error('middleware span `throwingMiddleware` not in this container');
+                }
+                expect(middlewareSpan.status).not.toBe('error');
+              },
+            })
+            .start();
+          runner.makeRequest('get', '/mw-throw/301', { expectError: true });
+          await runner.completed();
+        });
+
+        test('does not set the middleware span to error for a 4xx middleware error', async () => {
+          const runner = createRunner()
+            .unordered()
+            .expect({
+              span: container => {
+                const middlewareSpan = container.items.find(
+                  item => op(item) === 'middleware' && item.name === 'throwingMiddleware',
+                );
+                if (!middlewareSpan) {
+                  throw new Error('middleware span `throwingMiddleware` not in this container');
+                }
+                expect(middlewareSpan.status).not.toBe('error');
+              },
+            })
+            .start();
+          runner.makeRequest('get', '/mw-throw/404', { expectError: true });
+          await runner.completed();
+        });
+
+        test('sets the middleware span to error for a 5xx middleware error', async () => {
+          const runner = createRunner()
+            .unordered()
+            .expect({
+              span: container => {
+                const middlewareSpan = container.items.find(
+                  item => op(item) === 'middleware' && item.name === 'throwingMiddleware',
+                );
+                if (!middlewareSpan) {
+                  throw new Error('middleware span `throwingMiddleware` not in this container');
+                }
+                expect(middlewareSpan.status).toBe('error');
+              },
+            })
+            .start();
+          runner.makeRequest('get', '/mw-throw/503', { expectError: true });
+          await runner.completed();
+        });
+      },
+      options,
+    );
+  });
+}
+
+for (const { major, minNode, options } of HONO_MAJORS) {
+  describe.runIf(supports({ min: minNode }))(
+    `hono auto-instrumentation with honoMiddleware(app) on Hono ${major}`,
+    () => {
+      afterAll(() => {
+        cleanupChildProcesses();
+      });
+
+      createEsmAndCjsTests(
+        __dirname,
+        'scenario-honoMiddleware.mjs',
+        'instrument.mjs',
+        (createRunner, test) => {
+          test('wraps route handlers only when more than one matches, and only once', async () => {
+            const runner = createRunner()
+              .unordered()
+              .expect(segmentNamed('GET /users/me', '/users/me'))
+              .expect(segmentNamed('GET /posts/:id', '/posts/:id'))
+              .expect(segmentNamed('GET /posts/:id', '/posts/:id'))
+              .expect(segmentNamed('GET /posts/*', '/posts/*'))
+              .start();
+
+            expect(await runner.makeRequest('get', '/users/me')).toEqual({ wrappers: 0 });
+            // The second request gets the same cached handler list.
+            expect(await runner.makeRequest('get', '/posts/1')).toEqual({ wrappers: 1 });
+            expect(await runner.makeRequest('get', '/posts/1')).toEqual({ wrappers: 1 });
+            expect(await runner.makeRequest('get', '/posts/draft')).toEqual({ wrappers: 1 });
+            await runner.completed();
+          });
+        },
+        options,
       );
-      expect(middlewareSpan).toBeDefined();
-      expect(attr(middlewareSpan!, 'sentry.origin')).toBe('auto.middleware.hono');
-    });
-
-    test('does not create a middleware span for the Sentry middleware in a mounted sub-app', async () => {
-      const container = { items: await getSpans('/sub/hello') };
-
-      const segment = container.items.find(item => item.is_segment && item.name === 'GET /sub/hello');
-      if (!segment) {
-        throw new Error('segment for `GET /sub/hello` not in this container');
-      }
-      const middlewareNames = container.items.filter(item => op(item) === 'middleware').map(item => item.name);
-      // The sub-app's user middleware is traced …
-      expect(middlewareNames).toContain('subMiddleware');
-      // … but the sub-app's own auto-registered Sentry middleware must not appear as a span
-      // (it is copied into the parent at mount time and must stay unwrapped).
-      expect(middlewareNames).not.toContain('<anonymous>');
-    });
-
-    test('traces an internal .request() call without the inner app re-instrumenting the request', async () => {
-      const container = { items: await getSpans('/outer/self-watering-plant') };
-
-      // Transaction is named after the outer route, not the internal one.
-      const segment = container.items.find(item => item.is_segment && item.name === 'GET /outer/:itemId');
-      if (!segment) {
-        throw new Error('segment for `GET /outer/:itemId` not in this container');
-      }
-
-      // The internal dispatch is traced with the raw inner path — the inner app's Sentry
-      // middleware must not re-name it to the parametrized route.
-      const internalRequestSpans = container.items.filter(
-        item => attr(item, 'sentry.origin') === 'auto.http.hono.internal_request',
-      );
-      expect(internalRequestSpans).toHaveLength(1);
-      expect(internalRequestSpans[0]?.name).toBe('GET /item/self-watering-plant');
-
-      // The inner app's Sentry middleware must not add a middleware span.
-      const middlewareNames = container.items.filter(item => op(item) === 'middleware').map(item => item.name);
-      expect(middlewareNames).not.toContain('<anonymous>');
-    });
-
-    test('captures an error thrown inside an internal .request() even when the outer handler degrades to 200', async () => {
-      const runner = createRunner()
-        .unordered()
-        .expect({
-          event: event => {
-            expect(event.exception?.values?.[0]?.value).toBe('inventory db is down');
-            expect(event.exception?.values?.[0]?.mechanism).toEqual(
-              expect.objectContaining({ type: 'auto.http.hono.context_error', handled: false }),
-            );
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/degraded/self-watering-plant');
-      await runner.completed();
-    });
-
-    test('captures an error thrown after an internal .request() with the outer request data', async () => {
-      const runner = createRunner()
-        .unordered()
-        .expect({
-          event: event => {
-            expect(event.exception?.values?.[0]?.value).toBe('Test error from outer Hono app after internal request');
-            // The internal `.request()` dispatch must not overwrite the request data with its own URL.
-            expect(event.request?.url).toContain('/outer-error/self-watering-plant');
-            expect(event.request?.url).not.toContain('/item/');
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/outer-error/self-watering-plant', { expectError: true });
-      await runner.completed();
-    });
-
-    test('does not set the middleware span to error for a 3xx middleware error', async () => {
-      const runner = createRunner()
-        .unordered()
-        .expect({
-          span: container => {
-            const middlewareSpan = container.items.find(
-              item => op(item) === 'middleware' && item.name === 'throwingMiddleware',
-            );
-            if (!middlewareSpan) {
-              throw new Error('middleware span `throwingMiddleware` not in this container');
-            }
-            expect(middlewareSpan.status).not.toBe('error');
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/mw-throw/301', { expectError: true });
-      await runner.completed();
-    });
-
-    test('does not set the middleware span to error for a 4xx middleware error', async () => {
-      const runner = createRunner()
-        .unordered()
-        .expect({
-          span: container => {
-            const middlewareSpan = container.items.find(
-              item => op(item) === 'middleware' && item.name === 'throwingMiddleware',
-            );
-            if (!middlewareSpan) {
-              throw new Error('middleware span `throwingMiddleware` not in this container');
-            }
-            expect(middlewareSpan.status).not.toBe('error');
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/mw-throw/404', { expectError: true });
-      await runner.completed();
-    });
-
-    test('sets the middleware span to error for a 5xx middleware error', async () => {
-      const runner = createRunner()
-        .unordered()
-        .expect({
-          span: container => {
-            const middlewareSpan = container.items.find(
-              item => op(item) === 'middleware' && item.name === 'throwingMiddleware',
-            );
-            if (!middlewareSpan) {
-              throw new Error('middleware span `throwingMiddleware` not in this container');
-            }
-            expect(middlewareSpan.status).toBe('error');
-          },
-        })
-        .start();
-      runner.makeRequest('get', '/mw-throw/503', { expectError: true });
-      await runner.completed();
-    });
-  });
-});
-
-describe('hono auto-instrumentation with honoMiddleware(app)', () => {
-  afterAll(() => {
-    cleanupChildProcesses();
-  });
-
-  createEsmAndCjsTests(__dirname, 'scenario-honoMiddleware.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('wraps route handlers only when more than one matches, and only once', async () => {
-      const runner = createRunner()
-        .unordered()
-        .expect(segmentNamed('GET /users/me', '/users/me'))
-        .expect(segmentNamed('GET /posts/:id', '/posts/:id'))
-        .expect(segmentNamed('GET /posts/:id', '/posts/:id'))
-        .expect(segmentNamed('GET /posts/*', '/posts/*'))
-        .start();
-
-      expect(await runner.makeRequest('get', '/users/me')).toEqual({ wrappers: 0 });
-      // The second request gets the same cached handler list.
-      expect(await runner.makeRequest('get', '/posts/1')).toEqual({ wrappers: 1 });
-      expect(await runner.makeRequest('get', '/posts/1')).toEqual({ wrappers: 1 });
-      expect(await runner.makeRequest('get', '/posts/draft')).toEqual({ wrappers: 1 });
-      await runner.completed();
-    });
-  });
-});
+    },
+  );
+}
