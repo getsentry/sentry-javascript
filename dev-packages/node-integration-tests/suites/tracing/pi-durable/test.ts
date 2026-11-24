@@ -20,6 +20,7 @@ import {
   SENTRY_STATUS_MESSAGE,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
+import type { SerializedStreamedSpanContainer } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { supports } from '../../../utils';
@@ -439,6 +440,37 @@ describe.runIf(supports({ min: 22 }))('pi-durable integration', () => {
         })
         .start()
         .completed();
+    });
+  });
+
+  createEsmTests(__dirname, 'scenario-subagent.mjs', 'instrument-ignore-execute-tool.mjs', (createRunner, test) => {
+    test('nests subagent runs under the calling run when execute_tool spans are ignored', async () => {
+      const subagents: Array<{ parentSpanId?: string; segmentSpanId?: string }> = [];
+      const expectRun = {
+        span: (container: SerializedStreamedSpanContainer) => {
+          const spans = container.items;
+          expect(spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL)).toEqual([]);
+          const segment = spans.find(span => span.is_segment)!;
+          for (const span of spans.filter(span => span.name === 'invoke_agent' && !span.is_segment)) {
+            subagents.push({ parentSpanId: span.parent_span_id, segmentSpanId: segment.span_id });
+          }
+        },
+      };
+
+      await createRunner()
+        .unordered()
+        .expect(expectRun)
+        .expect(expectRun)
+        .expect(expectRun)
+        .expect(expectRun)
+        .start()
+        .completed();
+
+      // `delegate` and `fork_delegate` each start one subagent.
+      expect(subagents).toHaveLength(2);
+      for (const { parentSpanId, segmentSpanId } of subagents) {
+        expect(parentSpanId).toBe(segmentSpanId);
+      }
     });
   });
 

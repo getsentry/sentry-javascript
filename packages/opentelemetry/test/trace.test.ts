@@ -15,6 +15,7 @@ import {
   startInactiveSpan,
   startSpan,
   startSpanManual,
+  withActiveSpan,
   withScope,
 } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -1423,6 +1424,63 @@ describe('trace', () => {
 
       expect(spanOnScope).toBeDefined();
       expect(spanOnScope).toBe(span);
+    });
+  });
+});
+
+describe('trace (ignored child span)', () => {
+  beforeEach(() => {
+    mockSdkInit({ tracesSampleRate: 1, traceLifecycle: 'stream', ignoreSpans: ['ignored'] });
+  });
+
+  it('withActiveSpan keeps spans started under an ignored child span and parents them to its parent', () => {
+    startSpan({ name: 'GET /users/:id' }, rootSpan => {
+      const ignoredSpan = startInactiveSpan({ name: 'ignored' });
+
+      const childSpan = withActiveSpan(ignoredSpan, () => startInactiveSpan({ name: 'db.query' }));
+
+      expect(childSpan.isRecording()).toBe(true);
+      expect(getSpanParentSpanId(childSpan)).toBe(rootSpan.spanContext().spanId);
+    });
+  });
+
+  it("withActiveSpan parents to the ignored span's own parent when another span is active at call time", () => {
+    const [ignoredSpan, ignoredSpanParent] = startSpan({ name: 'queue.submit' }, parent => [
+      startInactiveSpan({ name: 'ignored' }),
+      parent,
+    ]);
+
+    startSpan({ name: 'GET /unrelated' }, () => {
+      const childSpan = withActiveSpan(ignoredSpan, () => startInactiveSpan({ name: 'db.query' }));
+
+      expect(getSpanParentSpanId(childSpan)).toBe(ignoredSpanParent.spanContext().spanId);
+      expect(childSpan.spanContext().traceId).toBe(ignoredSpanParent.spanContext().traceId);
+    });
+  });
+
+  it('keeps spans started by Sentry under an ignored child span set on the context', () => {
+    startSpan({ name: 'GET /users/:id' }, rootSpan => {
+      const ignoredSpan = trace.getTracer('test').startSpan('ignored');
+
+      const childSpan = context.with(trace.setSpan(context.active(), ignoredSpan), () =>
+        startInactiveSpan({ name: 'db.query' }),
+      );
+
+      expect(childSpan.isRecording()).toBe(true);
+      expect(getSpanParentSpanId(childSpan)).toBe(rootSpan.spanContext().spanId);
+    });
+  });
+
+  it('keeps spans started by an OTel tracer under an ignored child span set on the context', () => {
+    startSpan({ name: 'GET /users/:id' }, rootSpan => {
+      const ignoredSpan = trace.getTracer('test').startSpan('ignored');
+
+      const childSpan = context.with(trace.setSpan(context.active(), ignoredSpan), () =>
+        trace.getTracer('test').startSpan('db.query'),
+      );
+
+      expect(childSpan.isRecording()).toBe(true);
+      expect(getSpanParentSpanId(childSpan)).toBe(rootSpan.spanContext().spanId);
     });
   });
 });

@@ -3,11 +3,9 @@ import {
   debug,
   getActiveSpan,
   getClient,
-  getRootSpan,
   hasSpanStreamingEnabled,
   LRUMap,
   SPAN_STATUS_ERROR,
-  spanIsIgnored,
   spanToJSON,
   startInactiveSpan,
   stringify,
@@ -124,19 +122,11 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     return ancestors;
   };
 
-  // LangChain never makes our run spans active, so a run starts under its nearest ancestor run span. Like core,
-  // an ignored span only parents when it is a root, which drops its subtree. The active span stays the parent
-  // if the ancestor run has no span, or if another span was opened since that run started.
+  // LangChain never makes our run spans active, so a run starts under its nearest ancestor run span. The active
+  // span stays the parent if there is no ancestor run, or if another span was opened since that run started.
   const getParentRunSpan = (ancestors: LangChainRun[], activeSpan: Span | undefined): Span | undefined => {
-    for (const run of ancestors) {
-      if (run.activeSpan !== activeSpan) {
-        return undefined;
-      }
-      if (!spanIsIgnored(run.span) || getRootSpan(run.span) === run.span) {
-        return run.span;
-      }
-    }
-    return undefined;
+    const [run] = ancestors;
+    return run && run.activeSpan === activeSpan ? run.span : undefined;
   };
 
   const startRunSpan = (call: LangChainRunCallInfo, recordOutputs: boolean, start: () => Span): LangChainRun => {
