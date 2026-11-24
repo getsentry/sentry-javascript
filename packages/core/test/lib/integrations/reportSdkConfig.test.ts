@@ -139,7 +139,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
     expect(payload).not.toHaveProperty('runtime');
   });
 
-  it('keeps the runtime out of the hash', () => {
+  it('reports a different hash for a different runtime', () => {
     const options = { dsn: 'https://username@domain/123', integrations: [experimentalReportSdkConfigIntegration()] };
     // Server clients set the runtime; the test client's options type doesn't declare it.
     const nodeRuntime = { runtime: { name: 'node', version: 'v24.22.1' } };
@@ -150,10 +150,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
     vi.mocked(isBrowser).mockReturnValueOnce(true);
     const browser = reportAttributes(getDefaultTestClientOptions(options));
 
-    expect(node['sentry.sdk_config.payload']).not.toBe(otherNode['sentry.sdk_config.payload']);
-    expect(node['sentry.sdk_config.payload']).not.toBe(browser['sentry.sdk_config.payload']);
-    expect(otherNode['sentry.sdk_config.hash']).toBe(node['sentry.sdk_config.hash']);
-    expect(browser['sentry.sdk_config.hash']).toBe(node['sentry.sdk_config.hash']);
+    expect(new Set([node, otherNode, browser].map(attributes => attributes['sentry.sdk_config.hash'])).size).toBe(3);
   });
 
   it('reports the names of the default integrations the user passed', () => {

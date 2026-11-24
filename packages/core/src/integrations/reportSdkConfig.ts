@@ -130,7 +130,8 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     );
   }
 
-  const config = {
+  // The hash covers the whole payload, so a payload cached by its hash is never stale.
+  const payload = JSON.stringify({
     version: 3,
     sdk: serialize(sdk),
     runtime: serialize(runtime),
@@ -138,12 +139,11 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     // Not an init() option, so it stays out of `options`.
     ...(removedDefaultIntegrations && { removed_default_integrations: removedDefaultIntegrations }),
     options: serialize(options),
-  };
+  });
 
-  // The runtime stays out of the hash until we decide which of its parts identify a configuration.
   return {
-    'sentry.sdk_config.hash': fnv1a32(JSON.stringify({ ...config, runtime: undefined })),
-    'sentry.sdk_config.payload': JSON.stringify(config),
+    'sentry.sdk_config.hash': fnv1a32(payload),
+    'sentry.sdk_config.payload': payload,
   };
 }
 
