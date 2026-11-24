@@ -311,15 +311,22 @@ describe('makeAddSentryVitePlugin()', () => {
       },
     );
 
-    it('passes a user-set filesToDeleteAfterUpload through and keeps its own deletion', () => {
-      makeAddSentryVitePlugin(
-        { sourcemaps: { filesToDeleteAfterUpload: ['dist/**/*.map'] } },
-        { sdkEnabledSourceMaps: true, sdkEnabledNitroSourceMaps: true },
-      );
+    it.each([[['dist/**/*.map']], [[]]])(
+      'lets a user-set `filesToDeleteAfterUpload: %j` replace the deletion',
+      files => {
+        makeAddSentryVitePlugin(
+          { sourcemaps: { filesToDeleteAfterUpload: files } },
+          { sdkEnabledSourceMaps: true, sdkEnabledNitroSourceMaps: true },
+        );
 
-      expect(sentryVitePluginOptions?.sourcemaps?.filesToDeleteAfterUpload).toEqual(['dist/**/*.map']);
-      expect([decide().delete, decide('ssr').delete, decide('nitro').delete]).toEqual([true, undefined, true]);
-    });
+        expect(sentryVitePluginOptions?.sourcemaps?.filesToDeleteAfterUpload).toEqual(files);
+        expect([decide().delete, decide('ssr').delete, decide('nitro').delete]).toEqual([
+          undefined,
+          undefined,
+          undefined,
+        ]);
+      },
+    );
   });
 
   it('passes rewriteSources to the vite plugin', () => {

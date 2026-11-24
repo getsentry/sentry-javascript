@@ -58,8 +58,9 @@ export function makeAddSentryVitePlugin(
       // Called when the bundler plugin decides, after `makeEnableSourceMapsPlugin` ran.
       // Without an upload the user uploads the maps by hand, so they stay.
       // The SDK never read the user's `deleteSourcemapsAfterUpload`. `delete` replaces it.
+      // A user's own `filesToDeleteAfterUpload` replaces the SDK's deletion.
       deleteSourcemapsAfterUpload:
-        sourcemaps?.delete === undefined
+        sourcemaps?.delete === undefined && sourcemaps?.filesToDeleteAfterUpload === undefined
           ? () => (state.sdkEnabledSourceMaps && resolveSourceMapsFeatures(sourcemaps).upload ? true : undefined)
           : undefined,
       sdkEnabledSourceMaps: () => state.sdkEnabledSourceMaps,

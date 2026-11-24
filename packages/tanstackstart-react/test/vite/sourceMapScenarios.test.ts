@@ -251,7 +251,7 @@ describe('source map scenarios of a build with Nitro', () => {
     {
       label: 'sourcemaps.filesToDeleteAfterUpload',
       options: { sourcemaps: { filesToDeleteAfterUpload: ['.output/**/*.map'] } },
-      expected: { client: 'hidden', ssr: 'hidden', nitro: 'hidden', deleted: ['client', 'nitro'] },
+      expected: { client: 'hidden', ssr: 'hidden', nitro: 'hidden', deleted: [] },
     },
   ])('follows the Sentry option $label', ({ options, expected }) => {
     expect(build({ options })).toEqual(expected);
