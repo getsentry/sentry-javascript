@@ -218,6 +218,25 @@ describe.runIf(supports({ min: 22 }))('Flue integration', () => {
     });
   });
 
+  createEsmTests(__dirname, 'scenario-tool-span.mjs', 'instrument-ignore-execute-tool.mjs', (createRunner, test) => {
+    test('parents spans started in a tool to the agent span when execute_tool spans are ignored', async () => {
+      await createRunner()
+        .expect({
+          span: container => {
+            const spans = container.items;
+            expect(spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_EXECUTE_TOOL)).toEqual([]);
+
+            const agent = spans.find(span => span.name === 'invoke_agent Hello')!;
+            const lookups = spans.filter(span => span.name === 'weather lookup');
+            expect(lookups).toHaveLength(1);
+            expect(lookups[0]!.parent_span_id).toBe(agent.span_id);
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
   createEsmTests(__dirname, 'scenario-recording-functions.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('decides content recording per call when the options are functions', async () => {
       await createRunner()
