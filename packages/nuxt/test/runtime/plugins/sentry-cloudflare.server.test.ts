@@ -157,6 +157,8 @@ describe('sentryCloudflareNitroPlugin', () => {
 
     expect(nitroApp.localFetch).toBe(localFetch);
     expect(hook).not.toHaveBeenCalled();
-    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('`sentryCloudflareNitroPlugin` does nothing'));
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[Sentry] `sentryCloudflareNitroPlugin` does nothing, because Sentry sets up the SDK from `instrument.server.ts`. Remove the plugin.',
+    );
   });
 });

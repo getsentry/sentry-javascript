@@ -1,7 +1,7 @@
 // @vitest-environment node
 import type { ExportedHandler } from '@cloudflare/workers-types';
 import { SDK_VERSION } from '@sentry/core';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   wrapNitroCloudflareEntryWithSentry,
   wrapNitroDurableObjectWithSentry,
@@ -82,21 +82,22 @@ describe('wrapNitroCloudflareEntryWithSentry', () => {
 });
 
 describe('wrapNitroDurableObjectWithSentry', () => {
-  it('runs each method with `this.env` as the `env` of `cloudflare:workers` and keeps its name', () => {
-    class NitroDurableObject {
-      public constructor(
-        _state: unknown,
-        public env: unknown,
-      ) {}
+  class NitroDurableObject {
+    public constructor(
+      _state: unknown,
+      public env: unknown,
+    ) {}
 
-      public fetch(): unknown {
-        return cloudflareWorkers.getEnv();
-      }
+    public fetch(): unknown {
+      return cloudflareWorkers.getEnv();
     }
+  }
+
+  it('runs each method with `this.env` as the `env` of `cloudflare:workers` and keeps its name', () => {
     const env = { DB: 'instrumented D1 binding' };
 
-    const { DurableObjectClass, optionsCallback } = wrapNitroDurableObjectWithSentry(
-      () => ({ dsn: 'https://public@dsn.ingest.sentry.io/1337' }),
+    const { DurableObjectClass } = wrapNitroDurableObjectWithSentry(
+      () => ({}),
       NitroDurableObject,
     ) as unknown as WrappedDurableObject;
     const durableObject = new DurableObjectClass({}, env);
@@ -104,16 +105,35 @@ describe('wrapNitroDurableObjectWithSentry', () => {
     expect(durableObject).toBeInstanceOf(NitroDurableObject);
     expect(durableObject.fetch()).toBe(env);
     expect(durableObject.fetch.name).toBe('fetch');
-    expect(optionsCallback({})).toEqual(
-      expect.objectContaining({
-        dsn: 'https://public@dsn.ingest.sentry.io/1337',
-        _metadata: { sdk: expect.objectContaining({ name: 'sentry.javascript.nuxt' }) },
-      }),
-    );
+  });
+
+  it('passes the options of the app with the Nuxt SDK metadata to `instrumentDurableObjectWithSentry`', () => {
+    const { optionsCallback } = wrapNitroDurableObjectWithSentry(
+      () => ({ dsn: 'https://public@dsn.ingest.sentry.io/1337' }),
+      NitroDurableObject,
+    ) as unknown as WrappedDurableObject;
+
+    expect(optionsCallback({})).toEqual({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      _metadata: {
+        sdk: {
+          name: 'sentry.javascript.nuxt',
+          version: SDK_VERSION,
+          packages: [
+            { name: 'npm:@sentry/nuxt', version: SDK_VERSION },
+            { name: 'npm:@sentry/cloudflare', version: SDK_VERSION },
+          ],
+        },
+      },
+    });
   });
 });
 
 describe('without `withEnv` in `cloudflare:workers`', () => {
+  afterEach(() => {
+    vi.doUnmock('cloudflare:workers');
+  });
+
   it('calls the handlers directly', async () => {
     vi.resetModules();
     vi.doMock('cloudflare:workers', () => ({ withEnv: undefined }));
@@ -126,6 +146,5 @@ describe('without `withEnv` in `cloudflare:workers`', () => {
     } as unknown as ExportedHandler) as unknown as WrappedHandler;
 
     expect(wrapped.handler.fetch?.({}, env, {})).toBe(env);
-    vi.doUnmock('cloudflare:workers');
   });
 });

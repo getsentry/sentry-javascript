@@ -90,7 +90,15 @@ describe('wrapCloudflareEntryWithSentry', () => {
   });
 
   it('wraps an entry that another plugin resolves first, as the Vite builder of Nitro 3 does', async () => {
-    writeFileSync(`${entry}.mjs`, "export default { fetch: () => 'response' };\nexport class $DurableObject {}\n");
+    // The export list of the `cloudflare-module` entry of Nitro 3.
+    writeFileSync(
+      `${entry}.mjs`,
+      [
+        'class $DurableObject {}',
+        "const cloudflare_module_default = { fetch: () => 'response' };",
+        'export { $DurableObject, cloudflare_module_default as default };',
+      ].join('\n'),
+    );
 
     const bundle = await rollup({
       input: entry,
@@ -143,6 +151,29 @@ describe('wrapCloudflareEntryWithSentry', () => {
     const bundle = await rollup({
       input: entry,
       plugins: [wrapCloudflareEntryWithSentry(entry, optionsFile)],
+      onwarn: warning => warnings.push(warning),
+    });
+    const { output } = await bundle.generate({ format: 'es' });
+
+    expect(output[0].code).not.toContain('wrapNitroCloudflareEntryWithSentry');
+    expect(warnings).toEqual([
+      expect.objectContaining({ message: expect.stringContaining('The Nitro entry has no default export') }),
+    ]);
+  });
+
+  it('leaves an entry without a default export unwrapped and warns when another plugin resolves it first', async () => {
+    writeFileSync(`${entry}.mjs`, "addEventListener('fetch', () => {});\n");
+    const warnings: RollupLog[] = [];
+
+    const bundle = await rollup({
+      input: entry,
+      plugins: [
+        {
+          name: 'resolve-like-vite',
+          resolveId: (source, importer) => (source === entry && !importer ? `${entry}.mjs` : null),
+        },
+        wrapCloudflareEntryWithSentry(entry, optionsFile),
+      ],
       onwarn: warning => warnings.push(warning),
     });
     const { output } = await bundle.generate({ format: 'es' });
