@@ -1,7 +1,15 @@
 import type { CloudflareOptions } from '@sentry/cloudflare';
-import { defineCloudflareOptions as defineCloudflareOptionsBase } from '@sentry/cloudflare';
-import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/core';
+import { addServerTimingTraceHeader, defineCloudflareOptions as defineCloudflareOptionsBase } from '@sentry/cloudflare';
+import type { Integration } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata, defineIntegration } from '@sentry/core';
 import { solidServerErrorsIntegration } from './errors';
+import { solidServerTracePropagationIntegration } from './tracePropagation';
+
+// Sends the trace to the browser on every document response, so the pageload continues it, as `init` does on Node.
+const serverTimingTraceHeaderIntegration = defineIntegration((): Integration => ({
+  name: 'SolidServerTimingTraceHeader',
+  setup: addServerTimingTraceHeader,
+}));
 
 /**
  * Defines the Sentry options for a Solid 2 app on Cloudflare Workers, like `defineCloudflareOptions` of
@@ -36,7 +44,12 @@ export const defineCloudflareOptions: typeof defineCloudflareOptionsBase = (
     if (opts.defaultIntegrations === undefined) {
       const userIntegrations = opts.integrations;
       opts.integrations = defaults => {
-        const withSolid = [...defaults, solidServerErrorsIntegration()];
+        const withSolid = [
+          ...defaults,
+          solidServerErrorsIntegration(),
+          solidServerTracePropagationIntegration(),
+          serverTimingTraceHeaderIntegration(),
+        ];
         return typeof userIntegrations === 'function'
           ? userIntegrations(withSolid)
           : [...withSolid, ...(userIntegrations ?? [])];
