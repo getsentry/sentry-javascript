@@ -4,10 +4,10 @@ import { waitForError } from '@sentry-internal/test-utils';
 test('should have symbolicated dev errors', async ({ page }) => {
   test.skip(!process.env.TEST_ENV?.includes('development'), 'should be skipped for non-dev mode');
 
-  await page.goto('/pages-router');
+  await page.goto('/pages-router?test=dev-error-symbolification');
 
   const errorEventPromise = waitForError('nextjs-14', errorEvent => {
-    return errorEvent?.exception?.values?.[0]?.value === 'Click Error';
+    return errorEvent?.exception?.values?.[0]?.value === 'Click Error' && errorEvent.request?.url === page.url();
   });
 
   await page.getByText('Throw error').click();

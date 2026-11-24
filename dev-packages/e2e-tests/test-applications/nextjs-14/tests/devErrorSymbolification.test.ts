@@ -5,10 +5,10 @@ import { isDevMode } from './isDevMode';
 test('should have symbolicated dev errors', async ({ page }) => {
   test.skip(!isDevMode, 'should be skipped for non-dev mode');
 
-  await page.goto('/');
+  await page.goto('/?test=dev-error-symbolification');
 
   const errorEventPromise = waitForError('nextjs-14', errorEvent => {
-    return errorEvent?.exception?.values?.[0]?.value === 'Click Error';
+    return errorEvent?.exception?.values?.[0]?.value === 'Click Error' && errorEvent.request?.url === page.url();
   });
 
   await page.getByText('Throw error').click();

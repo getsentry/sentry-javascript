@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 
 /**
  * Mock Vercel Queues API server.
@@ -68,9 +68,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ par
       const consumerGroup = filePathToConsumerGroup(filePath);
       const port = process.env.PORT || 3030;
 
-      // Simulate Vercel infrastructure pushing the message to the consumer.
-      // Fire-and-forget so the SendMessage response returns immediately.
-      void fetch(`http://localhost:${port}${consumerRoute}`, {
+      // Workers can cancel untracked work once the response is sent.
+      const delivery = fetch(`http://localhost:${port}${consumerRoute}`, {
         method: 'POST',
         headers: {
           'ce-type': 'com.vercel.queue.v2beta',
@@ -87,6 +86,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ par
         },
         body: Buffer.from(body),
       }).catch(err => console.error('[mock-queue] Failed to push to consumer:', err));
+      after(() => delivery);
     }
 
     return NextResponse.json({ messageId }, { status: 201, headers: { 'Vqs-Message-Id': messageId } });

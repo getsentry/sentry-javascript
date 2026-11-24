@@ -26,7 +26,12 @@ test('Should handle server action redirect without capturing errors', async ({ p
 
   // The error of `/api/test-error`, requested after the redirect, is the sentinel: an error of the redirect would
   // arrive before it.
-  const firstErrorPromise = waitForError('nextjs-16', () => true);
+  const firstErrorPromise = waitForError('nextjs-16', errorEvent => {
+    const url = errorEvent?.request?.url;
+    return (
+      url?.includes('/redirect/') === true || url?.endsWith('/api/test-error?test=server-action-redirect') === true
+    );
+  });
 
   // Click the redirect button
   await page.click('button[type="submit"]');
@@ -36,7 +41,7 @@ test('Should handle server action redirect without capturing errors', async ({ p
   // Verify we got redirected to the destination page
   await expect(page).toHaveURL('/redirect/destination');
 
-  await request.get('/api/test-error');
+  await request.get('/api/test-error?test=server-action-redirect');
 
   const firstError = await firstErrorPromise;
   expect(firstError.exception?.values?.[0]?.value).toBe('This is a test error from an API route');
