@@ -262,3 +262,81 @@ test.describe('custom onError handler', () => {
     });
   });
 });
+
+test.describe('onError handler that throws', () => {
+  test('captures the new error with the original error as its cause', async ({ baseURL }) => {
+    const errorPromise = waitForError(APP_NAME, event => {
+      return event.exception?.values?.some(exception => exception.value === 'Replacement error from onError');
+    });
+
+    const response = await fetch(`${baseURL}/test-errors/replacing-on-error/fail`);
+    expect(response.status).toBe(500);
+
+    const errorEvent = await errorPromise;
+    expect(errorEvent.exception?.values).toHaveLength(2);
+
+    const cause = errorEvent.exception?.values?.[0];
+    expect(cause?.value).toBe('Original error from route');
+    expect(cause?.mechanism).toEqual({
+      exception_id: 1,
+      handled: true,
+      parent_id: 0,
+      source: 'cause',
+      type: 'chained',
+    });
+
+    const capturedError = errorEvent.exception?.values?.[1];
+    expect(capturedError?.value).toBe('Replacement error from onError');
+    expect(capturedError?.mechanism).toEqual({
+      exception_id: 0,
+      handled: false,
+      type: 'auto.http.hono.context_error',
+    });
+
+    expect(errorEvent.transaction).toBe('GET /test-errors/replacing-on-error/fail');
+  });
+});
+
+test.describe('notFound handler errors', () => {
+  test('captures an error thrown in a notFound handler', async ({ baseURL }) => {
+    const errorPromise = waitForError(APP_NAME, event => {
+      return event.exception?.values?.[0]?.value === 'Error from notFound handler';
+    });
+
+    const response = await fetch(`${baseURL}/test-errors/not-found-error/1`);
+    expect(response.status).toBe(500);
+
+    const errorEvent = await errorPromise;
+    expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+      handled: false,
+      type: 'auto.http.hono.context_error',
+    });
+    expect(errorEvent.request?.url).toContain('/test-errors/not-found-error/1');
+  });
+
+  test('does not capture a 404 HTTPException thrown in a notFound handler', async ({ baseURL }) => {
+    let errorEventOccurred = false;
+
+    waitForError(APP_NAME, event => {
+      if (event.exception?.values?.[0]?.value === 'Not found from notFound handler') {
+        errorEventOccurred = true;
+      }
+      return false;
+    });
+
+    // Guard on a defined 2xx route's transaction (produced on every runtime) rather than the 404
+    // request's own transaction, which some runtimes drop — then assert no error was captured.
+    const guardPromise = waitForStreamedSpan(
+      APP_NAME,
+      segment => segment.is_segment && getSpanOp(segment) === 'http.server' && segment.name === 'GET /',
+    );
+
+    const response = await fetch(`${baseURL}/test-errors/not-found-http-exception/1`);
+    expect(response.status).toBe(404);
+
+    await fetch(`${baseURL}/`);
+    await guardPromise;
+
+    expect(errorEventOccurred).toBe(false);
+  });
+});

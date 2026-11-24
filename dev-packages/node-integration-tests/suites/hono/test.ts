@@ -1,3 +1,5 @@
+import { URL_PATH } from '@sentry/conventions/attributes';
+import { MIDDLEWARE } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../utils/runner';
 import { supports } from '../../utils';
@@ -413,4 +415,84 @@ for (const { major, minNode, options } of HONO_MAJORS) {
       );
     },
   );
+}
+
+// Hono 5 runs `onError()` and `notFound()` handlers as `(c, next)` middleware. Hono 4 has no such
+// middleware, so these cases run only on Hono 5.
+for (const { minNode, options } of HONO_MAJORS.filter(({ major }) => major === 5)) {
+  describe.runIf(supports({ min: minNode }))('hono error and not-found middleware on Hono 5', () => {
+    afterAll(() => {
+      cleanupChildProcesses();
+    });
+
+    createEsmAndCjsTests(
+      __dirname,
+      'scenario-error-middleware.mjs',
+      'instrument.mjs',
+      (createRunner, test) => {
+        test('captures an error from a not-found handler, but not a 404 HTTPException', async () => {
+          // In this order, an event for the 404 would arrive first and fail the expectation.
+          const runner = createRunner()
+            .ignore('span')
+            .expect({
+              event: {
+                exception: {
+                  values: [
+                    {
+                      type: 'Error',
+                      value: 'Error from a not-found handler',
+                      mechanism: { type: 'auto.http.hono.context_error', handled: false },
+                    },
+                  ],
+                },
+              },
+            })
+            .start();
+          await runner.makeRequest('get', '/not-found-http-exception/1', { expectError: true });
+          await runner.makeRequest('get', '/not-found-error/1', { expectError: true });
+          await runner.completed();
+        });
+
+        test('captures the error that an error handler throws, with the original error as its cause', async () => {
+          const runner = createRunner()
+            .ignore('span')
+            .expect({
+              event: {
+                exception: {
+                  values: [
+                    {
+                      value: 'Original error from a route handler',
+                      mechanism: { exception_id: 1, handled: true, parent_id: 0, source: 'cause', type: 'chained' },
+                    },
+                    {
+                      value: 'Replacement error from an error handler',
+                      mechanism: { exception_id: 0, handled: false, type: 'auto.http.hono.context_error' },
+                    },
+                  ],
+                },
+                transaction: 'GET /replace-error',
+              },
+            })
+            .start();
+          await runner.makeRequest('get', '/replace-error', { expectError: true });
+          await runner.completed();
+        });
+
+        test('does not create a middleware span for error middleware in a sub-app', async () => {
+          const runner = createRunner().unordered();
+          const spans = runner.collectStreamedSpansUntilSegment(span => attr(span, URL_PATH) === '/sub/fail');
+          const started = runner.start();
+          await started.makeRequest('get', '/sub/fail', { expectError: true });
+          await started.completed();
+
+          const items = await spans;
+          expect(items.find(item => item.is_segment)?.name).toBe('GET /sub/fail');
+          const middlewareNames = items.filter(item => op(item) === MIDDLEWARE).map(item => item.name);
+          expect(middlewareNames).toContain('subAppMiddleware');
+          expect(middlewareNames).not.toContain('errorMiddleware');
+        });
+      },
+      options,
+    );
+  });
 }

@@ -31,6 +31,28 @@ subAppWithOnError.get('/fail', () => {
 
 errorRoutes.route('/custom-on-error', subAppWithOnError);
 
+// An `onError` handler that throws replaces `c.error`.
+const subAppWithReplacingOnError = new Hono();
+
+subAppWithReplacingOnError.onError(c => {
+  throw new Error('Replacement error from onError', { cause: c.error });
+});
+
+subAppWithReplacingOnError.get('/fail', () => {
+  throw new Error('Original error from route');
+});
+
+errorRoutes.route('/replacing-on-error', subAppWithReplacingOnError);
+
+// In Hono 5, `notFound` handlers are middleware, and an error in them goes to `onError`.
+errorRoutes.notFound('/not-found-error/*', () => {
+  throw new Error('Error from notFound handler');
+});
+
+errorRoutes.notFound('/not-found-http-exception/*', () => {
+  throw new HTTPException(404, { message: 'Not found from notFound handler' });
+});
+
 // Nested sub-apps: parent mounts child, child route throws
 const childApp = new Hono();
 
