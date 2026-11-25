@@ -18,5 +18,6 @@ module.exports = {
     'no-unsafe-random-apis': require('./rules/no-unsafe-random-apis'),
     'no-unfiltered-url-attributes': require('./rules/no-unfiltered-url-attributes'),
     'no-unguarded-span-apis': require('./rules/no-unguarded-span-apis'),
+    'no-unsafe-html-writes': require('./rules/no-unsafe-html-writes'),
   },
 };
