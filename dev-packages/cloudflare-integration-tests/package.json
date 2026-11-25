@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/cloudflare-integration-tests",
-  "version": "11.17.0",
+  "version": "11.18.0",
   "license": "MIT",
   "engines": {
     "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
@@ -27,11 +27,11 @@
     "@opentelemetry/api": "^1.9.1",
     "@prisma/adapter-d1": "6.15.0",
     "@prisma/client": "6.15.0",
-    "@sentry-internal/test-utils": "11.17.0",
-    "@sentry/cloudflare": "11.17.0",
+    "@sentry-internal/test-utils": "11.18.0",
+    "@sentry/cloudflare": "11.18.0",
     "@sentry/conventions": "0.36.0",
-    "@sentry/core": "11.17.0",
-    "@sentry/hono": "11.17.0",
+    "@sentry/core": "11.18.0",
+    "@sentry/hono": "11.18.0",
     "ai": "^6.0.0",
     "hono": "^4.13.7",
     "openai": "5.18.1",
