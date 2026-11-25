@@ -48,10 +48,10 @@ test('does not name the segment span after the `/**` catch-all route', async ({ 
 
 test('sets one pair of Server-Timing entries that continue the request trace', async ({ request }) => {
   const segmentSpanPromise = waitForStreamedSpan(APP_NAME, span => {
-    return span.is_segment && span.attributes[URL_PATH]?.value === '/api/test-transaction';
+    return span.is_segment && span.attributes[URL_PATH]?.value === '/api/test-static';
   });
 
-  const response = await request.get('/api/test-transaction');
+  const response = await request.get('/api/test-static');
 
   const segmentSpan = await segmentSpanPromise;
   const sentryTraces = getServerTimingEntries(response, 'sentry-trace');
