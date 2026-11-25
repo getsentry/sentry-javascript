@@ -71,6 +71,26 @@
         "types": "./build/types/bundler-plugin/esbuild.d.ts",
         "default": "./build/cjs/bundler-plugin/esbuild.js"
       }
+    },
+    "./nitro": {
+      "import": {
+        "types": "./build/types/nitro/index.d.ts",
+        "default": "./build/esm/nitro/index.js"
+      },
+      "require": {
+        "types": "./build/types/nitro/index.d.ts",
+        "default": "./build/cjs/nitro/index.js"
+      }
+    },
+    "./nitro/runtime": {
+      "import": {
+        "types": "./build/types/nitro/runtime.d.ts",
+        "default": "./build/esm/nitro/runtime.js"
+      },
+      "require": {
+        "types": "./build/types/nitro/runtime.d.ts",
+        "default": "./build/cjs/nitro/runtime.js"
+      }
     }
   },
   "publishConfig": {

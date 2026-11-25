@@ -70,6 +70,11 @@
       "types": "./build/types/orchestrion/bundler/bun.d.ts",
       "import": "./build/esm/orchestrion/bundler/bun.js",
       "require": "./build/cjs/orchestrion/bundler/bun.js"
+    },
+    "./nitro": {
+      "types": "./build/types/nitro/module.d.ts",
+      "import": "./build/esm/nitro/module.js",
+      "require": "./build/cjs/nitro/module.js"
     }
   },
   "typesVersions": {
@@ -94,6 +99,9 @@
       ],
       "orchestrion/load-hook": [
         "build/types/orchestrion/bundler/load-hook.d.ts"
+      ],
+      "nitro": [
+        "build/types/nitro/module.d.ts"
       ]
     }
   },

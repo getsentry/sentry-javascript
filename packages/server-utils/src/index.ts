@@ -99,5 +99,6 @@ export { expressErrorHandler, setupExpressErrorHandler } from './integrations/ex
 export { firebaseIntegration } from './integrations/firebase';
 export { nitroIntegration } from './integrations/nitro';
 export type { NitroIntegrationOptions } from './integrations/nitro';
+export { setupSentryNitroApp } from './integrations/nitro/runtimePlugin';
 
 export { getTracingIntegrations, getErrorIntegrations } from './integrations';
