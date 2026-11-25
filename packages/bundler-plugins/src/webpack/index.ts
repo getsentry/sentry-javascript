@@ -21,6 +21,7 @@ import {
   isJsFile,
   stampDebugId,
   getSourceMapFeatures,
+  getServerModulesDefinition,
 } from '../core/index';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -80,6 +81,8 @@ type WebpackCompiler = {
     plugins?: unknown[];
     mode?: string;
     devtool?: string | false;
+    target?: string | string[] | false;
+    context?: string;
     module?: {
       rules?: unknown[];
     };
@@ -206,6 +209,13 @@ type WebpackModule = {
   version?: string;
   default?: { version?: string };
 };
+
+// Electron's preload and renderer contexts run browser SDKs, so only its main process counts.
+const NODE_TARGET = /^(?:(?:async-)?node(?:\d+(?:\.\d+)?)?|electron(?:\d+(?:\.\d+)?)?-main)$/;
+
+function isNodeTarget(target: string | string[] | false | undefined): boolean {
+  return (Array.isArray(target) ? target : [target]).some(t => typeof t === 'string' && NODE_TARGET.test(t));
+}
 
 // Only used for telemetry; `webpack` is an optional peer dependency and may be absent (e.g. rspack).
 function getWebpackMajorVersion(): string | undefined {
@@ -580,6 +590,15 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
       if (transformReplace && DefinePlugin) {
         compiler.options.plugins = compiler.options.plugins || [];
         compiler.options.plugins.push(new DefinePlugin(replacementValues));
+      }
+
+      const serverModules = sentryBuildPluginManager.getModuleVersions({
+        root: compiler.options.context,
+        isServerBuild: isNodeTarget(compiler.options.target),
+      });
+      if (serverModules && DefinePlugin) {
+        compiler.options.plugins = compiler.options.plugins || [];
+        compiler.options.plugins.push(new DefinePlugin(getServerModulesDefinition(serverModules)));
       }
 
       // Add component name annotation transform

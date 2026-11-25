@@ -105,12 +105,17 @@ export type { InternalOptions, Options, SentrySDKBuildFlags } from './types';
 export {
   CodeInjection,
   replaceBooleanFlagsInCode,
+  replaceInCode,
   stringToUUID,
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,
   resolveReleaseName,
+  getServerModulesDefinition,
+  getServerModulesReplacement,
+  SERVER_MODULES_PLACEHOLDER,
 } from './utils';
 export { createSentryBuildPluginManager } from './build-plugin-manager';
+export { getDisabledSourcemapsOptions } from './installed-modules';
 export type { SentryBuildPluginManager, UploadResult, UploadStaging } from './build-plugin-manager';
 export { createDebugIdUploadFunction, addDebugIdToEmittedArtifacts, stampDebugId } from './debug-id-upload';
 export {

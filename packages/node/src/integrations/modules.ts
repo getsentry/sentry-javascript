@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { Module } from 'node:module';
-import { GLOBAL_OBJ, type IntegrationFn } from '@sentry/core';
-import { collectInstalledModules } from '@sentry/server-utils';
+import type { IntegrationFn } from '@sentry/core';
+import { collectInstalledModules } from '@sentry/core/server';
 
 type ModuleInfo = Record<string, string>;
 
@@ -9,26 +9,27 @@ let moduleCache: ModuleInfo | undefined;
 
 const INTEGRATION_NAME = 'Modules' as const;
 
-declare const __SENTRY_SERVER_MODULES__: Record<string, string>;
+declare const __SENTRY_SERVER_MODULES__: Record<string, string> | string;
 
-/**
- * Reads the modules injected at build time into `__SENTRY_SERVER_MODULES__` (e.g. by the Next.js SDK).
- *
- * Must be read lazily (per call), not captured at module-eval time: webpack replaces the token via
- * `DefinePlugin` (available immediately), but Turbopack assigns `globalThis.__SENTRY_SERVER_MODULES__`
- * at runtime, *after* this module's imports are hoisted and evaluated. A `const` capture would be
- * empty under Turbopack. See getsentry/sentry-javascript#19147.
- */
+/** Reads the module versions that a bundler injected at build time. */
 function getServerModules(): Record<string, string> {
-  // webpack: the token is replaced with a literal at build time.
-  if (typeof __SENTRY_SERVER_MODULES__ !== 'undefined') {
-    return __SENTRY_SERVER_MODULES__;
+  let serverModules: Record<string, string> | string | undefined;
+  try {
+    // The only reference to the placeholder, so a bundler that replaces it inlines the versions once.
+    serverModules = __SENTRY_SERVER_MODULES__;
+  } catch {
+    // Not replaced at build time
+    return {};
   }
-  // Turbopack: the value is assigned onto the global object at runtime.
-  return (
-    (GLOBAL_OBJ as typeof GLOBAL_OBJ & { __SENTRY_SERVER_MODULES__?: Record<string, string> })
-      .__SENTRY_SERVER_MODULES__ ?? {}
-  );
+  if (typeof serverModules !== 'string') {
+    return serverModules || {};
+  }
+  // Next.js Turbopack builds pass JSON, because `compiler.defineServer` only accepts strings.
+  try {
+    return JSON.parse(serverModules) as Record<string, string>;
+  } catch {
+    return {};
+  }
 }
 
 const _modulesIntegration = (() => {

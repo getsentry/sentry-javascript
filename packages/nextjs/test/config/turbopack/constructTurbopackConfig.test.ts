@@ -53,7 +53,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                   },
@@ -82,7 +81,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRelease: 'my-app@1.2.3',
                     _sentryRewriteFramesDistDir: 'build',
@@ -123,7 +121,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                   },
@@ -211,7 +208,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                   },
@@ -264,7 +260,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                   },
@@ -349,7 +344,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                   },
@@ -396,7 +390,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                   },
@@ -440,7 +433,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                   },
@@ -482,7 +474,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: '15.0.0',
@@ -540,7 +531,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: '14.0.0',
@@ -585,7 +575,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                   },
@@ -653,7 +642,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: nextJsVersion,
@@ -697,7 +685,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: nextJsVersion,
@@ -752,7 +739,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: nextJsVersion,
@@ -801,7 +787,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                   },
@@ -829,7 +814,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                   },
@@ -928,7 +912,6 @@ describe('constructTurbopackConfig', () => {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
                   values: {
-                    __SENTRY_SERVER_MODULES__: expect.any(Object),
                     _sentryTurbopack: true,
                     _sentryRewriteFramesDistDir: '.next',
                     _sentryNextJsVersion: nextJsVersion,

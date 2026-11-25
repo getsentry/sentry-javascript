@@ -163,6 +163,7 @@ describe('withSentry()', () => {
       'sentry-solidstart-build-instrumentation-file',
       'sentry-solidstart-update-source-map-setting',
       'sentry-vite-plugin',
+      'sentry-vite-module-versions',
       'sentry-vite-upload-staging',
     ]);
   });
@@ -188,6 +189,7 @@ describe('withSentry()', () => {
       'sentry-solidstart-build-instrumentation-file',
       'sentry-solidstart-update-source-map-setting',
       'sentry-vite-plugin',
+      'sentry-vite-module-versions',
       'sentry-vite-upload-staging',
       'my-test-plugin',
     ]);
@@ -217,6 +219,7 @@ describe('withSentry()', () => {
       'sentry-solidstart-build-instrumentation-file',
       'sentry-solidstart-update-source-map-setting',
       'sentry-vite-plugin',
+      'sentry-vite-module-versions',
       'sentry-vite-upload-staging',
       'my-test-plugin',
     ]);

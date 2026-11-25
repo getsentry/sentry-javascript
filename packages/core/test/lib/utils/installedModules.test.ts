@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectInstalledModules } from '../../src/utils/installedModules';
+import { collectInstalledModules } from '../../../src/utils/installedModules';
 
 function makeFs(files: Record<string, unknown>): (path: string) => string | undefined {
   return path => {

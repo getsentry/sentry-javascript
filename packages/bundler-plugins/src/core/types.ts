@@ -496,6 +496,15 @@ export interface Options {
   applicationKey?: string;
 
   /**
+   * Injects the installed versions of the app's dependencies for the Node SDK's `modulesIntegration`, which
+   * otherwise reads them from `node_modules` at runtime. Only takes effect when the SDK is bundled.
+   *
+   * Defaults to server builds only (Vite SSR, webpack `node` targets, esbuild `platform: 'node'`, Bun); plain Rollup
+   * needs `true`, and `false` disables it. Avoid `true` for browser builds, as it ships the list to users.
+   */
+  injectModuleVersions?: boolean;
+
+  /**
    * Options that are considered experimental and subject to change.
    *
    * @experimental API that does not follow semantic versioning and may change in any release

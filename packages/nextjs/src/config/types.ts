@@ -74,6 +74,7 @@ export type NextConfigObject = {
   turbopack?: TurbopackOptions;
   compiler?: {
     define?: Record<string, string | boolean>;
+    defineServer?: Record<string, string | boolean>;
     runAfterProductionCompile?: (context: { distDir: string; projectDir: string }) => Promise<void> | void;
   };
 };

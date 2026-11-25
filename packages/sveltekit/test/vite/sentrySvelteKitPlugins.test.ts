@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import type { Plugin } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as bundlerPluginsVite from '@sentry/bundler-plugins/vite';
 import * as autoInstrument from '../../src/vite/autoInstrument';
 import { generateVitePluginOptions, sentrySvelteKit } from '../../src/vite/sentryVitePlugins';
 import * as sourceMaps from '../../src/vite/sourceMaps';
@@ -70,8 +71,8 @@ describe('sentrySvelteKit()', () => {
     // 1 kit config resolver + 1 browser-tracing variant resolver + 1 OpenTelemetry API resolver
     // + 1 tunnel base path plugin + 1 auto instrument plugin
     // + 1 orchestrion plugin + 1 build flag plugin + 1 global values injection plugin + 1 modified main plugin
-    // + 1 debug ID plugin + 1 release injection plugin + 3 custom plugins
-    expect(plugins).toHaveLength(14);
+    // + 1 module versions plugin + 1 debug ID plugin + 1 release injection plugin + 3 custom plugins
+    expect(plugins).toHaveLength(15);
   });
 
   it('returns the custom sentry source maps upload plugin, unmodified sourcemaps plugins and the auto-instrument plugin by default', async () => {
@@ -96,6 +97,7 @@ describe('sentrySvelteKit()', () => {
       'sentry-sveltekit-global-values-injection-plugin',
       // modified main plugin (writeBundle deferred to closeBundle):
       'sentry-vite-plugin',
+      'sentry-vite-module-versions',
       'sentry-vite-upload-staging',
       // release injection plugin (replaces the bundler plugin's build-time injection):
       'sentry-sveltekit-release-injection-plugin',
@@ -106,9 +108,39 @@ describe('sentrySvelteKit()', () => {
     ]);
   });
 
-  it("doesn't return the sentry source maps plugins if autoUploadSourcemaps is `false`", async () => {
+  it('only adds the bundler plugin for module versions if autoUploadSourceMaps is `false`', async () => {
+    const makePluginSpy = vi.spyOn(sourceMaps, 'makeCustomSentryVitePlugins');
+    makePluginSpy.mockClear();
+
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false });
-    expect(plugins).toHaveLength(7); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + tunnel base path + auto instrument + orchestrion + build flag
+
+    expect(makePluginSpy).not.toHaveBeenCalled();
+    expect(plugins.map(plugin => plugin.name)).toEqual([
+      'sentry-sveltekit-kit-config-resolver',
+      'sentry-sveltekit-browser-tracing-variant',
+      'sentry-sveltekit-opentelemetry-api',
+      'sentry-sveltekit-tunnel-base-path',
+      'sentry-auto-instrumentation',
+      'sentry-orchestrion-vite',
+      'sentry-sveltekit-build-flag',
+      'sentry-vite-plugin',
+      'sentry-vite-module-versions',
+      'sentry-vite-upload-staging',
+    ]);
+  });
+
+  it('turns off everything but module versions in the bundler plugin if autoUploadSourceMaps is `false`', async () => {
+    const sentryVitePluginSpy = vi.spyOn(bundlerPluginsVite, 'sentryVitePlugin');
+    sentryVitePluginSpy.mockClear();
+
+    await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false, debug: true });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith({
+      debug: true,
+      telemetry: false,
+      sourcemaps: { upload: false, injectDebugIds: false },
+      release: { inject: false, create: false, finalize: false, setCommits: false, deploy: false },
+    });
   });
 
   it("doesn't return the sentry source maps plugins if `NODE_ENV` is development", async () => {
@@ -127,7 +159,7 @@ describe('sentrySvelteKit()', () => {
   it("doesn't return the auto instrument plugin if autoInstrument is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoInstrument: false });
     const pluginNames = plugins.map(plugin => plugin.name);
-    expect(plugins).toHaveLength(13); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + tunnel base path + orchestrion + build flag + global values injection + 1 modified main plugin + 1 debug ID plugin + 1 release injection plugin + 3 custom plugins
+    expect(plugins).toHaveLength(14); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + tunnel base path + orchestrion + build flag + global values injection + 1 modified main plugin + 1 module versions plugin + 1 debug ID plugin + 1 release injection plugin + 3 custom plugins
     expect(pluginNames).not.toContain('sentry-auto-instrumentation');
   });
 

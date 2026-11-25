@@ -1,16 +1,20 @@
-import type { ChunkGraphNode, InternalOptions, Options } from '../core';
+/* oxlint-disable max-lines */
+import type { ChunkGraphNode, InternalOptions, Options, SentryBuildPluginManager } from '../core';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,
   isJsFile,
   isInitialChunk,
+  SERVER_MODULES_PLACEHOLDER,
   shouldSkipCodeInjection,
   getDebugIdSnippet,
   createDebugIdUploadFunction,
   globFiles,
   createComponentNameAnnotateHooks,
+  getServerModulesReplacement,
   replaceBooleanFlagsInCode,
+  replaceInCode,
   CodeInjection,
   getCodeInjectionPosition,
   getSourceMapFeatures,
@@ -23,7 +27,7 @@ import { createRequire } from 'node:module';
 import { finalizeRolldownDebugIds, getDebugIdForChunk, hasExistingDebugID } from './debug-id-injection';
 import { stampDebugIds, type OutputBundle } from './debug-id-stamping';
 import { createSourceMapHandling, type OutputDestinationOptions } from './source-map-handling';
-import { createViteSourceMapHooks } from '../vite/source-map-hooks';
+import { createViteSourceMapHooks, type ViteResolvedConfig } from '../vite/source-map-hooks';
 import {
   createViteReleaseHtmlInjection,
   type BuildInputOptions,
@@ -86,6 +90,11 @@ function getViteParseAstAsync(): Promise<ViteParseAstAsync | null> {
   }
 
   return viteParseAstAsyncPromise;
+}
+
+// Plain Rollup builds get no module versions unless the user opts in, see `injectModuleVersions`.
+function mayInjectModuleVersions(injectModuleVersions: boolean | undefined, buildTool: 'rollup' | 'vite'): boolean {
+  return injectModuleVersions === true || (buildTool === 'vite' && injectModuleVersions !== false);
 }
 
 /**
@@ -372,7 +381,61 @@ export function _createRollupPluginInternals(
     },
   };
 
-  return { main, post };
+  const moduleVersions = mayInjectModuleVersions(options.injectModuleVersions, buildTool)
+    ? createModuleVersionsPlugin(sentryBuildPluginManager, buildTool, options.injectModuleVersions === true)
+    : undefined;
+
+  return { main, post, moduleVersions };
+}
+
+/**
+ * Replaces the module versions placeholder in its own plugin, so builds that cannot contain it register no
+ * `transform` hook, and the hook filter keeps every other module from reaching the handler.
+ */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+function createModuleVersionsPlugin(
+  sentryBuildPluginManager: SentryBuildPluginManager,
+  buildTool: 'rollup' | 'vite',
+  forced: boolean,
+) {
+  let root: string | undefined;
+  // Vite before 6 has no environments and runs an SSR build with its own config.
+  let viteSsrBuild = false;
+
+  return {
+    name: `sentry-${buildTool}-module-versions`,
+    ...(buildTool === 'vite'
+      ? {
+          configResolved(config: ViteResolvedConfig): void {
+            root = config.root;
+            viteSsrBuild = !!config.build.ssr;
+          },
+          ...(forced ? {} : { applyToEnvironment: isServerEnvironment }),
+        }
+      : {}),
+    transform: {
+      filter: { id: JS_MODULE_ID_FILTER, code: SERVER_MODULES_PLACEHOLDER },
+      handler(this: ViteHookContext | undefined, code: string): TransformResult {
+        // Rollup before 4.38 and Vite before 6.3 ignore the filter.
+        if (!code.includes(SERVER_MODULES_PLACEHOLDER)) {
+          return null;
+        }
+
+        const environment = this?.environment;
+        const serverModules = sentryBuildPluginManager.getModuleVersions({
+          root,
+          isServerBuild: environment ? isServerEnvironment(environment) : viteSsrBuild,
+        });
+        return serverModules ? replaceInCode(code, getServerModulesReplacement(serverModules)) : null;
+      },
+    },
+  };
+}
+
+type ViteEnvironment = NonNullable<ViteHookContext['environment']>;
+
+function isServerEnvironment(environment: ViteEnvironment): boolean {
+  return environment.config?.consumer === 'server';
 }
 
 /**
@@ -389,10 +452,10 @@ export function _rollupPluginInternal(
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/no-explicit-any
 export function sentryRollupPlugin(userOptions: Options = {}): any {
-  const { main, post } = _createRollupPluginInternals(userOptions, 'rollup');
+  const { main, post, moduleVersions } = _createRollupPluginInternals(userOptions, 'rollup');
   // We return an array here so we don't break backwards compatibility with what
   // unplugin used to return
-  return post ? [main, post] : [main];
+  return [main, ...(moduleVersions ? [moduleVersions] : []), ...(post ? [post] : [])];
 }
 
 export type { Options as SentryRollupPluginOptions } from '../core';

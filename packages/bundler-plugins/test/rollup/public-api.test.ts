@@ -122,6 +122,16 @@ describe('sentryRollupPlugin', () => {
     expect(plugins.map(plugin => plugin.name)).toEqual(['sentry-rollup-plugin', 'sentry-rollup-upload-staging']);
   });
 
+  it('adds the module versions plugin with `injectModuleVersions: true`', () => {
+    const plugins = sentryRollupPlugin({ telemetry: false, injectModuleVersions: true }) as Plugin[];
+
+    expect(plugins.map(plugin => plugin.name)).toEqual([
+      'sentry-rollup-plugin',
+      'sentry-rollup-module-versions',
+      'sentry-rollup-upload-staging',
+    ]);
+  });
+
   it('returns only the noop plugin when disabled', () => {
     const plugins = sentryRollupPlugin({ disable: true }) as Plugin[];
 

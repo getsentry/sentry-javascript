@@ -24,7 +24,35 @@ describe('sentryVitePlugin', () => {
 
     const pluginNames = plugins.map(plugin => plugin.name);
 
-    expect(pluginNames).toEqual(['sentry-vite-plugin', 'sentry-vite-upload-staging']);
+    expect(pluginNames).toEqual(['sentry-vite-plugin', 'sentry-vite-module-versions', 'sentry-vite-upload-staging']);
+  });
+
+  it('replaces the module versions placeholder only in its own plugin, for server environments', () => {
+    const plugins = sentryVitePlugin({ telemetry: false });
+    const main = plugins.find(plugin => plugin.name === 'sentry-vite-plugin');
+    const moduleVersions = plugins.find(plugin => plugin.name === 'sentry-vite-module-versions') as {
+      applyToEnvironment: (environment: { config: { consumer: string } }) => boolean;
+      transform: { filter: { code: string } };
+    };
+
+    expect(main).not.toHaveProperty('transform');
+    expect(moduleVersions.transform.filter.code).toBe('__SENTRY_SERVER_MODULES__');
+    expect(moduleVersions.applyToEnvironment({ config: { consumer: 'server' } })).toBe(true);
+    expect(moduleVersions.applyToEnvironment({ config: { consumer: 'client' } })).toBe(false);
+  });
+
+  it('applies the module versions plugin to every environment with `injectModuleVersions: true`', () => {
+    const plugins = sentryVitePlugin({ telemetry: false, injectModuleVersions: true });
+
+    expect(plugins.find(plugin => plugin.name === 'sentry-vite-module-versions')).not.toHaveProperty(
+      'applyToEnvironment',
+    );
+  });
+
+  it('adds no module versions plugin with `injectModuleVersions: false`', () => {
+    const plugins = sentryVitePlugin({ telemetry: false, injectModuleVersions: false });
+
+    expect(plugins.map(plugin => plugin.name)).not.toContain('sentry-vite-module-versions');
   });
 
   it('returns an array of Vite pluginswhen unplugin returns a single plugin', () => {

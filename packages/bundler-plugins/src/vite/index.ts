@@ -23,9 +23,13 @@ function getViteMajorVersion(): string | undefined {
 }
 
 export const sentryVitePlugin = (options?: InternalOptions): SentryVitePlugin[] => {
-  const { main, post } = _createRollupPluginInternals(options, 'vite', getViteMajorVersion());
+  const { main, post, moduleVersions } = _createRollupPluginInternals(options, 'vite', getViteMajorVersion());
 
   const plugins: SentryVitePlugin[] = [{ enforce: 'pre', ...main }];
+
+  if (moduleVersions) {
+    plugins.push({ enforce: 'pre', ...moduleVersions });
+  }
 
   if (post) {
     plugins.push({ enforce: 'post', ...post });

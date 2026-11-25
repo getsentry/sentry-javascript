@@ -7,6 +7,7 @@ import {
   createDebugIdUploadFunction,
   CodeInjection,
   getSourceMapFeatures,
+  getServerModulesDefinition,
 } from '../core';
 import * as fs from 'node:fs';
 
@@ -20,6 +21,7 @@ interface BunBuildConfig {
   sourcemap?: 'none' | 'linked' | 'inline' | 'external' | boolean;
   outdir?: string;
   define?: Record<string, string>;
+  target?: 'browser' | 'bun' | 'node';
 }
 
 interface BunPluginBuilder {
@@ -148,6 +150,13 @@ export function sentryBunPlugin(userOptions: Options = {}): BunPlugin {
         });
 
         config.define = { ...config.define, ...replacementStringValues };
+      }
+
+      const serverModules = sentryBuildPluginManager.getModuleVersions({
+        isServerBuild: config.target === 'bun' || config.target === 'node',
+      });
+      if (serverModules) {
+        config.define = { ...config.define, ...getServerModulesDefinition(serverModules) };
       }
 
       const freeGlobalDependencyOnBuildArtifacts = createDependencyOnBuildArtifacts();

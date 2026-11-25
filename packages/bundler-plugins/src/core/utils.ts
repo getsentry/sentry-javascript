@@ -369,18 +369,40 @@ export function stripQueryAndHashFromPath(path: string): string {
   return path.split('?')[0]!.split('#')[0]!;
 }
 
-export function replaceBooleanFlagsInCode(
+/** The placeholder that the Node SDK's `modulesIntegration` reads the module versions from. */
+export const SERVER_MODULES_PLACEHOLDER = '__SENTRY_SERVER_MODULES__';
+
+/** The `define` entry that replaces the module versions placeholder, for bundlers with `define` support. */
+export function getServerModulesDefinition(serverModules: Record<string, string>): Record<string, string> {
+  return { [SERVER_MODULES_PLACEHOLDER]: stringifyForCodeInjection(serverModules) };
+}
+
+/** The replacement for the module versions placeholder in plain code, where the object needs parentheses. */
+export function getServerModulesReplacement(serverModules: Record<string, string>): Record<string, string> {
+  return { [SERVER_MODULES_PLACEHOLDER]: `(${stringifyForCodeInjection(serverModules)})` };
+}
+
+/** The boolean flags as code, such as `'false'`. Flags without a value are left out. */
+function getBooleanFlagReplacements(replacementValues: Record<string, boolean | undefined>): Record<string, string> {
+  const replacements: Record<string, string> = {};
+  Object.keys(replacementValues).forEach(key => {
+    const value = replacementValues[key];
+    if (typeof value === 'boolean') {
+      replacements[key] = JSON.stringify(value);
+    }
+  });
+  return replacements;
+}
+
+/** Replaces every occurrence of each key of `replacements` in `code` with its value. */
+export function replaceInCode(
   code: string,
-  replacementValues: Record<string, boolean | undefined>,
+  replacements: Record<string, string>,
 ): { code: string; map: SourceMap } | null {
   const ms = new MagicString(code);
 
-  Object.keys(replacementValues).forEach(key => {
-    const value = replacementValues[key];
-
-    if (typeof value === 'boolean') {
-      ms.replaceAll(key, JSON.stringify(value));
-    }
+  Object.keys(replacements).forEach(key => {
+    ms.replaceAll(key, replacements[key] as string);
   });
 
   if (ms.hasChanged()) {
@@ -391,6 +413,13 @@ export function replaceBooleanFlagsInCode(
   }
 
   return null;
+}
+
+export function replaceBooleanFlagsInCode(
+  code: string,
+  replacementValues: Record<string, boolean | undefined>,
+): { code: string; map: SourceMap } | null {
+  return replaceInCode(code, getBooleanFlagReplacements(replacementValues));
 }
 
 // https://turbo.build/repo/docs/reference/system-environment-variables#environment-variables-in-tasks
