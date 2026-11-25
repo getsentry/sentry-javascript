@@ -468,6 +468,30 @@ describe('experimentalReportSdkConfigIntegration', () => {
     expect(reportRouter(() => 'react-router@7')).toEqual(payload);
   });
 
+  it('reports library objects as placeholders and keeps library primitives', () => {
+    const routerIntegration = defineIntegration(
+      (_options: { history?: unknown; routes?: unknown[]; version?: string; basename?: string } = {}) => ({
+        name: 'Router',
+      }),
+      { libraryOptions: ['history', 'routes', 'version'] },
+    );
+    const userOptions = captureOptionsSetByUser({
+      integrations: [
+        experimentalReportSdkConfigIntegration(),
+        routerIntegration({ history: { length: 1 }, routes: ['/users'], version: '6.22.0', basename: '/app' }),
+      ],
+    });
+
+    const payload = reportConfig(getDefaultTestClientOptions({ dsn: 'https://username@domain/123', ...userOptions }));
+
+    expect(payload.options).toEqual({
+      integrations: [
+        { name: 'ExperimentalReportSdkConfig' },
+        { name: 'Router', options: { basename: '/app', history: '[Object]', routes: '[Object]', version: '6.22.0' } },
+      ],
+    });
+  });
+
   it('reports integration options as passed, even when the integration writes into them', () => {
     const mutatingIntegration = defineIntegration((options: { capture?: boolean } = {}) => {
       options.capture = false;

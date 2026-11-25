@@ -199,12 +199,18 @@ function describeIntegration(
   const described: Record<string, unknown> = {};
   for (const key of keys) {
     const value = options[key];
-    // A library function's source changes with the library build and the engine, not with the config.
-    described[key] =
-      typeof value === 'function' && libraryOptions.includes(key) ? '[Function]' : describeOptionValue(value);
+    described[key] = libraryOptions.includes(key) ? describeLibraryValue(value) : describeOptionValue(value);
   }
 
   return { name, options: described };
+}
+
+/**
+ * Library functions and objects change with the library build and the engine, not with the config, so only their kind
+ * is reported. Primitives are stable, so they are kept.
+ */
+function describeLibraryValue(value: unknown): unknown {
+  return typeof value === 'function' ? '[Function]' : redactObject(value);
 }
 
 // Options can hold live objects such as a router, a store or an SDK client, which carry URLs, app state or keys.
