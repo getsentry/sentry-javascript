@@ -172,6 +172,8 @@ function registerRuntimePlugin(
     [
       importedConfigFile ? `import ${stringifyForCodeInjection(importedConfigFile)};` : '',
       'import { tasks } from "#nitro/virtual/tasks";',
+      // The SDK's entry, not `@sentry/server-utils`, which pnpm apps can't resolve from their root.
+      // See `@sentry/node/nitro/runtime`.
       `import { setupSentryNitroApp } from ${stringifyForCodeInjection(runtimeModule)};`,
       'export default function sentryNitroPlugin(nitroApp) {',
       '  setupSentryNitroApp(nitroApp, tasks);',
