@@ -1,5 +1,6 @@
 /* oxlint-disable max-lines */
 import { getInstalledModules } from '@sentry/bundler-plugins/loader-utils';
+import { stringifyForCodeInjection } from '@sentry/core';
 import {
   BUNDLE_SAFE_INSTRUMENTED_PACKAGES,
   filterInstrumentedExternals,
@@ -416,7 +417,7 @@ export function getTurbopackServerModulesPatch(
       ...incomingUserNextConfigObject.compiler,
       defineServer: {
         // Next.js only accepts strings here, so the SDK gets the versions as JSON.
-        __SENTRY_SERVER_MODULES__: JSON.stringify(serverModules),
+        __SENTRY_SERVER_MODULES__: stringifyForCodeInjection(serverModules),
         ...incomingUserNextConfigObject.compiler?.defineServer,
       },
     },
