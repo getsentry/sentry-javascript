@@ -97,11 +97,14 @@ export default defineNuxtPlugin({
       }
     });
 
+    // Capture exception in the next event loop, to make sure that all breadcrumbs are recorded in time.
     nuxtApp.hook('app:error', error => {
       if (isIgnoredNuxtError(error)) {
         return;
       }
-      reportNuxtError({ error });
+      setTimeout(() => {
+        reportNuxtError({ error });
+      });
     });
 
     // Nuxt calls `vue:error` for every error that reaches the root component, so an error thrown during setup
@@ -110,7 +113,9 @@ export default defineNuxtPlugin({
       if (isIgnoredNuxtError(error)) {
         return;
       }
-      reportNuxtError({ error, instance, info });
+      setTimeout(() => {
+        reportNuxtError({ error, instance, info });
+      });
     });
   },
 });

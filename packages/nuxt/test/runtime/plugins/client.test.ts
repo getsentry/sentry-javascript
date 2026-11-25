@@ -1,7 +1,7 @@
 import { NAVIGATION, PAGELOAD } from '@sentry/conventions/op';
 import type { Client, StartSpanOptions } from '@sentry/core';
 import type { isNuxtError as nuxtIsNuxtError, NuxtApp } from 'nuxt/app';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import clientPlugin from '../../../src/runtime/plugins/sentry.client';
 import * as utils from '../../../src/runtime/utils';
 
@@ -245,6 +245,14 @@ describe('Sentry Nuxt client plugin', () => {
   });
 
   describe.each(['app:error', 'vue:error'] as const)('%s hook — status-code filtering', hookName => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     const fireHook = (nuxtApp: { hook: ReturnType<typeof vi.fn> }, error: unknown) => {
       const cb = nuxtApp.hook.mock.calls.find(c => c[0] === hookName)?.[1] as (
         e: unknown,
@@ -255,6 +263,7 @@ describe('Sentry Nuxt client plugin', () => {
       // plugin passes the extra args through for vue:error, so include them
       // uniformly here and rely on expect.objectContaining({ error }) below.
       cb(error, undefined, 'setup');
+      vi.runAllTimers();
     };
 
     // The plugin's skip guard reads `error.status || error.statusCode`, so both
@@ -310,6 +319,14 @@ describe('Sentry Nuxt client plugin', () => {
   });
 
   describe('vue:error hook — component instance passthrough', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('forwards the error, component instance and info to reportNuxtError', async () => {
       const reportSpy = vi.spyOn(utils, 'reportNuxtError').mockImplementation(() => {});
       getClient.mockReturnValue(makeClient());
@@ -325,6 +342,7 @@ describe('Sentry Nuxt client plugin', () => {
       const err = new Error('vue boom');
       const instance = { $props: { foo: 1 } };
       vueErrorCb(err, instance, 'render');
+      vi.runAllTimers();
 
       expect(reportSpy).toHaveBeenCalledWith({ error: err, instance, info: 'render' });
     });

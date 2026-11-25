@@ -115,8 +115,6 @@ describe('reportNuxtError', () => {
   };
 
   beforeEach(() => {
-    // Using fake timers as setTimeout is used in `reportNuxtError`
-    vi.useFakeTimers();
     vi.clearAllMocks();
     (getClient as Mock).mockReturnValue(mockClient);
   });
@@ -127,7 +125,6 @@ describe('reportNuxtError', () => {
 
   test('captures exception with correct error and metadata', () => {
     reportNuxtError({ error: mockError });
-    vi.runAllTimers();
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: undefined } } },
@@ -137,7 +134,6 @@ describe('reportNuxtError', () => {
 
   test('includes instance props if attachProps is not explicitly defined', () => {
     reportNuxtError({ error: mockError, instance: mockInstance });
-    vi.runAllTimers();
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: undefined, propsData: { foo: 'bar' } } } },
@@ -149,7 +145,6 @@ describe('reportNuxtError', () => {
     mockClient.getOptions.mockReturnValue({ attachProps: false });
 
     reportNuxtError({ error: mockError, instance: mockInstance });
-    vi.runAllTimers();
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: undefined } } },
@@ -159,7 +154,6 @@ describe('reportNuxtError', () => {
 
   test('handles absence of instance correctly', () => {
     reportNuxtError({ error: mockError, info: 'Some info' });
-    vi.runAllTimers();
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: 'Some info' } } },
