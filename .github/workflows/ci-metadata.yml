@@ -6,6 +6,10 @@ on:
         description: 'The commit SHA to check out and test'
         type: string
         required: true
+      plan_tests:
+        description: 'Also select affected projects and generate test matrices in the metadata job'
+        type: boolean
+        default: false
     outputs:
       commit_label:
         description: 'Short SHA + commit message for display'
@@ -34,11 +38,62 @@ on:
       force_skip_cache:
         description: 'Whether to skip caching (schedule or ci-skip-cache label)'
         value: ${{ jobs.get_metadata.outputs.force_skip_cache }}
+      tests_planned:
+        description: 'Whether test selection was needed and completed'
+        value: ${{ jobs.get_metadata.outputs.tests_planned }}
+      changed_node_integration:
+        description: 'Test planning output: changed_node_integration'
+        value: ${{ jobs.get_metadata.outputs.changed_node_integration }}
+      changed_node:
+        description: 'Test planning output: changed_node'
+        value: ${{ jobs.get_metadata.outputs.changed_node }}
+      changed_deno:
+        description: 'Test planning output: changed_deno'
+        value: ${{ jobs.get_metadata.outputs.changed_deno }}
+      changed_bun:
+        description: 'Test planning output: changed_bun'
+        value: ${{ jobs.get_metadata.outputs.changed_bun }}
+      changed_bun_integration:
+        description: 'Test planning output: changed_bun_integration'
+        value: ${{ jobs.get_metadata.outputs.changed_bun_integration }}
+      changed_deno_integration:
+        description: 'Test planning output: changed_deno_integration'
+        value: ${{ jobs.get_metadata.outputs.changed_deno_integration }}
+      changed_browser_integration:
+        description: 'Test planning output: changed_browser_integration'
+        value: ${{ jobs.get_metadata.outputs.changed_browser_integration }}
+      changed_cloudflare_integration:
+        description: 'Test planning output: changed_cloudflare_integration'
+        value: ${{ jobs.get_metadata.outputs.changed_cloudflare_integration }}
+      changed_bundler_plugin_integration:
+        description: 'Test planning output: changed_bundler_plugin_integration'
+        value: ${{ jobs.get_metadata.outputs.changed_bundler_plugin_integration }}
+      changed_aws_serverless:
+        description: 'Test planning output: changed_aws_serverless'
+        value: ${{ jobs.get_metadata.outputs.changed_aws_serverless }}
+      e2e-matrix-1:
+        description: 'Test planning output: e2e-matrix-1'
+        value: ${{ jobs.get_metadata.outputs.e2e-matrix-1 }}
+      e2e-matrix-2:
+        description: 'Test planning output: e2e-matrix-2'
+        value: ${{ jobs.get_metadata.outputs.e2e-matrix-2 }}
+      e2e-matrix-aws-layer:
+        description: 'Test planning output: e2e-matrix-aws-layer'
+        value: ${{ jobs.get_metadata.outputs.e2e-matrix-aws-layer }}
+      e2e-matrix-with-secrets:
+        description: 'Test planning output: e2e-matrix-with-secrets'
+        value: ${{ jobs.get_metadata.outputs.e2e-matrix-with-secrets }}
+      e2e-matrix-optional-without-secrets:
+        description: 'Test planning output: e2e-matrix-optional-without-secrets'
+        value: ${{ jobs.get_metadata.outputs.e2e-matrix-optional-without-secrets }}
+      e2e-matrix-optional:
+        description: 'Test planning output: e2e-matrix-optional'
+        value: ${{ jobs.get_metadata.outputs.e2e-matrix-optional }}
 
 jobs:
   get_metadata:
-    name: Get Metadata
-    runs-on: ubuntu-24.04
+    name: ${{ inputs.plan_tests && 'Plan CI jobs' || 'Get Metadata' }}
+    runs-on: ${{ inputs.plan_tests && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     permissions:
       pull-requests: read
     steps:
@@ -62,7 +117,6 @@ jobs:
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
 
-      # Most changed packages are determined in job_get_test_matrix via Nx
       - name: Determine changed packages
         uses: dorny/paths-filter@v4.0.3
         id: changed
@@ -76,6 +130,52 @@ jobs:
               - '**/package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
+
+      - name: Determine whether tests need planning
+        id: plan
+        if: inputs.plan_tests
+        env:
+          ENABLED: >-
+            ${{ inputs.plan_tests && (steps.changed.outputs.any_code == 'true' || github.ref == 'refs/heads/develop' ||
+            github.ref == 'refs/heads/v10' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8' ||
+            startsWith(github.ref, 'refs/heads/release/')) }}
+        run: echo "enabled=$ENABLED" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node
+        if: steps.plan.outputs.enabled == 'true'
+        uses: ./.github/actions/setup-node
+
+      - name: Set up affected-project planner
+        if:
+          steps.plan.outputs.enabled == 'true' && github.event_name == 'pull_request' && steps.changed.outputs.workflow
+          != 'true'
+        uses: ./.github/actions/setup-nx-planner
+
+      - name: Check for Affected Nx Projects
+        uses: ./.github/actions/nx-affected-list
+        id: checkForAffected
+        if:
+          steps.plan.outputs.enabled == 'true' && github.event_name == 'pull_request' && steps.changed.outputs.workflow
+          != 'true'
+        with:
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ inputs.head_commit }}
+
+      - name: Determine which test applications should be run
+        id: matrix
+        if: steps.plan.outputs.enabled == 'true'
+        run:
+          node ./lib/getTestMatrix.mjs --shards=2 --separate-aws-layer --base=${{ (github.event_name == 'pull_request'
+          && steps.changed.outputs.workflow != 'true' && github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
+
+      - name: Determine which optional E2E test applications should be run
+        id: matrix-optional
+        if: steps.plan.outputs.enabled == 'true'
+        run:
+          node ./lib/getTestMatrix.mjs --variant=optional --base=${{ (github.event_name == 'pull_request' &&
+          steps.changed.outputs.workflow != 'true' && github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
 
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
@@ -96,3 +196,41 @@ jobs:
       force_skip_cache:
         ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' &&
         contains(toJSON(github.event.pull_request.labels.*.name), 'ci-skip-cache')) }}
+      tests_planned: ${{ steps.plan.outputs.enabled == 'true' }}
+      changed_node_integration:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/node-integration-tests') }}
+      changed_node:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/node') }}
+      changed_deno:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/deno') }}
+      changed_bun:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/bun')
+        }}
+      changed_bun_integration:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/bun-integration-tests') }}
+      changed_deno_integration:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/deno-integration-tests') }}
+      changed_browser_integration:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/browser-integration-tests') }}
+      changed_cloudflare_integration:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/cloudflare-integration-tests') }}
+      changed_bundler_plugin_integration:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/bundler-plugin-integration-tests') }}
+      changed_aws_serverless:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/aws-serverless') }}
+      e2e-matrix-1: ${{ steps.matrix.outputs.matrix-1 || '{"include":[]}' }}
+      e2e-matrix-2: ${{ steps.matrix.outputs.matrix-2 || '{"include":[]}' }}
+      e2e-matrix-aws-layer: ${{ steps.matrix.outputs.matrix-aws-layer || '{"include":[]}' }}
+      e2e-matrix-optional: ${{ steps.matrix-optional.outputs.matrix || '{"include":[]}' }}
+      e2e-matrix-with-secrets: ${{ steps.matrix.outputs.matrix-with-secrets || '{"include":[]}' }}
+      e2e-matrix-optional-without-secrets:
+        ${{ steps.matrix-optional.outputs.matrix-without-secrets || '{"include":[]}' }}
