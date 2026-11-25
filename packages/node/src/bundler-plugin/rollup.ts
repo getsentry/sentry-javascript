@@ -18,6 +18,13 @@ export type SentryRollupPluginOptions = SentryRollupPluginOptionsBase & {
    * @default true
    */
   buildTimeInstrumentation?: boolean;
+  /**
+   * Nitro only. The file that calls `Sentry.init()` on the server, relative to Nitro's root directory. The plugin
+   * registers it as a Nitro plugin. Set to `false` to register nothing, for example when `Sentry.init()` runs elsewhere.
+   *
+   * @default `sentry.server.config.{ts,js,mjs,cjs,mts,cts}` in Nitro's root directory, when it exists
+   */
+  serverConfigFile?: string | false;
 };
 
 /**

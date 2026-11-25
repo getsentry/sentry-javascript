@@ -10,5 +10,5 @@
       "~/*": ["./*"]
     }
   },
-  "include": ["server/**/*.ts", "tests/**/*.ts", "nitro.config.ts", "vite.config.ts"]
+  "include": ["server/**/*.ts", "tests/**/*.ts", "nitro.config.ts", "vite.config.ts", "sentry.server.config.ts"]
 }

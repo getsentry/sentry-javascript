@@ -9,7 +9,7 @@ import type { PluginOptions } from './options';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
 import { createExternalRequireResolver } from './externalRequire';
 import type { NitroModuleLike } from './nitro';
-import { sentryNitroModule } from './nitro';
+import { createSentryNitroModule, loadSentryServerConfigPlugin, resolveSentryServerConfigPlugin } from './nitro';
 import { resolveOrchestrionRuntimeRequest, SNIPPET_IMPORT_SPECIFIER, SNIPPET_IMPORT_SPECIFIER_FILTER } from './resolve';
 
 type TransformHandler = (this: unknown, code: string, id: string, opts?: { ssr?: boolean }) => unknown;
@@ -161,7 +161,7 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
   const plugin: OrchestrionVitePlugin = {
     ...upstream,
     [INSTANCE_KEY]: instance,
-    nitro: sentryNitroModule,
+    nitro: createSentryNitroModule(options),
     // On Vite >= 6 `applyToEnvironment` (below) keeps the whole plugin out of
     // client environments. Vite 5 (e.g. Remix v2) ignores that hook, so without
     // this gate the transform would also run in the CLIENT build — where modules
@@ -170,12 +170,19 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
     // `node:diagnostics_channel`) breaks against Vite's browser builtin shim. Gate
     // on the `ssr` flag, which Vite passes on both major versions.
     transform: gateTransform(upstream.transform, opts => !opts?.ssr || isDuplicate),
-    // SSR-gated like the transform: the specifier only appears in SSR modules.
     async resolveId(source, importer, resolveOptions) {
+      const serverConfigPlugin = resolveSentryServerConfigPlugin(source);
+      if (serverConfigPlugin) {
+        return serverConfigPlugin;
+      }
       if (source !== SNIPPET_IMPORT_SPECIFIER) {
         return resolveExternalRequire.call(this, source, importer, resolveOptions);
       }
+      // SSR-gated like the transform: the specifier only appears in SSR modules.
       return resolveOptions?.ssr ? resolveSnippetImport.call(this, source, importer, resolveOptions) : null;
+    },
+    load(id) {
+      return loadSentryServerConfigPlugin(id) ?? null;
     },
     applyToEnvironment(environment) {
       // Orchestrion splices `node:diagnostics_channel` calls into instrumented modules, which only

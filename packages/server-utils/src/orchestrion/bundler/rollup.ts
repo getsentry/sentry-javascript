@@ -13,7 +13,12 @@ import type {
 export type { Plugin as RollupPlugin } from 'rollup';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
-import { enableNitroTracingChannels, getBuildingNitro } from './nitro';
+import {
+  getBuildingNitro,
+  loadSentryServerConfigPlugin,
+  resolveSentryServerConfigPlugin,
+  setupNitroForSentry,
+} from './nitro';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
 import { resolveOrchestrionRuntimeRequest, SNIPPET_IMPORT_SPECIFIER } from './resolve';
 
@@ -132,6 +137,10 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       importer: string | undefined,
       options: Parameters<ResolveIdHook>[2],
     ) {
+      const serverConfigPlugin = resolveSentryServerConfigPlugin(source);
+      if (serverConfigPlugin) {
+        return serverConfigPlugin;
+      }
       if (source !== SNIPPET_IMPORT_SPECIFIER) {
         return null;
       }
@@ -141,11 +150,14 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       }
       return resolveOrchestrionRuntimeRequest(source) ?? null;
     },
+    load(id: string): string | null {
+      return loadSentryServerConfigPlugin(id) ?? null;
+    },
     buildStart(this: PluginContext, rollupOptions: NormalizedInputOptions): void {
-      // Nitro has resolved its options by now, but renders the virtual modules that read `tracingChannel` later.
+      // Nitro has resolved its options by now, but renders the virtual modules that read them later.
       const nitro = getBuildingNitro();
       if (nitro) {
-        enableNitroTracingChannels(nitro);
+        setupNitroForSentry(nitro, options);
       }
 
       // An externalized dependency never passes through the code transform, so

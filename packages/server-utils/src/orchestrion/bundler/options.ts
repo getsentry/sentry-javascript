@@ -49,6 +49,13 @@ export type PluginOptions = {
    * Only for packages with a single ESM entry file, matched by a string `filePath`.
    */
   selfProvidedModules?: string[];
+  /**
+   * Nitro only. The file that calls `Sentry.init()` on the server, relative to Nitro's root directory. The plugins
+   * register it as a Nitro plugin. Set to `false` to register nothing, for example when `Sentry.init()` runs elsewhere.
+   *
+   * @default `sentry.server.config.{ts,js,mjs,cjs,mts,cts}` in Nitro's root directory, when it exists
+   */
+  serverConfigFile?: string | false;
 };
 
 /**
