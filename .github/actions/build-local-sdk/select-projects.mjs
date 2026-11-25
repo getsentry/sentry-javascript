@@ -1,3 +1,7 @@
+// Select the workspace packages needed by a CI job, including their transitive dependencies.
+// Workspace paths select the package itself; E2E app paths select their workspace dependencies.
+// The build action passes the resulting project names to Nx.
+
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
