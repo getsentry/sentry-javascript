@@ -1,3 +1,5 @@
+/* oxlint-disable max-lines */
+import { getInstalledModules } from '@sentry/bundler-plugins/loader-utils';
 import {
   BUNDLE_SAFE_INSTRUMENTED_PACKAGES,
   filterInstrumentedExternals,
@@ -388,6 +390,35 @@ export function maybeSetTurbopackTreeshakeDefines(
       // Must stay booleans: Turbopack injects string values as string literals, so `'false'` would be truthy.
       ...defines,
       ...incomingUserNextConfigObject.compiler?.define,
+    },
+  };
+}
+
+/**
+ * Returns the patch that replaces the `__SENTRY_SERVER_MODULES__` placeholder in Turbopack server builds through
+ * `compiler.defineServer`, like the Sentry webpack plugin does for webpack builds.
+ */
+export function getTurbopackServerModulesPatch(
+  incomingUserNextConfigObject: NextConfigObject,
+  bundlerInfo: BundlerInfo,
+): Partial<NextConfigObject> {
+  if (!bundlerInfo.isTurbopackSupported || !bundlerInfo.isTurbopack) {
+    return {};
+  }
+
+  const serverModules = getInstalledModules(process.cwd());
+  if (Object.keys(serverModules).length === 0) {
+    return {};
+  }
+
+  return {
+    compiler: {
+      ...incomingUserNextConfigObject.compiler,
+      defineServer: {
+        // Next.js only accepts strings here, so the SDK gets the versions as JSON.
+        __SENTRY_SERVER_MODULES__: JSON.stringify(serverModules),
+        ...incomingUserNextConfigObject.compiler?.defineServer,
+      },
     },
   };
 }

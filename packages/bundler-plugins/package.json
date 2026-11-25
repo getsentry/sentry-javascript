@@ -109,6 +109,7 @@
   },
   "dependencies": {
     "@sentry/core": "11.17.0",
+    "@sentry/server-utils": "11.17.0",
     "dotenv": "^17.4.2",
     "glob": "^14.0.3",
     "magic-string": "~0.30.8 || ^1.0.0",

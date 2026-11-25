@@ -369,9 +369,22 @@ export function stripQueryAndHashFromPath(path: string): string {
   return path.split('?')[0]!.split('#')[0]!;
 }
 
+/** The placeholder that the Node SDK's `modulesIntegration` reads the module versions from. */
+export const SERVER_MODULES_PLACEHOLDER = '__SENTRY_SERVER_MODULES__';
+
+/** The `define` entry that replaces the module versions placeholder, for bundlers with `define` support. */
+export function getServerModulesDefinition(serverModules: Record<string, string>): Record<string, string> {
+  return { [SERVER_MODULES_PLACEHOLDER]: stringifyForCodeInjection(serverModules) };
+}
+
+/**
+ * Replaces the boolean flags, and the `__SENTRY_SERVER_MODULES__` placeholder that the Node SDK's `modulesIntegration`
+ * reads when `serverModules` is set.
+ */
 export function replaceBooleanFlagsInCode(
   code: string,
   replacementValues: Record<string, boolean | undefined>,
+  serverModules?: Record<string, string>,
 ): { code: string; map: SourceMap } | null {
   const ms = new MagicString(code);
 
@@ -382,6 +395,10 @@ export function replaceBooleanFlagsInCode(
       ms.replaceAll(key, JSON.stringify(value));
     }
   });
+
+  if (serverModules) {
+    ms.replaceAll(SERVER_MODULES_PLACEHOLDER, `(${stringifyForCodeInjection(serverModules)})`);
+  }
 
   if (ms.hasChanged()) {
     return {

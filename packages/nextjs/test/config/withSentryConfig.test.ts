@@ -554,6 +554,42 @@ describe('withSentryConfig', () => {
     });
   });
 
+  describe('turbopack server modules', () => {
+    const originalTurbopack = process.env.TURBOPACK;
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      process.env.TURBOPACK = originalTurbopack;
+    });
+
+    it('replaces `__SENTRY_SERVER_MODULES__` in server builds and keeps user server defines', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
+
+      const finalConfig = materializeFinalNextConfig({
+        ...exportedNextConfig,
+        compiler: { defineServer: { USER_FLAG: 'x' } },
+      });
+
+      expect(finalConfig.compiler?.defineServer).toEqual({
+        __SENTRY_SERVER_MODULES__: expect.any(String),
+        USER_FLAG: 'x',
+      });
+      expect(JSON.parse(finalConfig.compiler?.defineServer?.__SENTRY_SERVER_MODULES__ as string)).toEqual(
+        expect.objectContaining({ next: expect.any(String) }),
+      );
+      expect(finalConfig.compiler?.define).toBeUndefined();
+    });
+
+    it('does not set the define on webpack builds', () => {
+      delete process.env.TURBOPACK;
+
+      const finalConfig = materializeFinalNextConfig({ ...exportedNextConfig });
+
+      expect(finalConfig.compiler?.defineServer).toBeUndefined();
+    });
+  });
+
   describe('turbopack sourcemap configuration', () => {
     const originalTurbopack = process.env.TURBOPACK;
 

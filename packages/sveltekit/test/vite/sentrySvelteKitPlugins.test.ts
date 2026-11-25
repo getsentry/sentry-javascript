@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import type { Plugin } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as bundlerPluginsVite from '@sentry/bundler-plugins/vite';
 import * as autoInstrument from '../../src/vite/autoInstrument';
 import { generateVitePluginOptions, sentrySvelteKit } from '../../src/vite/sentryVitePlugins';
 import * as sourceMaps from '../../src/vite/sourceMaps';
@@ -106,9 +107,38 @@ describe('sentrySvelteKit()', () => {
     ]);
   });
 
-  it("doesn't return the sentry source maps plugins if autoUploadSourcemaps is `false`", async () => {
+  it('only adds the bundler plugin for module versions if autoUploadSourceMaps is `false`', async () => {
+    const makePluginSpy = vi.spyOn(sourceMaps, 'makeCustomSentryVitePlugins');
+    makePluginSpy.mockClear();
+
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false });
-    expect(plugins).toHaveLength(7); // kit config resolver + browser-tracing variant resolver + OpenTelemetry API resolver + tunnel base path + auto instrument + orchestrion + build flag
+
+    expect(makePluginSpy).not.toHaveBeenCalled();
+    expect(plugins.map(plugin => plugin.name)).toEqual([
+      'sentry-sveltekit-kit-config-resolver',
+      'sentry-sveltekit-browser-tracing-variant',
+      'sentry-sveltekit-opentelemetry-api',
+      'sentry-sveltekit-tunnel-base-path',
+      'sentry-auto-instrumentation',
+      'sentry-orchestrion-vite',
+      'sentry-sveltekit-build-flag',
+      'sentry-vite-plugin',
+      'sentry-vite-upload-staging',
+    ]);
+  });
+
+  it('turns off everything but module versions in the bundler plugin if autoUploadSourceMaps is `false`', async () => {
+    const sentryVitePluginSpy = vi.spyOn(bundlerPluginsVite, 'sentryVitePlugin');
+    sentryVitePluginSpy.mockClear();
+
+    await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false, debug: true });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith({
+      debug: true,
+      telemetry: false,
+      sourcemaps: { upload: false, injectDebugIds: false },
+      release: { inject: false, create: false, finalize: false, setCommits: false, deploy: false },
+    });
   });
 
   it("doesn't return the sentry source maps plugins if `NODE_ENV` is development", async () => {

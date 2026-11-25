@@ -7,6 +7,7 @@ import {
   getBundlerInfo,
   getServerExternalPackagesPatch,
   getTurbopackPatch,
+  getTurbopackServerModulesPatch,
   getWebpackPatch,
   maybeConstructTurbopackConfig,
   maybeEnableTurbopackSourcemaps,
@@ -119,6 +120,7 @@ export function getFinalConfigObject(
       vercelCronsConfigResult,
     }),
     ...getTurbopackPatch(bundlerInfo, turboPackConfig),
+    ...getTurbopackServerModulesPatch(incomingUserNextConfigObject, bundlerInfo),
   };
 }
 
