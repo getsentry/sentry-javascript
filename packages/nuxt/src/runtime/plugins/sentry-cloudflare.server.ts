@@ -5,21 +5,20 @@ import { wrapRequestHandler } from '@sentry/cloudflare/request';
 import {
   _INTERNAL_captureOptionsSetByUser,
   applySdkMetadata,
+  consoleSandbox,
   debug,
   getDefaultIsolationScope,
   getIsolationScope,
   getTraceData,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
-import {
-  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-  _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
-} from '@sentry/core/server';
+import { handleServedTunnelRequest, isServedTunnelRequest } from '@sentry/core/server';
 import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
+import { isCloudflareEntryWrapped } from '../utils/cloudflare-entry';
 import { getCfProperties, getCloudflareProperties, hasCfProperty, isEventType } from '../utils/event-type-check';
 import { addSentryPageMetaTags, recordRequestStart } from '../utils/pageMetaTags';
 
@@ -66,10 +65,32 @@ function getRequestHandlerOptions(cloudflareOptions: CloudflareOptions): Cloudfl
  *   debug: nitroApp.h3App.options.debug
  * })));
  * ```
+ *
+ * @deprecated Add a `sentry.cloudflare.config.ts` file with the Sentry setup to the root of the Nuxt app instead.
+ *
+ * ```ts
+ * // sentry.cloudflare.config.ts
+ * import { defineCloudflareOptions } from '@sentry/cloudflare';
+ *
+ * export default defineCloudflareOptions(env => ({
+ *   dsn: env.SENTRY_DSN,
+ * }));
+ * ```
  */
+// TODO(v12): Remove `sentryCloudflareNitroPlugin`.
 export const sentryCloudflareNitroPlugin =
   (optionsOrFn: CloudflareOptions | ((nitroApp: NitroApp) => CloudflareOptions)): NitroAppPlugin =>
   (nitroApp: NitroApp): void => {
+    if (isCloudflareEntryWrapped()) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[Sentry] `sentryCloudflareNitroPlugin` does nothing, because Sentry sets up the SDK from `sentry.cloudflare.config.ts`. Remove the plugin.',
+        );
+      });
+      return;
+    }
+
     const traceDataMap = new WeakMap<object, ReturnType<typeof getTraceData>>();
 
     // Nitro v3 (Nuxt 5) has no `localFetch`. It hands the Worker's own request to `fetch`, with `ctx` on it.

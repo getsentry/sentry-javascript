@@ -2,6 +2,7 @@ import type { Client } from '../client';
 import type { DynamicSamplingContext } from '../types/envelope';
 import type { PropagationContext } from '../types/tracing';
 import type { TraceparentData } from '../types/transaction';
+import { DEBUG_BUILD } from '../debug-build';
 import { debug } from '../utils/debug-logger';
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
 import { extractOrgIdFromClient } from './dsn';
@@ -181,9 +182,10 @@ export function shouldContinueTrace(client: Client, baggageOrgId?: string): bool
 
   // Case: baggage orgID and Client orgID don't match - always start new trace
   if (baggageOrgId && clientOrgId && baggageOrgId !== clientOrgId) {
-    debug.log(
-      `Won't continue trace because org IDs don't match (incoming baggage: ${baggageOrgId}, SDK options: ${clientOrgId})`,
-    );
+    DEBUG_BUILD &&
+      debug.log(
+        `Won't continue trace because org IDs don't match (incoming baggage: ${baggageOrgId}, SDK options: ${clientOrgId})`,
+      );
     return false;
   }
 
@@ -194,9 +196,10 @@ export function shouldContinueTrace(client: Client, baggageOrgId?: string): bool
     // - Baggage has orgID, but Client doesn't have one
     // - Client has orgID, but baggage doesn't have one
     if ((baggageOrgId && !clientOrgId) || (!baggageOrgId && clientOrgId)) {
-      debug.log(
-        `Starting a new trace because strict trace continuation is enabled but one org ID is missing (incoming baggage: ${baggageOrgId}, Sentry client: ${clientOrgId})`,
-      );
+      DEBUG_BUILD &&
+        debug.log(
+          `Starting a new trace because strict trace continuation is enabled but one org ID is missing (incoming baggage: ${baggageOrgId}, Sentry client: ${clientOrgId})`,
+        );
       return false;
     }
   }

@@ -9,7 +9,8 @@ vi.mock('fs', async requireActual => {
 });
 
 // Without a configured name, the real resolver falls back to the git revision of this checkout.
-vi.mock('@sentry/bundler-plugins/core', () => ({
+vi.mock('@sentry/bundler-plugins/core', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   resolveReleaseName: (name?: string) => name,
 }));
 

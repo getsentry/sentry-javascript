@@ -13,10 +13,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { registerPrepareSpanScope, setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
-import {
-  _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
-  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
-} from '@sentry/core/server';
+import { forwardTunnelRequest, setTunnelDefaults } from '@sentry/core/server';
 import { ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { getInjectedBasePath } from '../common/utils/basePath';
 import { isTunnelRouteSpan } from '../common/utils/dropMiddlewareTunnelRequests';

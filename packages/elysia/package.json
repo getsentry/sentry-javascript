@@ -34,7 +34,7 @@
   "dependencies": {
     "@sentry/bun": "11.17.0",
     "@sentry/core": "11.17.0",
-    "@sentry/conventions": "^0.35.0"
+    "@sentry/conventions": "^0.36.0"
   },
   "peerDependencies": {
     "elysia": "^1.4.0"

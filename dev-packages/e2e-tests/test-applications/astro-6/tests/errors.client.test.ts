@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
+import { APP_NAME } from './constants';
 
 test.describe('client-side errors', () => {
   test('captures error thrown on click', async ({ page }) => {
-    const errorEventPromise = waitForError('astro-6', errorEvent => {
+    const errorEventPromise = waitForError(APP_NAME, errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'client error';
     });
 

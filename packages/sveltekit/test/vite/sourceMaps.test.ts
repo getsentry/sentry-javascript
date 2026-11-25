@@ -5,7 +5,7 @@ import * as os from 'os';
 import * as path from 'path';
 import type { Plugin } from 'vite';
 import * as vite from 'vite';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ViteUserConfig } from 'vitest/config';
 import { _getUpdatedSourceMapSettings, makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
 
@@ -46,6 +46,8 @@ vi.mock('sorcery', async () => {
 beforeEach(() => {
   vi.clearAllMocks();
 });
+
+const CREDENTIALS = { authToken: 'token', org: 'org', project: 'project' };
 
 async function getSentryViteSubPlugin(name: string): Promise<Plugin | undefined> {
   const plugins = await makeCustomSentryVitePlugins(
@@ -294,6 +296,20 @@ describe('makeCustomSentryVitePlugins()', () => {
     });
   });
 
+  // The bundler plugin does not get `sourcemaps.delete`.
+  it('warns about conflicting source map options', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await makeCustomSentryVitePlugins(
+      { sourcemaps: { delete: false, filesToDeleteAfterUpload: ['./build/**/*.map'] } },
+      { getAdapterOutputDir: async () => '.svelte-kit/output', getKitConfig: async () => ({}) },
+    );
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('`sourcemaps.filesToDeleteAfterUpload` still deletes the files'),
+    );
+  });
+
   it('catches errors while uploading source maps', async () => {
     mockedMainPlugin.writeBundle.mockImplementationOnce(() => {
       throw new Error('test error');
@@ -369,7 +385,10 @@ describe('_getUpdatedSourceMapSettings', () => {
     it.each([[undefined], ['invalid'], ['something'], [null]])(
       'should set sourcemap to hidden when value is %s',
       input => {
-        const result = _getUpdatedSourceMapSettings({ build: { sourcemap: input as any } }, { debug: true });
+        const result = _getUpdatedSourceMapSettings(
+          { build: { sourcemap: input as any } },
+          { ...CREDENTIALS, debug: true },
+        );
 
         expect(result).toBe('hidden');
         // eslint-disable-next-line no-console
@@ -382,7 +401,7 @@ describe('_getUpdatedSourceMapSettings', () => {
     );
 
     it('should set sourcemap to hidden when build config is empty', () => {
-      const result = _getUpdatedSourceMapSettings({}, { debug: true });
+      const result = _getUpdatedSourceMapSettings({}, { ...CREDENTIALS, debug: true });
 
       expect(result).toBe('hidden');
       // eslint-disable-next-line no-console
@@ -401,6 +420,10 @@ describe('_getUpdatedSourceMapSettings with the source map options', () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it.each([
     [{ upload: false }, undefined],
     [{ injectDebugIds: false }, undefined],
@@ -411,6 +434,16 @@ describe('_getUpdatedSourceMapSettings with the source map options', () => {
     [{ disable: true }, undefined],
     [{ disable: 'disable-upload' }, 'hidden'],
   ] as const)('with an unset setting and %j it returns %s', (sourcemaps, expected) => {
+    expect(_getUpdatedSourceMapSettings({}, { ...CREDENTIALS, sourcemaps })).toBe(expected);
+  });
+
+  it.each([
+    [{}, undefined],
+    [{ disable: 'disable-upload' }, 'hidden'],
+    [{ delete: false }, 'hidden'],
+  ] as const)('without upload credentials, with an unset setting and %j it returns %s', (sourcemaps, expected) => {
+    vi.stubEnv('SENTRY_AUTH_TOKEN', '');
+
     expect(_getUpdatedSourceMapSettings({}, { sourcemaps })).toBe(expected);
   });
 

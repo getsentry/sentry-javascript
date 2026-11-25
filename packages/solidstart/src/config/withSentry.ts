@@ -1,9 +1,4 @@
-import {
-  _INTERNAL_normalizeTunnelBasePath as normalizeTunnelBasePath,
-  debug,
-  GLOBAL_OBJ,
-  stringifyForCodeInjection,
-} from '@sentry/core';
+import { normalizeTunnelBasePath, debug, GLOBAL_OBJ, stringifyForCodeInjection } from '@sentry/core';
 import { INSTRUMENTED_MODULE_NAMES } from '@sentry/server-utils/orchestrion/config';
 import {
   commonJSInteropOptions,

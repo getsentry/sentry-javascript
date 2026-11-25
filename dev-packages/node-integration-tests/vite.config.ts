@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     ...baseConfig.test,
     isolate: false,
-    include: ['./**/test.ts'],
+    include: ['./**/test.ts', './suites/**/*.test.ts'],
     testTimeout: 15000,
     // Ensure we can see debug output when DEBUG=true
     ...(process.env.DEBUG

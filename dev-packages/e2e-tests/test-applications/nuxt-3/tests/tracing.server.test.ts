@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
 
 test('sends a server root span on pageload', async ({ page }) => {
   const serverSpanPromise = waitForStreamedSpan('nuxt-3', span => {
@@ -14,28 +14,30 @@ test('sends a server root span on pageload', async ({ page }) => {
   expect(serverSpan.attributes['sentry.origin']?.value).toBe('auto.http.http_server');
 });
 
-test('does not send spans for build asset folder "_nuxt"', async ({ page }) => {
-  let buildAssetFolderOccurred = false;
+[
+  // Nuxt build output that the HTTP integration does not ignore.
+  '/_nuxt/builds/latest.json',
+  '/_nuxt/entry.js.map',
+  // File from `public/` that the HTTP integration does not ignore.
+  '/humans.txt',
+  // Common static file that the HTTP integration ignores.
+  '/favicon.ico',
+].forEach(path => {
+  test(`does not send a server span for the file ${path}`, async ({ baseURL }) => {
+    const segmentPaths = await getServerSegmentPathsUntilPage(`${baseURL}`, path);
 
-  waitForStreamedSpan('nuxt-3', span => {
-    if (span.is_segment && /^GET \/_nuxt\//.test(span.name)) {
-      buildAssetFolderOccurred = true;
-    }
-    return false; // expects to return a boolean (but not relevant here)
+    expect(segmentPaths).not.toContain(path);
   });
+});
 
-  const serverSpanPromise = waitForStreamedSpan('nuxt-3', span => {
-    return span.is_segment && span.name.includes('GET /test-param/');
+// Routes that look like build output. They also show that the helper sees sent segments, so the tests above cannot
+// pass by accident.
+['/test-param/jane.doe', '/api/test-param/data.json', '/test-param/_nuxt/'].forEach(path => {
+  test(`sends a server span for the route ${path}`, async ({ baseURL }) => {
+    const segmentPaths = await getServerSegmentPathsUntilPage(`${baseURL}`, path);
+
+    expect(segmentPaths).toContain(path);
   });
-
-  await page.goto('/test-param/1234');
-
-  const serverSpan = await serverSpanPromise;
-
-  expect(buildAssetFolderOccurred).toBe(false);
-
-  expect(serverSpan.name).toBe('GET /test-param/:param()');
-  expect(serverSpan.attributes['sentry.segment.name.source']?.value).toBe('route');
 });
 
 test('extracts HTTP request headers as span attributes', async ({ baseURL }) => {
@@ -65,3 +67,22 @@ test('extracts HTTP request headers as span attributes', async ({ baseURL }) => 
     'http.request.header.x-request-id': { type: 'array', value: ['nuxt-456'] },
   });
 });
+
+/**
+ * Requests `path`, then a page. Returns the `url.path` of each server segment up to the page's segment, which arrives
+ * after any segment for `path`.
+ */
+async function getServerSegmentPathsUntilPage(baseURL: string, path: string): Promise<string[]> {
+  const pagePath = `/test-param/after${path.replace(/\W+/g, '-')}`;
+  const segmentPaths: string[] = [];
+  const pageSegmentPromise = waitForStreamedSpans('nuxt-3', spans => {
+    segmentPaths.push(...spans.filter(span => span.is_segment).map(span => `${span.attributes['url.path']?.value}`));
+    return segmentPaths.includes(pagePath);
+  });
+
+  await fetch(`${baseURL}${path}`);
+  await fetch(`${baseURL}${pagePath}`);
+  await pageSegmentPromise;
+
+  return segmentPaths;
+}

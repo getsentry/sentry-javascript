@@ -43,6 +43,7 @@ export const vueIntegration = defineIntegration((integrationOptions: Partial<Vue
       // The router is looked up lazily because it may be installed after `init`. A user's `routeProvider` wins.
       if (!getRouteProvider(client)) {
         const { app, Vue } = options;
+        // oxlint-disable-next-line typescript/no-non-null-assertion -- the guard above returns when neither is set
         const getRouter = app ? () => getRouterFromApp(app) : captureRouterFromVue(Vue!);
         setRouteProvider(createVueRouteProvider(getRouter), client);
       }

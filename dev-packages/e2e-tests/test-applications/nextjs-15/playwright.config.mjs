@@ -23,7 +23,11 @@ const getStartCommand = () => {
 
 const config = getPlaywrightConfig({
   startCommand: getStartCommand(),
-  port: 3030,
+  url: testEnv.startsWith('dev') ? 'http://localhost:3030/api/async-context-edge-endpoint' : 'http://localhost:3030',
 });
 
-export default config;
+export default {
+  ...config,
+  globalSetup: './global-setup.mjs',
+  workers: process.env.CI ? 4 : config.workers,
+};

@@ -38,7 +38,7 @@ describe('sentryMiddleware with the managed tunnel', () => {
     const getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue({} as Client);
     const tunnelResponse = new Response('forwarded');
     const matcherSpy = vi
-      .spyOn(SentryCoreServer, '_INTERNAL_handleServedTunnelRequest')
+      .spyOn(SentryCoreServer, 'handleServedTunnelRequest')
       .mockReturnValue(Promise.resolve(tunnelResponse));
     const next = vi.fn();
     const request = new Request('https://myDomain.io/abc123', { method: 'POST' });
@@ -224,6 +224,37 @@ describe('sentryMiddleware', () => {
         expect.objectContaining({ name: 'GET /users/[id]/details' }),
         expect.any(Function),
       );
+    });
+  });
+
+  it('sets the Astro SDK name on a client that another SDK inited', async () => {
+    const sdk = {
+      name: 'sentry.javascript.cloudflare',
+      packages: [{ name: 'npm:@sentry/cloudflare', version: SentryCore.SDK_VERSION }],
+      version: SentryCore.SDK_VERSION,
+    };
+    vi.spyOn(SentryCore, 'getClient').mockImplementation(
+      () =>
+        ({
+          getOptions: () => ({ _metadata: { sdk } }),
+          getDataCollectionOptions: () => DATA_COLLECTION_DEFAULTS,
+        }) as unknown as Client,
+    );
+    const middleware = handleRequest();
+    const ctx = { ...DYNAMIC_REQUEST_CONTEXT, routePattern: '/users' };
+
+    // @ts-expect-error, a partial ctx object is fine here
+    await middleware(ctx, () => Promise.resolve(new Response('ok')));
+    // @ts-expect-error, a partial ctx object is fine here
+    await middleware(ctx, () => Promise.resolve(new Response('ok')));
+
+    expect(sdk).toEqual({
+      name: 'sentry.javascript.astro',
+      packages: [
+        { name: 'npm:@sentry/astro', version: SentryCore.SDK_VERSION },
+        { name: 'npm:@sentry/cloudflare', version: SentryCore.SDK_VERSION },
+      ],
+      version: SentryCore.SDK_VERSION,
     });
   });
 

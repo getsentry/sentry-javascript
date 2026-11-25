@@ -32,7 +32,10 @@ const getStartCommand = () => {
 
 const config = getPlaywrightConfig({
   startCommand: getStartCommand(),
-  port: 3030,
+  url: 'http://localhost:3030',
 });
 
-export default config;
+export default {
+  ...config,
+  workers: process.env.CI ? 4 : config.workers,
+};

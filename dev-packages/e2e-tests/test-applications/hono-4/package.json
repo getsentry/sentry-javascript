@@ -33,7 +33,7 @@
     "@cloudflare/vite-plugin": "^1.47.0",
     "@cloudflare/workers-types": "^4.20240725.0",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
-    "tsx": "4.21.0",
+    "tsx": "4.23.15",
     "typescript": "^5.5.2",
     "vite": "^8.1.5",
     "wrangler": "^4.114.0"

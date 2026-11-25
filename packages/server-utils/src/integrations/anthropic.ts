@@ -251,6 +251,8 @@ function wrapThreadStreamRequest(span: Span, data: AnthropicChannelContext, end:
     },
     error => {
       // An abort is not a failed request. The stream still emits 'end', which sets the status from the caller's signal.
+      // The thread emits 'abort' and 'end' only after it awaits `_responseProps()` itself, which is after this handler,
+      // so the listeners cannot miss them.
       if (signal.aborted) {
         instrumentMessageStream(stream, span, recordOutputs, callerSignal, data._sentryOnSpanEnd);
       } else {

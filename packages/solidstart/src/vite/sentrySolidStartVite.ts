@@ -1,6 +1,7 @@
-import { stringifyForCodeInjection, warnOnRemovedBuildOptions } from '@sentry/core';
+import { resolveSourceMapsFeatures, stringifyForCodeInjection, warnOnRemovedBuildOptions } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
 import { makeBuildInstrumentationFilePlugin } from './buildInstrumentationFile';
+import type { SourceMapState } from './sourceMaps';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 import type { SentrySolidStartPluginOptions } from './types';
 
@@ -9,7 +10,6 @@ import type { SentrySolidStartPluginOptions } from './types';
  */
 export const sentrySolidStartVite = (
   options: SentrySolidStartPluginOptions = {},
-  viteConfig: UserConfig,
   tunnelBasePath = '',
   runtimeRelease?: string,
 ): Plugin[] => {
@@ -26,15 +26,20 @@ export const sentrySolidStartVite = (
   ];
 
   if (options.autoInjectServerSentry !== 'experimental_dynamic-import') {
-    sentryPlugins.push(makeBuildInstrumentationFilePlugin(options));
+    sentryPlugins.push(makeBuildInstrumentationFilePlugin(options, tunnelBasePath));
   }
 
   if (process.env.NODE_ENV !== 'development') {
-    if (options.sourcemaps?.disable !== true) {
-      const sourceMapsPlugin = makeAddSentryVitePlugin(options, viteConfig, runtimeRelease);
-      const enableSourceMapsPlugin = makeEnableSourceMapsVitePlugin(options);
+    // TODO(v12): Add the Sentry plugin with `sourcemaps.disable: true` too, like with the options that replace it.
+    if (resolveSourceMapsFeatures(options.sourcemaps).legacyDisable !== true) {
+      const sourceMapState: SourceMapState = { sdkEnabledSourceMaps: false };
 
-      sentryPlugins.push(...sourceMapsPlugin, ...enableSourceMapsPlugin);
+      // The bundler plugin decides on the `build.sourcemap` it finds in its own `config` hook,
+      // so the plugin that sets it has to come first.
+      sentryPlugins.push(
+        ...makeEnableSourceMapsVitePlugin(options, sourceMapState),
+        ...makeAddSentryVitePlugin(options, sourceMapState, runtimeRelease),
+      );
     }
   }
 
@@ -51,7 +56,7 @@ export const addSentryPluginToVite = (
   runtimeRelease?: string,
 ): UserConfig => {
   const plugins = Array.isArray(config.plugins) ? [...config.plugins] : [];
-  plugins.unshift(sentrySolidStartVite(options, config, tunnelBasePath, runtimeRelease));
+  plugins.unshift(sentrySolidStartVite(options, tunnelBasePath, runtimeRelease));
 
   return {
     ...config,

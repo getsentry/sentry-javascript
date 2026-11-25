@@ -23,10 +23,14 @@ const NOT_A_DIRECTORY = { silent: __filename, notSilent: path.join(__dirname, 't
 
 beforeEach(() => {
   delete process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__;
+  vi.stubEnv('SENTRY_AUTH_TOKEN', 'token');
+  vi.stubEnv('SENTRY_ORG', 'org');
+  vi.stubEnv('SENTRY_PROJECT', 'project');
 });
 
 afterEach(() => {
   delete process.env.__SENTRY_UNSUPPORTED_TURBOPACK_WARNING_SHOWN__;
+  vi.unstubAllEnvs();
 });
 
 describe('getBuildLogger', () => {

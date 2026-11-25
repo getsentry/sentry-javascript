@@ -3,7 +3,7 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should render cached component', async ({ page }) => {
   const serverTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server';
+    return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /cache';
   });
 
   await page.goto('/cache');
@@ -16,7 +16,7 @@ test('Should render cached component', async ({ page }) => {
 
 test('Should render suspense component', async ({ page }) => {
   const serverTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server';
+    return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /suspense';
   });
 
   await page.goto('/suspense');
@@ -29,7 +29,7 @@ test('Should render suspense component', async ({ page }) => {
 
 test('Should generate metadata', async ({ page }) => {
   const serverTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server';
+    return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /metadata';
   });
 
   await page.goto('/metadata');
@@ -70,7 +70,9 @@ test('Should capture a message from an on-demand generated Server Component', as
 
 test('Should generate metadata async', async ({ page }) => {
   const serverTxPromise = waitForTransaction('nextjs-16-cacheComponents', async transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'http.server';
+    return (
+      transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /metadata-async'
+    );
   });
 
   await page.goto('/metadata-async');

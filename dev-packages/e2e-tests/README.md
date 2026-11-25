@@ -135,6 +135,25 @@ Because the apps run in a temporary directory without the repo's `package.json` 
 app's Node.js and pnpm versions into the copied `package.json`. pnpm's `node` and `actions/setup-node` in CI read them
 from there.
 
+### Test apps that need CI secrets
+
+E2E jobs get no secrets by default. They send events to the local event proxy with a dummy `E2E_TEST_DSN`. If an app
+needs a real secret (for example, it calls an LLM API, deploys a Cloudflare Worker or checks what arrives in Sentry),
+set `needsSecrets`:
+
+```json
+"sentryTest": {
+  "needsSecrets": true
+}
+```
+
+- The required and optional jobs of this app get the E2E secrets. Canary jobs get none.
+- PRs from forks get no secrets, so they skip these jobs.
+- To add a secret, add it to `job_e2e_tests_with_secrets` in `.github/workflows/build.yml` and to
+  `.github/workflows/optional-e2e.yml`.
+
+`needsSecrets` does not make an app optional. Also set `"optional": true` if a failing job must not block the merge.
+
 ### Test apps that deploy a real Cloudflare Worker
 
 Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Worker and check what arrives in Sentry:
@@ -153,8 +172,8 @@ Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Wor
 - To check what Cloudflare stored for a request (for example its Cloudflare trace id), read Workers Logs with
   `fetchWorkersLogsEvents`. `CLOUDFLARE_API_TOKEN` then also needs "Workers Observability: Edit". See
   `cloudflare-workers-without-tracing-send-to-sentry`.
-- Set `"sentryTest": { "optional": true }` in `package.json`, because only the optional CI job has the Cloudflare
-  secrets.
+- Set `"needsSecrets": true` (see [Test apps that need CI secrets](#test-apps-that-need-ci-secrets)) and
+  `"optional": true`, because what arrives in Sentry depends on more than the SDK.
 
 ## Runtime variants (Bun, Deno, Cloudflare)
 
@@ -179,20 +198,25 @@ is the reference setup.
   the integrations of `@sentry/bun` or `@sentry/deno`. Nuxt is similar: `@sentry/nuxt` bundles `sentry.server.config.ts`
   into the Nitro output, so `nuxt-4` calls `init()` of `@sentry/nuxt` on Bun and Deno too. `sentry.server.config.bun.ts`
   and `sentry.server.config.deno.ts` add the integrations of `@sentry/bun` or `@sentry/deno`. On Cloudflare, `nuxt-4`
-  builds with the `cloudflare_module` preset and sets up the SDK with `sentryCloudflareNitroPlugin`, which
-  `nuxt.config.ts` adds only for that runtime. Like the documented Cloudflare setup, that build has no
+  builds with the `cloudflare_durable` preset, and `@sentry/nuxt` wraps the Worker with `withSentry` and the options of
+  the root `sentry.cloudflare.config.ts`. Like the documented Cloudflare setup, that build has no
   `sentry.server.config.ts`: a runtime-specific file can replace a file but not remove it, so the build command deletes
   it. Nitro turns every file under `server/api` into a route, so
   `nuxt.config.ts` lists the runtime-specific files there (such as `db-mongoose.cloudflare.ts`) in Nitro's `ignore`.
+  `nuxt-5` (Nitro 3) has the same setup, with the `cloudflare_module` preset on Cloudflare.
+  Astro is different: the `@sentry/astro` integration bundles `sentry.server.config.js` into the server build, but
+  `@sentry/astro` itself stays external, so `astro-6` on Bun and Deno loads its `bun` or `deno` entry at run time,
+  which adds the integrations of `@sentry/bun` or `@sentry/deno`. Its Cloudflare build deletes
+  `sentry.server.config.js`, like `nuxt-4`.
 - **Start commands**: `playwright.config.mjs` selects the start command with `getRuntime()`. Bun and Deno use the same build
   as Node and only change the start command, for example
   `bun --bun --preload ./instrument.bun.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js` and
   `deno run -A --preload=@sentry/deno/import --preload=./instrument.deno.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js`.
   The app's `deno.json` maps `@sentry/deno/import` to `node_modules`, because the e2e dependencies are `file:` tarballs
   that `npm:@sentry/deno/import` does not resolve. `nuxt-4` starts the Nitro output with no preload:
-  `bun .output/server/index.mjs` and `deno run -A .output/server/index.mjs`. `express-5` builds CommonJS for Node, so
-  Deno runs its TypeScript sources (`src/main.ts`), and `deno.json` turns on `sloppy-imports` for the relative imports
-  without a file extension.
+  `bun .output/server/index.mjs` and `deno run -A .output/server/index.mjs`, and `astro-6` starts the `@astrojs/node`
+  output the same way. `express-5` builds CommonJS for Node, so Deno runs its TypeScript sources (`src/main.ts`), and
+  `deno.json` turns on `sloppy-imports` for the relative imports without a file extension.
 - **Cloudflare**: the app has the Cloudflare dependencies installed all the time. The Cloudflare build has its own
   `vite.cloudflare.config.ts` with `@cloudflare/vite-plugin` and `sentryCloudflareVitePlugin` from
   `@sentry/cloudflare/vite`, which the runner uses in place of `vite.config.ts` (see runtime-specific files). List the
@@ -204,7 +228,10 @@ is the reference setup.
   because workerd does not allow it. A socket also works only in the request that opened it, so `express-5` opens its
   MySQL connection in the request. In an app without `"type": "module"`, name the config `vite.config.mts`. `nextjs-16`
   has no Vite build: its Cloudflare variant builds with `opennextjs-cloudflare build --config wrangler.opennext.jsonc`
-  and wraps the generated Worker in `worker.ts` with `withSentry` from `@sentry/nextjs/cloudflare`.
+  and wraps the generated Worker in `worker.ts` with `withSentry` from `@sentry/nextjs/cloudflare`. `astro-6` replaces
+  `astro.config.mjs` with `astro.config.cloudflare.mjs`, which uses the `@astrojs/cloudflare` adapter (it builds with
+  `@cloudflare/vite-plugin`) and adds `sentryCloudflareVitePlugin` to `vite.plugins`. The Worker entry is the one of
+  the adapter, so `instrument.server.ts` sits next to `wrangler.jsonc`.
 - **Cloudflare in `vite dev`**: to run the Worker in `vite dev` (for example the dev tests of the `hono-4` Cloudflare
   variant), start it with `CLOUDFLARE_INCLUDE_PROCESS_ENV=true vite dev`. The runner gives `E2E_TEST_DSN` to the app
   only as a process env var. `wrangler dev` adds it to the Worker `env` with `--var "E2E_TEST_DSN:$E2E_TEST_DSN"`, but
@@ -226,8 +253,9 @@ is the reference setup.
   on `RUNTIME` and say why in a comment. An app that starts its own server can instead bundle it with
   `@sentry/bun/plugin`, as `nestjs-12/bun-build.mjs` and `express-5/bun-build.mjs` do. Bun 1.3 renames classes in
   bundles (`class Foo2`), which changes span names taken from class names, so `nestjs-12` pins Bun 1.4 (see #26289).
-  `nuxt-4` builds with `bun --bun nuxt build` on Bun, because the Nitro prerenderer loads its `bun-sqlite` connector in
-  the build process.
+  `nuxt-4` and `nuxt-5` build with `bun --bun nuxt build` on Bun, because the Nitro prerenderer loads its `bun-sqlite`
+  connector in the build process. On Bun, Nitro 3 selects its `bun` preset, which serves with `Bun.serve`, so the Bun
+  config of `nuxt-5` adds `bunServerIntegration` and not `bunHttpServerIntegration`.
 
 ```json
 "sentryTest": {

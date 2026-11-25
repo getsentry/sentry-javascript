@@ -136,6 +136,33 @@ describe('makeBuildInstrumentationFilePlugin()', () => {
     expect(config).toEqual(viteConfig);
   });
 
+  describe('banner', () => {
+    type BannerHook = (chunk: { facadeModuleId: string | null }) => string;
+
+    async function getBanner(basePath?: string): Promise<BannerHook> {
+      const plugin = makeBuildInstrumentationFilePlugin({}, basePath);
+      // @ts-expect-error - this is always defined and always a function
+      await plugin.config(viteConfig, { command: 'build' });
+      return plugin.banner as BannerHook;
+    }
+
+    it('sets the base path in the instrumentation file, which `node --import` loads before the server', async () => {
+      const banner = await getBanner('/app');
+
+      expect(banner({ facadeModuleId: '/some/project/path/src/instrument.server.ts' })).toBe(
+        'globalThis.__sentry_solidstart_base_path = "/app";',
+      );
+      expect(banner({ facadeModuleId: '/path/to/entry1.js' })).toBe('');
+      expect(banner({ facadeModuleId: null })).toBe('');
+    });
+
+    it('adds nothing without a base path', async () => {
+      const banner = await getBanner();
+
+      expect(banner({ facadeModuleId: '/some/project/path/src/instrument.server.ts' })).toBe('');
+    });
+  });
+
   it("logs a warning if the instrumentation file doesn't exist", async () => {
     const error = new Error("File doesn't exist.");
     fsAccessMock.mockRejectedValueOnce(error);

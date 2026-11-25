@@ -34,6 +34,7 @@ import {
   GEN_AI_DECIDE,
   GEN_AI_EMBEDDINGS,
   GEN_AI_EXECUTE_TOOL,
+  GEN_AI_EXTRACT,
   GEN_AI_GENERATE_CONTENT,
   GEN_AI_INVOKE_AGENT,
   GEN_AI_RERANK,
@@ -71,7 +72,16 @@ import {
 import { getProviderMetadataAttributes, LAST_STEP_ONLY_USAGE_KEYS } from '../../ai/vercel-ai';
 import { WORKERS_AI_INTEGRATION_NAME } from '../../ai/workers-ai/constants';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
-import { asNumber, asString, isReadableStream, type StreamedModelCallResult, sum, tapModelCallStream } from './util';
+import { toExtractAnswers, toExtractFields, toExtractState } from './extract';
+import {
+  asNumber,
+  asString,
+  isReadableStream,
+  mapObjectValues,
+  type StreamedModelCallResult,
+  sum,
+  tapModelCallStream,
+} from './util';
 
 /**
  * The single tracing channel the `ai` package (>= 7) publishes all telemetry lifecycle events to
@@ -90,6 +100,7 @@ const GEN_AI_OPERATION_SPAN_OPS = {
   // oxlint-disable-next-line typescript/no-deprecated
   rerank: GEN_AI_RERANK,
   decide: GEN_AI_DECIDE,
+  extract: GEN_AI_EXTRACT,
   invoke_agent: GEN_AI_INVOKE_AGENT,
   execute_tool: GEN_AI_EXECUTE_TOOL,
   // The model-call op matches the Vercel AI OTel integration (`gen_ai.generate_content`) rather than
@@ -282,7 +293,8 @@ export type ChannelEventType =
   | 'embedMany'
   | 'rerank'
   | 'experimental_evaluate'
-  | 'experimental_decide';
+  | 'experimental_decide'
+  | 'experimental_extract';
 
 /**
  * The context object the AI SDK passes through one tracing-channel call. It is the same object
@@ -606,6 +618,21 @@ function startSpanFromEvent(
             }
           : {}),
       });
+    case 'experimental_extract':
+      return startGenAiSpan('extract', modelId, {
+        ...baseAttributes,
+        ...(recordInputs && !(isStrippedInput(event.state) && isStrippedInput(event.fields))
+          ? {
+              [GEN_AI_INPUT_MESSAGES]: stringify([
+                {
+                  ...toExtractState(event.state).request,
+                  fields: toExtractFields(event.fields),
+                  reference_date: event.referenceDate,
+                },
+              ]),
+            }
+          : {}),
+      });
     default:
       // Unknown event type: opt out rather than open a span we can't shape correctly.
       return undefined;
@@ -808,7 +835,7 @@ export function enrichSpanOnEnd(span: Span, data: VercelAiChannelMessage): void 
   span.setAttributes(providerAttributes);
 
   if (recordOutputs) {
-    const outputMessages = getOutputMessages(type, result, finishReason);
+    const outputMessages = getOutputMessages(type, result, finishReason, data.event);
     if (outputMessages) {
       span.setAttribute(GEN_AI_OUTPUT_MESSAGES, outputMessages);
     }
@@ -819,9 +846,15 @@ function getOutputMessages(
   type: ChannelEventType,
   result: Record<string, unknown>,
   finishReason: string | undefined,
+  event: Record<string, unknown>,
 ): string | undefined {
   if (type === 'experimental_evaluate' || type === 'experimental_decide') {
     return getEvaluationOutputMessages(withProviderAnswerFields(result));
+  }
+  if (type === 'experimental_extract') {
+    return isObjectLike(result.answers)
+      ? stringify([{ answers: toExtractAnswers(result.answers, toExtractState(event.state).parts) }])
+      : undefined;
   }
   // `languageModelCall` exposes the response as a `content` parts array; top-level results expose
   // `text` + `toolCalls`. Both normalize into the OTel `gen_ai.output.messages` assistant message.
@@ -850,20 +883,15 @@ function withProviderAnswerFields(result: Record<string, unknown>): unknown {
     return answers;
   }
 
-  return Object.fromEntries(
-    Object.entries(answers).map(([id, answer]) => {
-      if (!isObjectLike(answer)) {
-        return [id, answer];
-      }
-      const openrouterAnswer = openrouterById?.[id];
-      const fields = isObjectLike(openrouterAnswer) ? openrouterAnswer : {};
-      const {
-        confidence = asNumber(confidenceById?.[id]) ?? asNumber(fields.confidence),
-        legend = isObjectLike(fields.legend) ? fields.legend : undefined,
-      } = answer;
-      return [id, { ...answer, confidence, legend }];
-    }),
-  );
+  return mapObjectValues(answers, (answer, id) => {
+    const openrouterAnswer = openrouterById?.[id];
+    const fields = isObjectLike(openrouterAnswer) ? openrouterAnswer : {};
+    const {
+      confidence = asNumber(confidenceById?.[id]) ?? asNumber(fields.confidence),
+      legend = isObjectLike(fields.legend) ? fields.legend : undefined,
+    } = answer;
+    return { ...answer, confidence, legend };
+  });
 }
 
 /** Maps a Vercel AI finish reason to the OTel `gen_ai.output.messages` form (`tool-calls` → `tool_call`). */

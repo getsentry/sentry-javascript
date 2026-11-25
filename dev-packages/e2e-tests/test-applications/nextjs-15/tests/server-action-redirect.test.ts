@@ -20,7 +20,7 @@ test('Should handle server action redirect without capturing errors', async ({ p
 
   // No error should be captured
   const redirectErrorPromise = waitForError('nextjs-15', async errorEvent => {
-    return !!errorEvent;
+    return errorEvent?.request?.url?.includes('/redirect/') === true;
   });
 
   // Click the redirect button

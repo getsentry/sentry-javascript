@@ -55,6 +55,20 @@ describe('withSentryConfig', () => {
     });
   });
 
+  // The bundler plugin does not get `sourcemaps.delete` or the user's `deleteSourcemapsAfterUpload`.
+  it.each([
+    [{ delete: true, deleteSourcemapsAfterUpload: false }, '`sourcemaps.deleteSourcemapsAfterUpload` is ignored'],
+    [{ delete: false, filesToDeleteAfterUpload: ['.next/**/*.map'] }, '`sourcemaps.filesToDeleteAfterUpload` still'],
+  ])('warns about the conflicting source map options %j', (sourcemaps, message) => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    materializeFinalNextConfig(exportedNextConfig, undefined, { sourcemaps });
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining(message));
+
+    consoleWarnSpy.mockRestore();
+  });
+
   it('includes expected properties', () => {
     const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
@@ -543,8 +557,15 @@ describe('withSentryConfig', () => {
   describe('turbopack sourcemap configuration', () => {
     const originalTurbopack = process.env.TURBOPACK;
 
+    beforeEach(() => {
+      vi.stubEnv('SENTRY_AUTH_TOKEN', 'token');
+      vi.stubEnv('SENTRY_ORG', 'org');
+      vi.stubEnv('SENTRY_PROJECT', 'project');
+    });
+
     afterEach(() => {
       vi.restoreAllMocks();
+      vi.unstubAllEnvs();
       process.env.TURBOPACK = originalTurbopack;
     });
 

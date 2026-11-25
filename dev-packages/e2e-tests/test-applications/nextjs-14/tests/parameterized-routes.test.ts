@@ -3,7 +3,12 @@ import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 
 test('should create a parameterized pageload span when the `app` directory is used', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('nextjs-14', span => {
-    return span.name === '/parameterized/:one' && getSpanOp(span) === 'pageload' && span.is_segment;
+    return (
+      span.name === '/parameterized/:one' &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.attributes['url.path']?.value === '/parameterized/cappuccino'
+    );
   });
 
   await page.goto(`/parameterized/cappuccino`);
@@ -26,7 +31,12 @@ test('should create a parameterized pageload span when the `app` directory is us
 
 test('should create a span named after the static route when the `app` directory is used', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('nextjs-14', span => {
-    return span.name === '/parameterized/static' && getSpanOp(span) === 'pageload' && span.is_segment;
+    return (
+      span.name === '/parameterized/static' &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.attributes['url.path']?.value === '/parameterized/static'
+    );
   });
 
   await page.goto(`/parameterized/static`);
@@ -49,7 +59,12 @@ test('should create a span named after the static route when the `app` directory
 
 test('should create a partially parameterized pageload span when the `app` directory is used', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('nextjs-14', span => {
-    return span.name === '/parameterized/:one/beep' && getSpanOp(span) === 'pageload' && span.is_segment;
+    return (
+      span.name === '/parameterized/:one/beep' &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.attributes['url.path']?.value === '/parameterized/cappuccino/beep'
+    );
   });
 
   await page.goto(`/parameterized/cappuccino/beep`);
@@ -74,7 +89,12 @@ test('should create a partially parameterized pageload span when the `app` direc
 
 test('should create a nested parameterized pageload span when the `app` directory is used', async ({ page }) => {
   const spanPromise = waitForStreamedSpan('nextjs-14', span => {
-    return span.name === '/parameterized/:one/beep/:two' && getSpanOp(span) === 'pageload' && span.is_segment;
+    return (
+      span.name === '/parameterized/:one/beep/:two' &&
+      getSpanOp(span) === 'pageload' &&
+      span.is_segment &&
+      span.attributes['url.path']?.value === '/parameterized/cappuccino/beep/espresso'
+    );
   });
 
   await page.goto(`/parameterized/cappuccino/beep/espresso`);

@@ -7,7 +7,10 @@ if (!testEnv) {
 
 const config = getPlaywrightConfig({
   startCommand: testEnv === 'development' ? 'pnpm next dev -p 3030' : 'pnpm next start -p 3030',
-  port: 3030,
+  url: 'http://localhost:3030',
 });
 
-export default config;
+export default {
+  ...config,
+  workers: process.env.CI ? 4 : config.workers,
+};

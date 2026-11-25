@@ -1,7 +1,7 @@
 import type { Scope } from '../scope';
 import type { MetricUnit } from '../types/measurement';
 import type { Metric, MetricType } from '../types/metric';
-import { _INTERNAL_captureMetric } from './internal';
+import { captureMetricEvent } from './internal';
 
 /**
  * Options for capturing a metric.
@@ -32,7 +32,7 @@ export interface MetricOptions {
  * @param options - Options for capturing the metric.
  */
 function captureMetric(type: MetricType, name: string, value: number, options?: MetricOptions): void {
-  _INTERNAL_captureMetric(
+  captureMetricEvent(
     { type, name, value, unit: options?.unit, attributes: options?.attributes },
     { scope: options?.scope },
   );

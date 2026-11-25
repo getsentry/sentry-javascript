@@ -5,6 +5,7 @@ export default [
   ...prefix('performance', [
     index('routes/performance/index.tsx'),
     route('ssr', 'routes/performance/ssr.tsx'),
+    route('single-segment', 'routes/performance/single-segment.tsx'),
     route('with/:param', 'routes/performance/dynamic-param.tsx'),
     route('static', 'routes/performance/static.tsx'),
     route('server-loader', 'routes/performance/server-loader.tsx'),

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useRoute, useFetch } from '#imports';
+import { getAppManifest, useRoute, useFetch } from '#imports';
 
 const route = useRoute();
 const param = route.params.param;
@@ -12,6 +12,10 @@ const fetchError = async () => {
 const fetchData = async () => {
   await useFetch(`/api/test-param/${param}`);
 };
+
+const fetchAppManifest = async () => {
+  await getAppManifest();
+};
 </script>
 
 <template>
@@ -20,4 +24,5 @@ const fetchData = async () => {
   <ErrorButton id="errorBtn" errorText="Error thrown from Param Route Button" />
   <button @click="fetchData">Fetch Server Data</button>
   <button @click="fetchError">Fetch Server API Error</button>
+  <button @click="fetchAppManifest">Fetch App Manifest</button>
 </template>

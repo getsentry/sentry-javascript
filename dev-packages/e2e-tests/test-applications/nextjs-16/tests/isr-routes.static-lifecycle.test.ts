@@ -48,19 +48,22 @@ test.describe('prerendered ISR pages', () => {
   });
 });
 
-test('should create unique transactions for ISR pages on each visit', async ({ page }) => {
+test('should create unique transactions for ISR pages on each visit', async ({ page, baseURL }) => {
   const traceIds: string[] = [];
+  const url = '/isr-test/laptop?test=unique-isr-traces';
 
   // Load the same ISR page 5 times: the cached HTML carries no trace tag, so every visit starts its own trace
   for (let i = 0; i < 5; i++) {
     const transactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
       return !!(
-        transactionEvent.transaction === '/isr-test/:product' && transactionEvent.contexts?.trace?.op === 'pageload'
+        transactionEvent.transaction === '/isr-test/:product' &&
+        transactionEvent.contexts?.trace?.op === 'pageload' &&
+        transactionEvent.contexts?.trace?.data?.['url.full'] === new URL(url, baseURL).href
       );
     });
 
     if (i === 0) {
-      await page.goto('/isr-test/laptop');
+      await page.goto(url);
     } else {
       await page.reload();
     }

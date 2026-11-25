@@ -37,6 +37,8 @@ const instrumentedBindings = new WeakMap<object, unknown>();
  * - R2 Buckets (via `head` + `put` + `createMultipartUpload` duck-typing)
  * - Workers AI (via `run` + `gateway` + `toMarkdown` duck-typing)
  *
+ * `ctx.exports` is wrapped the same way, as its entries are bindings to this Worker's own exports.
+ *
  * @param env - The Cloudflare env object to instrument
  * @param options - Optional CloudflareOptions to control RPC and Queue trace propagation
  */
@@ -104,36 +106,39 @@ export function instrumentEnv<Env extends Record<string, unknown>>(env: Env, opt
       }
 
       if (isJSRPC(item)) {
-        const instrumented = new Proxy(item, {
-          get(target, p) {
-            const value = Reflect.get(target, p);
-
-            if (p === 'fetch' && typeof value === 'function') {
-              return instrumentFetcher((...args) => Reflect.apply(value, target, args));
-            }
-
-            if (p === 'connect' && typeof value === 'function') {
-              return (...args: unknown[]) => Reflect.apply(value, target, args);
-            }
-
-            if (
-              propagateRpcTrace &&
-              typeof value === 'function' &&
-              typeof p === 'string' &&
-              !STUB_NON_RPC_METHODS.has(p)
-            ) {
-              return (...args: unknown[]) => Reflect.apply(value, target, appendRpcMeta(args));
-            }
-
-            return value;
-          },
-        });
-
+        const instrumented = instrumentServiceStub(item, propagateRpcTrace);
         instrumentedBindings.set(item, instrumented);
         return instrumented;
       }
 
       return item;
+    },
+  });
+}
+
+function instrumentServiceStub<T extends object>(stub: T, propagateRpcTrace: boolean): T {
+  return new Proxy(stub, {
+    get(target, p) {
+      const value = Reflect.get(target, p);
+
+      if (p === 'fetch' && typeof value === 'function') {
+        return instrumentFetcher((...args) => Reflect.apply(value, target, args));
+      }
+
+      if (p === 'connect' && typeof value === 'function') {
+        return (...args: unknown[]) => Reflect.apply(value, target, args);
+      }
+
+      if (propagateRpcTrace && typeof value === 'function' && typeof p === 'string' && !STUB_NON_RPC_METHODS.has(p)) {
+        return (...args: unknown[]) => Reflect.apply(value, target, appendRpcMeta(args));
+      }
+
+      return value;
+    },
+    // An entrypoint in `ctx.exports` is callable: `ctx.exports.Name({ props })` returns a stub with these props.
+    apply(target, thisArg, args) {
+      const result: unknown = Reflect.apply(target as (...args: unknown[]) => unknown, thisArg, args);
+      return isProxyable(result) ? instrumentServiceStub(result, propagateRpcTrace) : result;
     },
   });
 }

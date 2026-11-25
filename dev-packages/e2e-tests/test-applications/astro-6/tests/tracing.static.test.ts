@@ -1,8 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { getSpanOp, waitForStreamedSpan, waitForStreamedSpans } from '@sentry-internal/test-utils';
-
-const APP_NAME = 'astro-6';
+import { APP_NAME } from './constants';
 
 test.describe('tracing in static/pre-rendered routes', () => {
   test('only sends client pageload span with traceId from pre-rendered <meta> tags', async ({ page }) => {
@@ -34,8 +33,8 @@ test.describe('tracing in static/pre-rendered routes', () => {
       'sentry.origin': { value: 'auto.pageload.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'url.template': { value: '/test-static', type: 'string' },
-      'url.path': { value: '/test-static', type: 'string' },
-      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/test-static$/), type: 'string' },
+      'url.path': { value: expect.stringMatching(/^\/test-static\/?$/), type: 'string' },
+      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/test-static\/?$/), type: 'string' },
     });
 
     await page.waitForTimeout(1000); // wait another sec to ensure no server span is sent

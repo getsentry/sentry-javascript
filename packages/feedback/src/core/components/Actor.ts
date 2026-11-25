@@ -1,5 +1,5 @@
 import { DOCUMENT, TRIGGER_LABEL } from '../../constants';
-import { createActorStyles } from './Actor.css';
+import { createActorStyles } from './Actor.styles';
 import { FeedbackIcon } from './FeedbackIcon';
 
 export interface ActorProps {

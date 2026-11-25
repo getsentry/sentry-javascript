@@ -9,7 +9,7 @@ const { setTunnelDefaults, useRuntimeConfig } = vi.hoisted(() => ({
 }));
 
 vi.mock('@sentry/core/server', () => ({
-  _INTERNAL_setTunnelDefaults: setTunnelDefaults,
+  setTunnelDefaults: setTunnelDefaults,
 }));
 
 vi.mock('nitropack/runtime', () => ({ useRuntimeConfig }));

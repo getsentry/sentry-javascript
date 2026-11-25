@@ -313,7 +313,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       span.setStatus({ code: SPAN_STATUS_OK });
     }
 
-    debug.log(`[Tracing] Idle span "${spanJSON.op}" finished`);
+    DEBUG_BUILD && debug.log(`[Tracing] Idle span "${spanJSON.op}" finished`);
 
     const childSpans = getSpanDescendants(span).filter(child => child !== span);
 

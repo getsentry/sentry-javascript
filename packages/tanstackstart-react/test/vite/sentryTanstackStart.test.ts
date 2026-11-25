@@ -6,13 +6,6 @@ import { makeServerInstrumentationPlugin } from '../../src/vite/serverInstrument
 import { makeAddSentryVitePlugin } from '../../src/vite/sourceMaps';
 import { makeServerEntryTunnelPlugin, makeTunnelRoutePlugin } from '../../src/vite/tunnelRoute';
 
-const mockSourceMapsConfigPlugin: Plugin = {
-  name: 'sentry-tanstackstart-files-to-delete-after-upload-plugin',
-  apply: 'build',
-  enforce: 'pre',
-  config: vi.fn(),
-};
-
 const mockSentryVitePlugin: Plugin = {
   name: 'sentry-vite-debug-id-upload-plugin',
   writeBundle: vi.fn(),
@@ -85,7 +78,8 @@ vi.mock('../../src/vite/routePatterns', () => ({
 }));
 
 vi.mock('../../src/vite/sourceMaps', () => ({
-  makeAddSentryVitePlugin: vi.fn(() => [mockSourceMapsConfigPlugin, mockSentryVitePlugin]),
+  createSourceMapState: vi.fn(() => ({ sdkEnabledSourceMaps: false, sdkEnabledNitroSourceMaps: false })),
+  makeAddSentryVitePlugin: vi.fn(() => [mockSentryVitePlugin]),
   makeEnableSourceMapsVitePlugin: vi.fn(() => [mockEnableSourceMapsPlugin]),
 }));
 
@@ -133,11 +127,10 @@ describe('sentryTanstackStart()', () => {
         mockServerEntryTunnelPlugin,
         mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
-        mockSourceMapsConfigPlugin,
-        mockSentryVitePlugin,
-        mockComposeNitroServiceSourceMapsPlugin,
         mockEnableSourceMapsPlugin,
         mockEnableNitroSourceMapsPlugin,
+        mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
       ]);
     });
 
@@ -177,7 +170,6 @@ describe('sentryTanstackStart()', () => {
         mockServerEntryTunnelPlugin,
         mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
-        mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockComposeNitroServiceSourceMapsPlugin,
       ]);
@@ -195,11 +187,31 @@ describe('sentryTanstackStart()', () => {
         mockServerEntryTunnelPlugin,
         mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
-        mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockComposeNitroServiceSourceMapsPlugin,
       ]);
     });
+
+    it.each([{ upload: false }, { injectDebugIds: false }, { injectDebugIds: false, delete: false }])(
+      'returns no enable source maps plugin with sourcemaps %j',
+      sourcemaps => {
+        const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false, sourcemaps });
+
+        expect(plugins).not.toContain(mockEnableSourceMapsPlugin);
+        expect(plugins).not.toContain(mockEnableNitroSourceMapsPlugin);
+        expect(plugins).toContain(mockSentryVitePlugin);
+      },
+    );
+
+    it.each([{ upload: false, delete: false }, { delete: true }, { disable: true, upload: true }])(
+      'returns the enable source maps plugins with sourcemaps %j',
+      sourcemaps => {
+        const plugins = sentryTanstackStart({ autoInstrumentMiddleware: false, sourcemaps });
+
+        expect(plugins).toContain(mockEnableSourceMapsPlugin);
+        expect(plugins).toContain(mockEnableNitroSourceMapsPlugin);
+      },
+    );
 
     it('returns Sentry Vite plugins and enable source maps plugin when sourcemaps.disable is false', () => {
       const plugins = sentryTanstackStart({
@@ -213,11 +225,10 @@ describe('sentryTanstackStart()', () => {
         mockServerEntryTunnelPlugin,
         mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
-        mockSourceMapsConfigPlugin,
-        mockSentryVitePlugin,
-        mockComposeNitroServiceSourceMapsPlugin,
         mockEnableSourceMapsPlugin,
         mockEnableNitroSourceMapsPlugin,
+        mockSentryVitePlugin,
+        mockComposeNitroServiceSourceMapsPlugin,
       ]);
     });
   });
@@ -232,7 +243,6 @@ describe('sentryTanstackStart()', () => {
         mockServerEntryTunnelPlugin,
         mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
-        mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockComposeNitroServiceSourceMapsPlugin,
         mockMiddlewarePlugin,
@@ -251,7 +261,6 @@ describe('sentryTanstackStart()', () => {
         mockServerEntryTunnelPlugin,
         mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
-        mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockComposeNitroServiceSourceMapsPlugin,
         mockMiddlewarePlugin,
@@ -270,7 +279,6 @@ describe('sentryTanstackStart()', () => {
         mockServerEntryTunnelPlugin,
         mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
-        mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockComposeNitroServiceSourceMapsPlugin,
       ]);
@@ -299,10 +307,13 @@ describe('sentryTanstackStart()', () => {
       expect(getRuntimeRelease).toHaveBeenCalledWith(options);
       expect(makeServerEntryTunnelPlugin).toHaveBeenCalledWith(undefined, expect.any(Function), 'my-app@1.2.3');
       expect(makeServerInstrumentationPlugin).toHaveBeenCalledWith({ debug: undefined, release: 'my-app@1.2.3' });
-      expect(makeAddSentryVitePlugin).toHaveBeenCalledWith({
-        release: { create: false, name: 'my-app@1.2.3', inject: false },
-        sourcemaps: { disable: true },
-      });
+      expect(makeAddSentryVitePlugin).toHaveBeenCalledWith(
+        {
+          release: { create: false, name: 'my-app@1.2.3', inject: false },
+          sourcemaps: { disable: true },
+        },
+        expect.any(Object),
+      );
     });
 
     it('passes the options to the bundler plugin as they are without a release to hand over', () => {
@@ -311,7 +322,7 @@ describe('sentryTanstackStart()', () => {
       sentryTanstackStart(options);
 
       expect(makeServerEntryTunnelPlugin).toHaveBeenCalledWith(undefined, expect.any(Function), undefined);
-      expect(makeAddSentryVitePlugin).toHaveBeenCalledWith(options);
+      expect(makeAddSentryVitePlugin).toHaveBeenCalledWith(options, expect.any(Object));
     });
 
     it('resolves no release in development mode', () => {
@@ -341,7 +352,6 @@ describe('sentryTanstackStart()', () => {
         mockTunnelRoutePlugin,
         mockServerInstrumentationPlugin,
         mockOrchestrionPlugin,
-        mockSourceMapsConfigPlugin,
         mockSentryVitePlugin,
         mockComposeNitroServiceSourceMapsPlugin,
         mockMiddlewarePlugin,

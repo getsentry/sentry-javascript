@@ -1,5 +1,5 @@
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
-import { warnOnRemovedBuildOptions } from '@sentry/core';
+import { warnOnConflictingSourceMapOptions, warnOnRemovedBuildOptions } from '@sentry/core';
 import { type Plugin } from 'vite';
 import type { SentryReactRouterBuildOptions } from './types';
 
@@ -8,6 +8,8 @@ import type { SentryReactRouterBuildOptions } from './types';
  */
 export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuildOptions): Promise<Plugin[]> {
   warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
+  // The Vite plugin does not get the user's source map options.
+  warnOnConflictingSourceMapOptions(options.sourcemaps);
 
   const {
     debug,

@@ -1,3 +1,5 @@
 allowBuilds:
   '@sentry/cli': true
+  esbuild: true
+  workerd: true
 minimumReleaseAge: 0

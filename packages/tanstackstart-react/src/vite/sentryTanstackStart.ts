@@ -1,4 +1,5 @@
 import type { BuildTimeOptionsBase, ReactComponentAnnotationOptions } from '@sentry/core';
+import { resolveSourceMapsFeatures } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
@@ -6,7 +7,7 @@ import { makeComposeNitroServiceSourceMapsPlugin, makeEnableNitroSourceMapsPlugi
 import { getRuntimeRelease } from './release';
 import { makeRoutePatternPlugin } from './routePatterns';
 import { makeServerInstrumentationPlugin } from './serverInstrumentation';
-import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
+import { createSourceMapState, makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 import type { TunnelRouteOptions } from './tunnelRoute';
 import { makeServerEntryTunnelPlugin, makeTunnelBasePathPlugin, makeTunnelRoutePlugin } from './tunnelRoute';
 
@@ -119,21 +120,30 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   // (CommonJS) deps via `ssr.noExternal`, which the `vite dev` SSR module runner can't evaluate.
   plugins.push(sentryOrchestrionPlugin({ buildTimeInstrumentation: options.buildTimeInstrumentation }));
 
+  // The bundler plugin decides on the source map setting in its own `config` hook, so the plugins that enable source
+  // maps come first.
+  const sourceMapState = createSourceMapState();
+  const { injectDebugIds, upload } = resolveSourceMapsFeatures(options.sourcemaps);
+  // Sentry turns source maps on to upload them, or when `sourcemaps.delete: false` keeps them for a manual upload.
+  if (upload || (options.sourcemaps?.delete === false && injectDebugIds)) {
+    plugins.push(
+      ...makeEnableSourceMapsVitePlugin(options, sourceMapState),
+      makeEnableNitroSourceMapsPlugin(options, sourceMapState),
+    );
+  }
+
   // The server entry hands the release to the SDK at runtime, so it changes no content hash of the startup chunks.
   const bundlerPluginOptions = release
     ? { ...options, release: { ...options.release, name: release, inject: false } }
     : options;
-  plugins.push(...makeAddSentryVitePlugin(bundlerPluginOptions), makeComposeNitroServiceSourceMapsPlugin());
+  plugins.push(
+    ...makeAddSentryVitePlugin(bundlerPluginOptions, sourceMapState),
+    makeComposeNitroServiceSourceMapsPlugin(),
+  );
 
   // middleware auto-instrumentation
   if (options.autoInstrumentMiddleware !== false) {
     plugins.push(makeAutoInstrumentMiddlewarePlugin({ enabled: true, debug: options.debug }));
-  }
-
-  // source maps
-  const sourceMapsDisabled = options.sourcemaps?.disable === true || options.sourcemaps?.disable === 'disable-upload';
-  if (!sourceMapsDisabled) {
-    plugins.push(...makeEnableSourceMapsVitePlugin(options), makeEnableNitroSourceMapsPlugin(options));
   }
 
   return plugins;

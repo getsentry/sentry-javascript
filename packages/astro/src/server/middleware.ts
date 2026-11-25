@@ -28,6 +28,7 @@ import {
   HTTP_SPAN_NAME_FALLBACK,
   httpHeadersToSpanAttributes,
   objectify,
+  SDK_VERSION,
   setHttpStatus,
   spanToJSON,
   startSpan,
@@ -39,11 +40,7 @@ import {
   filterCollectedUrlFragment,
   filterCollectedUrlQuery,
 } from '@sentry/core';
-import {
-  flushIfServerless,
-  _INTERNAL_getCacheOriginMetaTags,
-  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-} from '@sentry/core/server';
+import { flushIfServerless, _INTERNAL_getCacheOriginMetaTags, handleServedTunnelRequest } from '@sentry/core/server';
 import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
 import type { APIContext, MiddlewareHandler, MiddlewareNext, RoutePart } from 'astro';
 
@@ -77,6 +74,8 @@ function sendErrorToSentry(e: unknown): unknown {
   return objectifiedErr;
 }
 
+const SDK_NAME = 'sentry.javascript.astro';
+
 type AstroLocalsWithSentry = Record<string, unknown> & {
   __sentry_wrapped__?: boolean;
 };
@@ -87,13 +86,21 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler =
   return async (ctx, next) => {
     // The middleware the integration adds runs the server init first, so this only bails without a server init, or when
     // this middleware was added by hand and the request comes before any SSR page, which still runs the init.
-    if (!getClient()) {
+    const client = getClient();
+    if (!client) {
       return next();
     }
 
     const tunnelResponse = handleServedTunnelRequest(ctx.request);
     if (tunnelResponse) {
       return tunnelResponse;
+    }
+
+    // With `sentryCloudflareVitePlugin()` of `@sentry/cloudflare/vite`, `@sentry/cloudflare` inits the client.
+    const sdk = client.getOptions()._metadata?.sdk;
+    if (sdk && sdk.name !== SDK_NAME) {
+      sdk.name = SDK_NAME;
+      sdk.packages = [{ name: 'npm:@sentry/astro', version: SDK_VERSION }, ...(sdk.packages || [])];
     }
 
     // For static (prerendered) routes, we only want to inject the parametrized route meta tags

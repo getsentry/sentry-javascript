@@ -1,7 +1,7 @@
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
-import { warnOnRemovedBuildOptions } from '@sentry/core';
+import { resolveSourceMapsFeatures, warnOnRemovedBuildOptions } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
-import type { AstroConfig, AstroIntegration, AstroIntegrationLogger } from 'astro';
+import type { AstroConfig, AstroIntegration } from 'astro';
 import * as fs from 'fs';
 import { createRequire } from 'module';
 import * as path from 'path';
@@ -10,8 +10,12 @@ import { sentryCloudflareNodeWarningPlugin, sentryCloudflareVitePlugin } from '.
 import { buildReleaseSnippet, getRuntimeRelease, makeServerReleaseVitePlugin } from './release';
 import { makeServerInitVitePlugin, SENTRY_MIDDLEWARE_MODULE, SERVER_INIT_IMPORT } from './serverInit';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
+import { _getUpdatedSourceMapSettings, hasEnvironmentSourceMapSetting } from './sourceMaps';
 import { getAstroTunnelOptions, makeTunnelOptionsVitePlugin, TUNNEL_OPTIONS_IMPORT } from './tunnel';
 import type { SentryOptions } from './types';
+
+export { _getUpdatedSourceMapSettings } from './sourceMaps';
+export type { UserSourceMapSetting } from './sourceMaps';
 
 const PKG_NAME = '@sentry/astro';
 
@@ -62,74 +66,73 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         };
 
         const sourceMapsNeeded = sdkEnabled.client || sdkEnabled.server;
-        const shouldUploadSourcemaps = sourceMapsNeeded && sourcemaps?.disable !== true;
+        // TODO(v12): Add the Sentry plugin with `sourcemaps.disable: true` too, like with the options that replace it.
+        const shouldUploadSourcemaps = sourceMapsNeeded && resolveSourceMapsFeatures(sourcemaps).legacyDisable !== true;
 
         // The plugin would inject the release into the client's startup chunks, which changes their hashes on every
         // release and invalidates cached chunks. The page HTML carries it to the browser instead.
         const runtimeRelease = shouldUploadSourcemaps && command !== 'dev' ? getRuntimeRelease(release) : undefined;
 
-        // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
         if (shouldUploadSourcemaps && command !== 'dev') {
+          const buildState: ViteBuildState = { writesCloudflareWorker: false };
+          const sourceMapState = { sdkEnabled: false };
+          const sdkEnabledSourceMaps = (environment?: string): boolean =>
+            sourceMapState.sdkEnabled && !hasEnvironmentSourceMapSetting(config, environment);
+          // A user's own glob replaces the SDK's deletion. Maps in a Cloudflare `_worker.js` folder
+          // stay, so that wrangler can read them for `upload_source_maps`.
+          // With `sourcemaps.delete` the bundler plugin ignores this option and warns if the user set it.
+          const deleteSourcemapsAfterUpload =
+            sourcemaps?.delete !== undefined
+              ? sourcemaps.deleteSourcemapsAfterUpload
+              : (sourcemaps?.deleteSourcemapsAfterUpload ??
+                (sourcemaps?.filesToDeleteAfterUpload === undefined
+                  ? (environment?: string) =>
+                      sdkEnabledSourceMaps(environment) && !buildState.writesCloudflareWorker ? true : undefined
+                  : undefined));
+
+          const sentryPlugins = sentryVitePlugin({
+            applicationKey,
+            moduleMetadata,
+            // Priority: top-level options > env vars
+            org: org ?? env.SENTRY_ORG,
+            project: project ?? env.SENTRY_PROJECT,
+            authToken: authToken ?? env.SENTRY_AUTH_TOKEN,
+            url: sentryUrl ?? env.SENTRY_URL,
+            headers,
+            telemetry: telemetry ?? true,
+            silent: silent ?? false,
+            errorHandler,
+            _metaOptions: {
+              telemetry: {
+                metaFramework: 'astro',
+              },
+            },
+            debug: debug ?? false,
+            release: runtimeRelease ? { ...release, name: runtimeRelease, inject: false } : release,
+            sourcemaps: {
+              ...sourcemaps,
+              assets: sourcemaps?.assets ?? getSourcemapsAssetsGlobs(config),
+              deleteSourcemapsAfterUpload,
+              sdkEnabledSourceMaps,
+            },
+            bundleSizeOptimizations: {
+              ...bundleSizeOptimizations,
+            },
+          });
+
           const computedSourceMapSettings = _getUpdatedSourceMapSettings(config, options, logger);
-
-          let updatedFilesToDeleteAfterUpload: string[] | undefined = undefined;
-
-          if (
-            typeof sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
-            computedSourceMapSettings.previousUserSourceMapSetting === 'unset'
-          ) {
-            // This also works for adapters, as the source maps are also copied to e.g. the .vercel folder.
-            // Static output has no client folder and writes client assets to `<outDir>/<build.assets>` instead.
-            // Astro removes the hidden `.prerender` folder itself, but we don't want to rely on that.
-            updatedFilesToDeleteAfterUpload = [
-              './dist/**/client/**/*.map',
-              './dist/**/server/**/*.map',
-              `./dist/**/${config.build?.assets ?? '_astro'}/**/*.map`,
-              './dist/**/.prerender/**/*.map',
-            ];
-
-            debug &&
-              logger.info(
-                `Automatically setting \`sourcemaps.filesToDeleteAfterUpload: ${JSON.stringify(
-                  updatedFilesToDeleteAfterUpload,
-                )}\` to delete generated source maps after they were uploaded to Sentry.`,
-              );
-          }
+          sourceMapState.sdkEnabled =
+            computedSourceMapSettings.previousUserSourceMapSetting === 'unset' &&
+            computedSourceMapSettings.updatedSourceMapSetting === 'hidden';
 
           updateConfig({
             vite: {
-              build: {
-                sourcemap: computedSourceMapSettings.updatedSourceMapSetting,
-              },
+              ...(computedSourceMapSettings.updatedSourceMapSetting === undefined
+                ? {}
+                : { build: { sourcemap: computedSourceMapSettings.updatedSourceMapSetting } }),
               plugins: [
-                sentryVitePlugin({
-                  applicationKey,
-                  moduleMetadata,
-                  // Priority: top-level options > env vars
-                  org: org ?? env.SENTRY_ORG,
-                  project: project ?? env.SENTRY_PROJECT,
-                  authToken: authToken ?? env.SENTRY_AUTH_TOKEN,
-                  url: sentryUrl ?? env.SENTRY_URL,
-                  headers,
-                  telemetry: telemetry ?? true,
-                  silent: silent ?? false,
-                  errorHandler,
-                  _metaOptions: {
-                    telemetry: {
-                      metaFramework: 'astro',
-                    },
-                  },
-                  debug: debug ?? false,
-                  release: runtimeRelease ? { ...release, name: runtimeRelease, inject: false } : release,
-                  sourcemaps: {
-                    ...sourcemaps,
-                    assets: sourcemaps?.assets ?? getSourcemapsAssetsGlobs(config),
-                    filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
-                  },
-                  bundleSizeOptimizations: {
-                    ...bundleSizeOptimizations,
-                  },
-                }),
+                makeViteBuildStatePlugin(buildState),
+                sentryPlugins,
                 ...(runtimeRelease ? [makeServerReleaseVitePlugin(runtimeRelease)] : []),
               ],
             },
@@ -282,6 +285,26 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
   };
 };
 
+type ViteBuildState = {
+  /** The current Vite build writes the Worker of an older Cloudflare adapter to `_worker.js`. */
+  writesCloudflareWorker: boolean;
+};
+
+/**
+ * Records what the SDK needs to know about each Vite build. Its `config` hook runs before the one
+ * of the Sentry plugin, which reads `buildState` there.
+ */
+function makeViteBuildStatePlugin(buildState: ViteBuildState): VitePlugin {
+  return {
+    name: 'sentry-astro-vite-build-state',
+    apply: 'build',
+    enforce: 'post',
+    config(viteConfig) {
+      buildState.writesCloudflareWorker = /(?:^|[\\/])_worker\.js[\\/]*$/.test(viteConfig.build?.outDir ?? '');
+    },
+  };
+}
+
 // Every sub-plugin of `sentryCloudflareVitePlugin()` but its orchestrion transform has this prefix,
 // and some are added whatever its options are.
 const CLOUDFLARE_VITE_PLUGIN_NAME_PREFIX = 'sentry-cloudflare-';
@@ -380,72 +403,4 @@ function getOutDirGlob(config: AstroConfig): string {
 
   // fallback to default output dir
   return 'dist';
-}
-
-/**
- * Whether the user enabled (true, 'hidden', 'inline') or disabled (false) source maps
- */
-export type UserSourceMapSetting = 'enabled' | 'disabled' | 'unset' | undefined;
-
-/** There are 3 ways to set up source map generation (https://github.com/getsentry/sentry-javascript/issues/13993)
- *
- *     1. User explicitly disabled source maps
- *       - keep this setting (emit a warning that errors won't be unminified in Sentry)
- *       - We won't upload anything
- *
- *     2. Users enabled source map generation (true, 'hidden', 'inline').
- *       - keep this setting (don't do anything - like deletion - besides uploading)
- *
- *     3. Users didn't set source maps generation
- *       - we enable 'hidden' source maps generation
- *       - configure `filesToDeleteAfterUpload` to delete all .map files (we emit a log about this)
- *
- * --> only exported for testing
- */
-export function _getUpdatedSourceMapSettings(
-  astroConfig: AstroConfig,
-  sentryOptions: SentryOptions | undefined,
-  logger: AstroIntegrationLogger,
-): { previousUserSourceMapSetting: UserSourceMapSetting; updatedSourceMapSetting: boolean | 'inline' | 'hidden' } {
-  let previousUserSourceMapSetting: UserSourceMapSetting = undefined;
-
-  astroConfig.build = astroConfig.build || {};
-
-  const viteSourceMap = astroConfig?.vite?.build?.sourcemap;
-  let updatedSourceMapSetting = viteSourceMap;
-
-  const settingKey = 'vite.build.sourcemap';
-  const debug = sentryOptions?.debug;
-
-  if (viteSourceMap === false) {
-    previousUserSourceMapSetting = 'disabled';
-    updatedSourceMapSetting = viteSourceMap;
-
-    if (debug) {
-      // Longer debug message with more details
-      logger.warn(
-        `Source map generation is currently disabled in your Astro configuration (\`${settingKey}: false\`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
-      );
-    } else {
-      logger.warn('Source map generation is disabled in your Astro configuration.');
-    }
-  } else if (viteSourceMap && ['hidden', 'inline', true].includes(viteSourceMap)) {
-    previousUserSourceMapSetting = 'enabled';
-    updatedSourceMapSetting = viteSourceMap;
-
-    debug &&
-      logger.info(
-        `We discovered \`${settingKey}\` is set to \`${viteSourceMap.toString()}\`. Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
-      );
-  } else {
-    previousUserSourceMapSetting = 'unset';
-    updatedSourceMapSetting = 'hidden';
-
-    debug &&
-      logger.info(
-        `Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps will be deleted after they were uploaded to Sentry.`,
-      );
-  }
-
-  return { previousUserSourceMapSetting, updatedSourceMapSetting };
 }

@@ -104,7 +104,7 @@ describe('sentryRemixVitePlugin', () => {
 
   // The bundler plugin reads the option when its own `config` hook runs, which comes after ours.
   it('enables hidden source maps and asks the bundler plugin to delete them', () => {
-    const config = runConfigHooks(sentryRemixVitePlugin(), {});
+    const config = runConfigHooks(sentryRemixVitePlugin({ authToken: 'token', org: 'org', project: 'project' }), {});
 
     expect(config.build?.sourcemap).toBe('hidden');
     expect(deleteOptionInConfigHook).toBe(true);

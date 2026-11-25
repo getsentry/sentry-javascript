@@ -1,4 +1,4 @@
-import { getVercelEnv } from '@sentry/core';
+import { getVercelEnv, warnOnConflictingSourceMapOptions } from '@sentry/core';
 import type { Logger } from './logger';
 import type {
   InternalOptions as UserOptions,
@@ -9,6 +9,7 @@ import type {
   ModuleMetadata,
   ModuleMetadataCallback,
 } from './types';
+import { parseProjectEnvVar } from './upload-credentials';
 import { canAutoDetectRepository, readCommitEnvVar, resolveReleaseName } from './utils';
 
 export type NormalizedOptions = {
@@ -99,11 +100,7 @@ export const SENTRY_SAAS_URL = 'https://sentry.io';
 export function normalizeUserOptions(userOptions: UserOptions): NormalizedOptions {
   const options = {
     org: userOptions.org ?? process.env['SENTRY_ORG'],
-    project:
-      userOptions.project ??
-      (process.env['SENTRY_PROJECT']?.includes(',')
-        ? process.env['SENTRY_PROJECT'].split(',').map(p => p.trim())
-        : process.env['SENTRY_PROJECT']),
+    project: userOptions.project ?? parseProjectEnvVar(process.env['SENTRY_PROJECT']),
     authToken: userOptions.authToken ?? process.env['SENTRY_AUTH_TOKEN'],
     // No sentry.io default: the CLI then uses the server an `sntrys_` org token was issued for, and
     // sentry.io otherwise. A default here would send self-hosted tokens to sentry.io.
@@ -222,32 +219,7 @@ export function validateOptions(options: NormalizedOptions, logger: Logger): boo
     }
   }
 
-  const sourcemaps = options.sourcemaps;
-  const usesFeatureOptions = sourcemaps?.upload !== undefined || sourcemaps?.injectDebugIds !== undefined;
-  if (usesFeatureOptions && sourcemaps?.disable !== undefined) {
-    logger.warn(
-      '`sourcemaps.disable` is ignored because `sourcemaps.upload` or `sourcemaps.injectDebugIds` is set.',
-      'Please remove `sourcemaps.disable`.',
-    );
-  }
-  if (sourcemaps?.injectDebugIds === false && sourcemaps.upload === true) {
-    logger.warn(
-      '`sourcemaps.upload` is set, but `sourcemaps.injectDebugIds` is `false`.',
-      'Source maps are not uploaded, because the upload matches files by debug ID.',
-    );
-  }
-  if (sourcemaps?.delete !== undefined && sourcemaps.deleteSourcemapsAfterUpload !== undefined) {
-    logger.warn(
-      '`sourcemaps.deleteSourcemapsAfterUpload` is ignored because `sourcemaps.delete` is set.',
-      'Please remove `sourcemaps.deleteSourcemapsAfterUpload`.',
-    );
-  }
-  if (sourcemaps?.delete === false && sourcemaps.filesToDeleteAfterUpload !== undefined) {
-    logger.warn(
-      '`sourcemaps.filesToDeleteAfterUpload` still deletes the files it matches, although `sourcemaps.delete` is `false`.',
-      'Remove `sourcemaps.filesToDeleteAfterUpload` to keep the source maps.',
-    );
-  }
+  warnOnConflictingSourceMapOptions(options.sourcemaps, message => logger.warn(message));
 
   if (options.release?.deploy && typeof options.release.deploy === 'object' && !options.release.deploy.env) {
     logger.error(

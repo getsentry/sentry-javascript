@@ -8,14 +8,42 @@
     "preview": "astro preview",
     "astro": "astro",
     "start": "node ./dist/server/entry.mjs",
+    "start:bun": "bun --bun ./dist/server/entry.mjs",
+    "start:deno": "deno run -A ./dist/server/entry.mjs",
+    "start:cloudflare": "wrangler dev --var \"E2E_TEST_DSN:$E2E_TEST_DSN\" --port 3030",
     "test:build": "pnpm install && pnpm build",
+    "test:build:cloudflare": "rm sentry.server.config.js && pnpm test:build",
     "test:assert": "TEST_ENV=production playwright test"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "^13.0.2",
     "@astrojs/node": "^10.0.0",
     "@playwright/test": "1.64.1",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@sentry/astro": "file:../../packed/sentry-astro-packed.tgz",
-    "astro": "^6.2.0"
+    "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
+    "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
+    "astro": "^6.2.0",
+    "mysql": "2.18.1",
+    "wrangler": "^4.72.0"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "runtime": "bun",
+        "label": "astro-6 (bun)"
+      },
+      {
+        "runtime": "deno",
+        "deno-version": "v2.9.0",
+        "label": "astro-6 (deno)"
+      },
+      {
+        "runtime": "cloudflare",
+        "build-command": "pnpm test:build:cloudflare",
+        "label": "astro-6 (cloudflare)"
+      }
+    ]
   }
 }

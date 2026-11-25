@@ -75,17 +75,26 @@ test.describe('prerendered ISR pages', () => {
   });
 });
 
-test('should create unique traces for ISR pages on each visit', async ({ page }) => {
+test('should create unique traces for ISR pages on each visit', async ({ page, baseURL }) => {
+  // The 5 page loads need about 17 s on an idle webpack dev server, and more while it compiles routes for other workers
+  test.slow();
+
   const traceIds: string[] = [];
+  const url = '/isr-test/laptop?test=unique-isr-traces';
 
   // Load the same ISR page 5 times: the cached HTML carries no trace tag, so every visit starts its own trace
   for (let i = 0; i < 5; i++) {
     const spanPromise = waitForStreamedSpan('nextjs-16', span => {
-      return span.name === '/isr-test/:product' && getSpanOp(span) === 'pageload' && span.is_segment;
+      return (
+        span.name === '/isr-test/:product' &&
+        getSpanOp(span) === 'pageload' &&
+        span.is_segment &&
+        span.attributes['url.full']?.value === new URL(url, baseURL).href
+      );
     });
 
     if (i === 0) {
-      await page.goto('/isr-test/laptop');
+      await page.goto(url);
     } else {
       await page.reload();
     }

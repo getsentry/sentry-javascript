@@ -111,6 +111,10 @@ async function addSourceContextToFrames(frames: StackFrame[], contextLines: numb
         if (sourceFile) {
           try {
             const lines = sourceFile.split('\n');
+            // A trailing newline ends the last line, it does not start another one.
+            if (lines[lines.length - 1] === '') {
+              lines.pop();
+            }
             addContextToFrame(lines, frame, contextLines);
           } catch {
             // anomaly, being defensive in case

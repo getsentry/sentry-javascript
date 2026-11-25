@@ -37,6 +37,7 @@ export function createInteractionCache<T, E>({
   const get = (entry: E): T | undefined => {
     // The most likely match is the latest item.
     for (let i = items.length - 1; i >= 0; i--) {
+      // oxlint-disable-next-line typescript/no-non-null-assertion -- `i` is bounded by the loop
       if (match(items[i]!, entry)) {
         return items[i];
       }

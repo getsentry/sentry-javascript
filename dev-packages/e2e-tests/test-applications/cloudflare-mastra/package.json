@@ -33,6 +33,6 @@
     "wrangler": "^4.86.0"
   },
   "sentryTest": {
-    "optional": true
+    "needsSecrets": true
   }
 }

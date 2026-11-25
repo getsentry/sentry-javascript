@@ -98,13 +98,17 @@ export function installRouteHookOnPrototype(honoBaseProto: HonoBaseProto): Route
   return handle;
 }
 
+// Hono 5 registers `onError()` and `notFound()` handlers as `(c, next)` middleware routes with these
+// methods. Like on Hono 4, they get no middleware span.
+const ERROR_AND_NOT_FOUND_METHODS = new Set(['@ERROR', '@NOT_FOUND']);
+
 /**
  * Wraps the middleware handlers of a sub-app's routes in spans.
  */
 export function wrapSubAppMiddleware(routes: HonoRoute[]): void {
   const middlewareFlags = getMiddlewareFlags(routes);
   for (const [i, route] of routes.entries()) {
-    if (middlewareFlags[i] && typeof route.handler === 'function') {
+    if (middlewareFlags[i] && !ERROR_AND_NOT_FOUND_METHODS.has(route.method) && typeof route.handler === 'function') {
       route.handler = wrapMiddlewareWithSpan(route.handler);
     }
   }

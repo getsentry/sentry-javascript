@@ -1,11 +1,14 @@
-import type { Event } from '@sentry/core';
-import { originalConsoleMethods } from '@sentry/core';
+import { HTTP_REQUEST_METHOD, SENTRY_OP, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
+import { GLOBAL_OBJ, originalConsoleMethods } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { getGlobalScope, SDK_VERSION } from '@sentry/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { NUXT_BUILD_ASSETS_DIR_GLOBAL, NUXT_PUBLIC_FILES_GLOBAL } from '../../src/common/buildAssets';
 import { NUXT_DEV_MODE_FLAG, NUXT_PRERENDER_FLAG, NUXT_SERVER_INITIALIZED_FLAG } from '../../src/common/devMode';
+import { NUXT_BASE_PATH_GLOBAL } from '../../src/common/tunnel';
 import { init } from '../../src/server';
-import { clientSourceMapErrorFilter, lowQualityTransactionsFilter } from '../../src/server/sdk';
+import { clientSourceMapErrorFilter } from '../../src/server/sdk';
 
 const nodeInit = vi.spyOn(SentryNode, 'init');
 
@@ -239,42 +242,144 @@ describe('Nuxt Server SDK', () => {
       });
     });
 
-    describe('lowQualityTransactionsFilter', () => {
-      const options = { debug: false };
-      const filter = lowQualityTransactionsFilter(options);
+    describe('ignoreSpans', () => {
+      const startServerSpan = (path: string, method = 'GET'): SentryNode.Span =>
+        SentryNode.startInactiveSpan({
+          name: method,
+          forceTransaction: true,
+          attributes: { [SENTRY_OP]: HTTP_SERVER, [URL_PATH]: path, [HTTP_REQUEST_METHOD]: method },
+        });
 
-      describe('filters out low quality transactions', () => {
-        it.each([
-          'GET /_nuxt/some_asset.js',
-          'GET _nuxt/some_asset.js',
-          'GET /icons/favicon.ico',
-          'GET /assets/logo.png',
-          'GET /icons/zones/forest.svg',
-        ])('filters out low quality transaction: (%s)', transaction => {
-          const event = { type: 'transaction' as const, transaction };
-          expect(filter(event, {})).toBeNull();
+      it.each([
+        '/_nuxt/entry.js',
+        '/_nuxt/entry.js.map',
+        '/_nuxt/builds/meta/b621250d-af25-415d-8df9-7e893c1af467.json',
+        '/_nuxt/builds/latest.json',
+      ])('ignores build asset requests (%s)', path => {
+        init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+        expect(startServerSpan(path).isRecording()).toBe(false);
+      });
+
+      it.each([
+        '/',
+        '/_server',
+        '/user/jane.doe',
+        '/api/data.json',
+        '/blog/_payload.json',
+        '/blog/_nuxt-tips',
+        '/blog/_nuxt/',
+        '/api/_nuxt/entry.js.map',
+      ])('keeps route requests (%s)', path => {
+        init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+        expect(startServerSpan(path).isRecording()).toBe(true);
+      });
+
+      it('merges the default with user-provided ignoreSpans', () => {
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          tracesSampleRate: 1,
+          ignoreSpans: [{ attributes: { [URL_PATH]: '/health' } }],
+        });
+
+        expect(startServerSpan('/health').isRecording()).toBe(false);
+        expect(startServerSpan('/_nuxt/entry.js').isRecording()).toBe(false);
+      });
+
+      describe('with configured app paths', () => {
+        const globalWithNuxtPaths = GLOBAL_OBJ as {
+          [NUXT_BASE_PATH_GLOBAL]?: string;
+          [NUXT_BUILD_ASSETS_DIR_GLOBAL]?: string;
+        };
+
+        afterEach(() => {
+          globalWithNuxtPaths[NUXT_BASE_PATH_GLOBAL] = undefined;
+          globalWithNuxtPaths[NUXT_BUILD_ASSETS_DIR_GLOBAL] = undefined;
+        });
+
+        it('ignores requests for the configured `buildAssetsDir` instead of `/_nuxt/`', () => {
+          globalWithNuxtPaths[NUXT_BUILD_ASSETS_DIR_GLOBAL] = '/assets/';
+
+          init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+          expect(startServerSpan('/assets/entry.js.map').isRecording()).toBe(false);
+          expect(startServerSpan('/_nuxt/entry.js.map').isRecording()).toBe(true);
+        });
+
+        it.each(['/blog/assets/', '/api/assets/123', '/user/assets/avatar.json'])(
+          'keeps routes that contain the configured `buildAssetsDir` after the start (%s)',
+          path => {
+            globalWithNuxtPaths[NUXT_BUILD_ASSETS_DIR_GLOBAL] = '/assets/';
+
+            init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+            expect(startServerSpan(path).isRecording()).toBe(true);
+          },
+        );
+
+        it('ignores build asset requests under the configured `baseURL`', () => {
+          globalWithNuxtPaths[NUXT_BASE_PATH_GLOBAL] = '/shop/';
+
+          init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+          expect(startServerSpan('/shop/_nuxt/entry.js.map').isRecording()).toBe(false);
+          expect(startServerSpan('/shop/blog/_nuxt/entry.js.map').isRecording()).toBe(true);
+        });
+
+        it('keeps all requests when the build output is served from the root', () => {
+          globalWithNuxtPaths[NUXT_BUILD_ASSETS_DIR_GLOBAL] = '/';
+
+          init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+          expect(startServerSpan('/user/jane.doe').isRecording()).toBe(true);
         });
       });
 
-      describe('keeps high quality transactions', () => {
-        // Nuxt parametrizes routes sometimes in a special way - especially catchAll o.O
-        it.each(['GET /', 'POST /_server', 'GET /catchAll/:id(.*)*', 'GET /article/:slug()', 'GET /user/:id'])(
-          'does not filter out route transactions (%s)',
-          transaction => {
-            const event = { type: 'transaction' as const, transaction };
-            expect(filter(event, {})).toEqual(event);
+      describe('with public files', () => {
+        const globalWithNuxtPaths = GLOBAL_OBJ as {
+          [NUXT_BASE_PATH_GLOBAL]?: string;
+          [NUXT_PUBLIC_FILES_GLOBAL]?: string[];
+        };
+
+        beforeEach(() => {
+          globalWithNuxtPaths[NUXT_PUBLIC_FILES_GLOBAL] = ['/docs/guide.pdf', '/humans.txt'];
+        });
+
+        afterEach(() => {
+          globalWithNuxtPaths[NUXT_BASE_PATH_GLOBAL] = undefined;
+          globalWithNuxtPaths[NUXT_PUBLIC_FILES_GLOBAL] = undefined;
+        });
+
+        it.each(['/docs/guide.pdf', '/humans.txt'])('ignores GET requests for public files (%s)', path => {
+          init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+          expect(startServerSpan(path).isRecording()).toBe(false);
+        });
+
+        it.each(['/docs/', '/docs/guide', '/docs/guide.pdf/', '/humans.txt.bak', '/blog/humans.txt'])(
+          'keeps requests that only resemble a public file (%s)',
+          path => {
+            init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+            expect(startServerSpan(path).isRecording()).toBe(true);
           },
         );
-      });
 
-      it('does not filter non-transaction events', () => {
-        const event = { type: 'error' as const, transaction: 'GET /assets/image.png' } as unknown as Event;
-        expect(filter(event, {})).toEqual(event);
-      });
+        it('keeps other methods than GET, which reach the routes', () => {
+          init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
 
-      it('handles events without transaction property', () => {
-        const event = { type: 'transaction' as const };
-        expect(filter(event, {})).toEqual(event);
+          expect(startServerSpan('/humans.txt', 'POST').isRecording()).toBe(true);
+        });
+
+        it('ignores public files under the configured `baseURL`', () => {
+          globalWithNuxtPaths[NUXT_BASE_PATH_GLOBAL] = '/shop/';
+
+          init({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+          expect(startServerSpan('/shop/humans.txt').isRecording()).toBe(false);
+          expect(startServerSpan('/humans.txt').isRecording()).toBe(true);
+        });
       });
     });
 
@@ -284,7 +389,6 @@ describe('Nuxt Server SDK', () => {
       });
 
       const ids = client?.getEventProcessors().map(processor => processor.id);
-      expect(ids).toContain('NuxtLowQualityTransactionsFilter');
       expect(ids).toContain('NuxtClientSourceMapErrorFilter');
     });
 

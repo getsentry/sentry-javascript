@@ -1,4 +1,4 @@
-import { _INTERNAL_setTunnelDefaults as setTunnelDefaults } from '@sentry/core/server';
+import { setTunnelDefaults } from '@sentry/core/server';
 import { useRuntimeConfig } from 'nitro/runtime-config';
 import type { NitroAppPlugin } from 'nitro/types';
 

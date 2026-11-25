@@ -8,13 +8,13 @@ vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
   return {
     ...actual,
-    _INTERNAL_captureLog: vi.fn(),
+    captureLogEvent: vi.fn(),
   };
 });
 
 describe('Node Logger', () => {
   // Use the mocked function
-  const mockCaptureLog = vi.mocked(sentryCore._INTERNAL_captureLog);
+  const mockCaptureLog = vi.mocked(sentryCore.captureLogEvent);
 
   beforeEach(() => {
     // Reset mocks
@@ -35,7 +35,7 @@ describe('Node Logger', () => {
       expect(nodeLogger.fatal).toBeTypeOf('function');
     });
 
-    it('should call _INTERNAL_captureLog with trace level', () => {
+    it('should call captureLogEvent with trace level', () => {
       nodeLogger.trace('Test trace message', { key: 'value' });
       expect(mockCaptureLog).toHaveBeenCalledWith(
         {
@@ -47,7 +47,7 @@ describe('Node Logger', () => {
       );
     });
 
-    it('should call _INTERNAL_captureLog with debug level', () => {
+    it('should call captureLogEvent with debug level', () => {
       nodeLogger.debug('Test debug message', { key: 'value' });
       expect(mockCaptureLog).toHaveBeenCalledWith(
         {
@@ -59,7 +59,7 @@ describe('Node Logger', () => {
       );
     });
 
-    it('should call _INTERNAL_captureLog with info level', () => {
+    it('should call captureLogEvent with info level', () => {
       nodeLogger.info('Test info message', { key: 'value' });
       expect(mockCaptureLog).toHaveBeenCalledWith(
         {
@@ -71,7 +71,7 @@ describe('Node Logger', () => {
       );
     });
 
-    it('should call _INTERNAL_captureLog with warn level', () => {
+    it('should call captureLogEvent with warn level', () => {
       nodeLogger.warn('Test warn message', { key: 'value' });
       expect(mockCaptureLog).toHaveBeenCalledWith(
         {
@@ -83,7 +83,7 @@ describe('Node Logger', () => {
       );
     });
 
-    it('should call _INTERNAL_captureLog with error level', () => {
+    it('should call captureLogEvent with error level', () => {
       nodeLogger.error('Test error message', { key: 'value' });
       expect(mockCaptureLog).toHaveBeenCalledWith(
         {
@@ -95,7 +95,7 @@ describe('Node Logger', () => {
       );
     });
 
-    it('should call _INTERNAL_captureLog with fatal level', () => {
+    it('should call captureLogEvent with fatal level', () => {
       nodeLogger.fatal('Test fatal message', { key: 'value' });
       expect(mockCaptureLog).toHaveBeenCalledWith(
         {
@@ -175,7 +175,7 @@ describe('Node Logger', () => {
   });
 
   describe('scustom cope', () => {
-    it('calls _INTERNAL_captureLog with custom scope for basic log message', () => {
+    it('calls captureLogEvent with custom scope for basic log message', () => {
       const customScope = new Scope();
       nodeLogger.debug('User logged in', undefined, { scope: customScope });
       expect(mockCaptureLog).toHaveBeenCalledWith(
@@ -187,7 +187,7 @@ describe('Node Logger', () => {
       );
     });
 
-    it('calls _INTERNAL_captureLog with custom scope for parametrized log message', () => {
+    it('calls captureLogEvent with custom scope for parametrized log message', () => {
       const customScope = new Scope();
       nodeLogger.debug('User %s logged in from %s', ['Alice', 'mobile'], undefined, { scope: customScope });
       expect(mockCaptureLog).toHaveBeenCalledWith(
@@ -204,7 +204,7 @@ describe('Node Logger', () => {
       );
     });
 
-    it('calls _INTERNAL_captureLog with custom scope for fmt log message', () => {
+    it('calls captureLogEvent with custom scope for fmt log message', () => {
       const customScope = new Scope();
       nodeLogger.debug(nodeLogger.fmt`User ${'Alice'} logged in from ${'mobile'}`, undefined, { scope: customScope });
       expect(mockCaptureLog).toHaveBeenCalledWith(

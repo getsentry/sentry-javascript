@@ -2,3 +2,4 @@
 // it on workers without the `nodejs_compat` compatibility flag.
 export { wrapServerRequestHandler } from './utils/wrapServerRequestHandler';
 export type { ServerRequestHandlerConfig } from './utils/wrapServerRequestHandler';
+export { addServerTimingTraceHeader } from './utils/serverTimingTraceHeader';

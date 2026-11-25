@@ -6,6 +6,7 @@ import {
 import { getBuildLogger } from '../buildLogger';
 import { handleRunAfterProductionCompile } from '../handleRunAfterProductionCompile';
 import type { RouteManifest } from '../manifest/types';
+import { getDeleteSourceMapsOption, sentryEnablesSourceMaps } from '../sourceMapOptions';
 import { constructTurbopackConfig } from '../turbopack';
 import type { NextConfigObject, SentryBuildOptions, TurbopackOptions } from '../types';
 import { detectActiveBundler, supportsProductionCompileHook, supportsTurbopackRuleCondition } from '../util';
@@ -247,7 +248,8 @@ export function maybeEnableTurbopackSourcemaps(
   bundlerInfo: BundlerInfo,
 ): void {
   // Enable source maps for turbopack builds
-  if (!bundlerInfo.isTurbopackSupported || !bundlerInfo.isTurbopack || userSentryOptions.sourcemaps?.disable) {
+  const { isTurbopack, isTurbopackSupported } = bundlerInfo;
+  if (!isTurbopackSupported || !isTurbopack || !sentryEnablesSourceMaps(userSentryOptions)) {
     return;
   }
 
@@ -264,7 +266,7 @@ export function maybeEnableTurbopackSourcemaps(
   incomingUserNextConfigObject.productionBrowserSourceMaps = true;
 
   // Enable source map deletion if not explicitly disabled
-  if (userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload !== undefined) {
+  if (getDeleteSourceMapsOption(userSentryOptions.sourcemaps) !== undefined) {
     return;
   }
 

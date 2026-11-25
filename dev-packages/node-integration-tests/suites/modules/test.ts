@@ -1,8 +1,14 @@
 import { SDK_VERSION } from '@sentry/core';
-import { mkdirSync, rmSync, symlinkSync, writeFileSync } from 'fs';
+import { copyFileSync, cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
+
+// Each test writes its packages into a folder of its own, because the Bun integration tests run this suite in
+// several projects at the same time.
+function makeTempDir(): string {
+  return mkdtempSync(join(__dirname, 'tmp-'));
+}
 
 describe('modulesIntegration', () => {
   afterAll(() => {
@@ -10,26 +16,27 @@ describe('modulesIntegration', () => {
   });
 
   test('CJS', async () => {
-    const runner = createRunner(__dirname, 'server.js')
-      .withMockSentryServer()
+    await createRunner(__dirname, 'scenario.js')
       .expect({
         event: {
           modules: {
-            // exact version comes from require.caches
             express: expect.stringMatching(/^4\.\d+\.\d+$/),
-            // this comes from package.json
             '@sentry/node': SDK_VERSION,
-            yargs: '^18.2.0',
+            // Declared in package.json and installed, but never loaded
+            yargs: expect.stringMatching(/^18\.\d+\.\d+$/),
+            // Not declared, but loaded by express, so it is in require.cache
+            finalhandler: expect.stringMatching(/^\d+\.\d+\.\d+$/),
           },
         },
       })
-      .start();
-    runner.makeRequest('get', '/test1', { expectError: true });
-    await runner.completed();
+      .start()
+      .completed();
   });
 
   test('CJS with the isolated layouts of pnpm and Bun', async () => {
-    const nodeModulesDir = join(__dirname, 'node_modules');
+    const tempDir = makeTempDir();
+    copyFileSync(join(__dirname, 'scenario-isolated.js'), join(tempDir, 'scenario-isolated.js'));
+    const nodeModulesDir = join(tempDir, 'node_modules');
     for (const [storeDir, name, version, linked] of [
       ['.pnpm', 'pnpm-isolated-package', '1.2.3', true],
       // Only a dependency of the app uses this version, so it is not linked into `node_modules`
@@ -50,7 +57,7 @@ describe('modulesIntegration', () => {
     }
 
     try {
-      await createRunner(__dirname, 'scenario-isolated.js')
+      await createRunner(tempDir, 'scenario-isolated.js')
         .expect({
           event: {
             modules: {
@@ -64,26 +71,58 @@ describe('modulesIntegration', () => {
         .start()
         .completed();
     } finally {
-      rmSync(nodeModulesDir, { recursive: true, force: true });
+      rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
   test('ESM', async () => {
-    const runner = createRunner(__dirname, 'server.mjs')
-      .withInstrument(join(__dirname, 'instrument.mjs'))
-      .withMockSentryServer()
+    await createRunner(__dirname, 'scenario.mjs')
       .expect({
         event: {
           modules: {
-            // this comes from package.json
-            express: expect.stringMatching(/^\^4\.\d+\.\d+$/),
+            express: expect.stringMatching(/^4\.\d+\.\d+$/),
             '@sentry/node': SDK_VERSION,
-            yargs: '^18.2.0',
+            yargs: expect.stringMatching(/^18\.\d+\.\d+$/),
           },
         },
       })
-      .start();
-    runner.makeRequest('get', '/test1', { expectError: true });
-    await runner.completed();
+      .start()
+      .completed();
+  });
+
+  test('ESM app in a subfolder with its own package.json', async () => {
+    const tempDir = makeTempDir();
+    const appDir = join(tempDir, 'esm-app');
+    cpSync(join(__dirname, 'esm-app'), appDir, { recursive: true });
+    const packageDir = join(appDir, 'node_modules', 'esm-app-dependency');
+    mkdirSync(packageDir, { recursive: true });
+    writeFileSync(join(packageDir, 'package.json'), JSON.stringify({ name: 'esm-app-dependency', version: '1.4.0' }));
+    // A CommonJS package that the app imports but does not declare, like a transitive dependency
+    const transitiveDir = join(appDir, 'node_modules', 'esm-app-transitive');
+    mkdirSync(transitiveDir, { recursive: true });
+    writeFileSync(
+      join(transitiveDir, 'package.json'),
+      JSON.stringify({ name: 'esm-app-transitive', version: '3.1.0' }),
+    );
+    writeFileSync(join(transitiveDir, 'index.js'), 'module.exports = {};');
+
+    try {
+      await createRunner(appDir, 'lib', 'scenario.js')
+        .expect({
+          event: event => {
+            // Packages the SDK itself loads from the repo's node_modules can show up too
+            expect(event.modules).toMatchObject({
+              'esm-app-dependency': '1.4.0',
+              'esm-app-transitive': '3.1.0',
+              // Not installed, so the range from package.json is all there is
+              'esm-app-missing-dependency': '^2.0.0',
+            });
+          },
+        })
+        .start()
+        .completed();
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 });

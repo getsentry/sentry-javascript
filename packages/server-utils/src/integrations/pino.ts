@@ -1,7 +1,7 @@
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { IntegrationFn, LogSeverityLevel } from '@sentry/core';
 import {
-  _INTERNAL_captureLog,
+  captureLogEvent,
   addExceptionMechanism,
   captureException,
   captureMessage,
@@ -147,7 +147,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
             'pino.logger.level': levelNumber,
           };
 
-          _INTERNAL_captureLog({ level, message: logMessage, attributes });
+          captureLogEvent({ level, message: logMessage, attributes });
         }
 
         if (options.error.levels.includes(level)) {

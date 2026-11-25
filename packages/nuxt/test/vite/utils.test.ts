@@ -7,6 +7,7 @@ import {
   constructFunctionReExport,
   constructWrappedFunctionExportQuery,
   extractFunctionReexportQueryParameters,
+  findCloudflareOptionsFile,
   findDefaultSdkInitFile,
   getFilenameFromNodeStartCommand,
   QUERY_END_INDICATOR,
@@ -187,6 +188,31 @@ describe('findDefaultSdkInitFile', () => {
 
     const result = await findDefaultSdkInitFile('client', nuxtMock);
     expect(result).toMatch(path.join('packages', 'nuxt', 'module', 'sentry.client.config.ts'));
+  });
+});
+
+describe('findCloudflareOptionsFile', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])(
+    'returns the sentry.cloudflare.config.%s file if it exists',
+    async ext => {
+      vi.mocked(fs.existsSync).mockImplementation(filePath => {
+        return !(filePath instanceof URL) && filePath.toString().includes(`sentry.cloudflare.config.${ext}`);
+      });
+
+      const result = await findCloudflareOptionsFile();
+      expect(result).toMatch(path.join('packages', 'nuxt', `sentry.cloudflare.config.${ext}`));
+    },
+  );
+
+  it('returns undefined if no sentry.cloudflare.config file exists', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+
+    const result = await findCloudflareOptionsFile();
+    expect(result).toBeUndefined();
   });
 });
 

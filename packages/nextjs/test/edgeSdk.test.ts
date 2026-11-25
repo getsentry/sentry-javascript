@@ -11,11 +11,7 @@ import {
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils';
 import * as SentryVercelEdge from '@sentry/vercel-edge';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  _INTERNAL_resetTunnelDefaults,
-  handleTunnelRequestIfMatched,
-  serveTunnelIntegration,
-} from '@sentry/core/server';
+import { resetTunnelDefaults, handleTunnelRequestIfMatched, serveTunnelIntegration } from '@sentry/core/server';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../src/common/span-attributes-with-logic-attached';
 import { init } from '../src/edge';
 
@@ -116,7 +112,7 @@ describe('Edge init()', () => {
     afterEach(() => {
       delete globalWithInjectedValues._sentryBasePath;
       delete globalWithInjectedValues._sentryTunnelRoute;
-      _INTERNAL_resetTunnelDefaults();
+      resetTunnelDefaults();
     });
 
     it('serves the fixed path of the `tunnelRoute` without `serveTunnelIntegration`', () => {

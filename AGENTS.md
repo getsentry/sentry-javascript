@@ -62,6 +62,8 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 - Use `.github/PULL_REQUEST_TEMPLATE.md` for the body (`gh pr create --body` skips it). Ideally 1-2 sentences per field, no AI walkthrough.
 - Always open PRs as draft.
 - Never apply the `Accept Bundlesize Increase` label.
+- When you review, do not ask for a regression test on a `fix(deps)` PR that only bumps a first-party package (`sentry`,
+  `@sentry/*`) to a version with the fix, or on an early PR of a stack when a later PR of the stack adds the tests.
 - **Keep PR descriptions condensed** — usually a few sentences. Explain the _reasoning_: why the change is needed, and any non-obvious decisions or tradeoffs made along the way. Do **not** walk through the implementation or describe what changed file-by-file — the diff already shows that. Only go longer when the decisions genuinely warrant it.
 
 ## Architecture
@@ -76,6 +78,9 @@ Uses **Git Flow** (see `docs/gitflow.md`).
 
 - `Sentry.init()` follows one rule for repeated calls: the first call wins. See
   `docs/repeated-init.md` before you add or change an `init()`.
+
+- In the `exports` of a framework SDK, put the `workerd` and `worker` keys before `browser`. Cloudflare bundlers also
+  set the `browser` condition, and the first key that matches wins.
 
 - Span origins must follow the [trace origin spec](https://develop.sentry.dev/sdk/telemetry/traces/trace-origin/):
   `<type>.<category>.<integration_name>.<integration_part>`, at most four parts, no skipped

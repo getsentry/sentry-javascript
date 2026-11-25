@@ -15,7 +15,12 @@ import {
   requestDataIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import { detectOrchestrionSetup, getTracingIntegrations, getErrorIntegrations } from '@sentry/server-utils';
+import {
+  createGetModuleFromFilename,
+  detectOrchestrionSetup,
+  getTracingIntegrations,
+  getErrorIntegrations,
+} from '@sentry/server-utils';
 import { DenoClient } from './client';
 import { nodeStackLineParser } from '@sentry/core/server';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
@@ -61,7 +66,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
   return [...getDefaultIntegrationsWithoutPerformance(), ...(hasSpansEnabled(options) ? getTracingIntegrations() : [])];
 }
 
-const defaultStackParser: StackParser = createStackParser(nodeStackLineParser());
+const defaultStackParser: StackParser = createStackParser(nodeStackLineParser(createGetModuleFromFilename()));
 
 /**
  * The Sentry Deno SDK Client.

@@ -24,6 +24,7 @@
     "@types/node": "^26.1.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@vinext/cloudflare": "^1.4.0",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitejs/plugin-rsc": "^0.5.35",
     "react-server-dom-webpack": "^19.3.0",
@@ -31,5 +32,14 @@
     "vinext": "^1.0.1",
     "vite": "^8.3.0",
     "wrangler": "^4.135.0"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "build-command": "E2E_VINEXT_WORKERS_CACHE=1 pnpm test:build",
+        "assert-command": "pnpm test tests/page-errors.test.ts",
+        "label": "vinext-cf-workers (workers cache)"
+      }
+    ]
   }
 }

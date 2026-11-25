@@ -23,6 +23,7 @@ import { getMiddlewareFlags } from './isMiddleware';
 import { getMatchedHandlers, onRouteHandlerStart, wrapRouteHandlers } from './matchResult';
 import { resolveRouteName } from './resolveRouteName';
 import { type SentryHonoMiddlewareOptions } from './types';
+import { unwrapThrownValue } from './unwrapThrownValue';
 import {
   CLIENT_ADDRESS,
   CLIENT_PORT,
@@ -148,8 +149,9 @@ export function captureContextError(
   shouldHandleError?: SentryHonoMiddlewareOptions['shouldHandleError'],
 ): void {
   if (context.error) {
-    if ((shouldHandleError ?? defaultShouldHandleError)(context.error)) {
-      captureException(context.error, {
+    const error = unwrapThrownValue(context.error);
+    if ((shouldHandleError ?? defaultShouldHandleError)(error)) {
+      captureException(error, {
         mechanism: { handled: false, type: 'auto.http.hono.context_error' },
       });
     }

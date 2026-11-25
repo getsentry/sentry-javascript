@@ -377,6 +377,7 @@ function handleAck(data: AmqpChannelContext, isRejected: boolean, endOperation: 
     endConsumerSpan(message, isRejected, endOperation, requeueResolved);
   } else if (endOperation !== END_OP.Reject && allUpToOrRequeue) {
     for (let i = 0; i <= msgIndex; i++) {
+      // oxlint-disable-next-line typescript/no-non-null-assertion -- `i` is bounded by the loop
       endConsumerSpan(spansNotEnded[i]!.msg, isRejected, endOperation, requeueResolved);
     }
     spansNotEnded.splice(0, msgIndex + 1);
@@ -428,6 +429,7 @@ function checkConsumeTimeoutOnChannel(channel: ChannelLike): void {
   const spansNotEnded = channel[CHANNEL_SPANS_NOT_ENDED] ?? [];
   let i: number;
   for (i = 0; i < spansNotEnded.length; i++) {
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- `i` is bounded by the loop
     const currMessage = spansNotEnded[i]!;
     const timeFromConsumeMs = (currentTime - currMessage.timeOfConsume) * 1000;
     if (timeFromConsumeMs < CONSUME_TIMEOUT_MS) {

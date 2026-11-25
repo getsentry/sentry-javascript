@@ -1,5 +1,5 @@
 import type { Log, LogSeverityLevel, ParameterizedString } from '@sentry/core';
-import { _INTERNAL_captureLog } from '@sentry/core';
+import { captureLogEvent } from '@sentry/core';
 
 /**
  * Capture a log with the given level.
@@ -15,7 +15,7 @@ function captureLog(
   attributes?: Log['attributes'],
   severityNumber?: Log['severityNumber'],
 ): void {
-  _INTERNAL_captureLog({ level, message, attributes, severityNumber });
+  captureLogEvent({ level, message, attributes, severityNumber });
 }
 
 /**

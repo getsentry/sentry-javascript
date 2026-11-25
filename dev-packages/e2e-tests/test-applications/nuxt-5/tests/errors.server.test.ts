@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
+import { RUNTIME } from './runtime';
 import { waitForHydration } from './waitForHydration';
 
 IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
@@ -112,5 +113,32 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
         exception_id: 0,
       });
     });
+  });
+});
+
+test.describe('SSR error boundary', () => {
+  test('captures error thrown in NuxtErrorBoundary during SSR with 200 response', async ({ page }) => {
+    const errorPromise = waitForError('nuxt-5', async errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'SSR Error inside NuxtErrorBoundary';
+    });
+
+    const response = await page.goto('/ssr-error-boundary');
+    expect(response?.status()).toBe(200);
+
+    const error = await errorPromise;
+
+    if (RUNTIME !== 'bun') {
+      expect(error.transaction).toEqual('GET /ssr-error-boundary');
+    }
+    expect(error.exception.values[0]).toMatchObject({
+      type: 'Error',
+      value: 'SSR Error inside NuxtErrorBoundary',
+      mechanism: {
+        handled: false,
+        type: 'auto.function.nuxt.vue-error',
+      },
+    });
+
+    await expect(page.locator('#error-fallback')).toBeVisible();
   });
 });

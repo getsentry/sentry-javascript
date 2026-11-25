@@ -1,3 +1,7 @@
+import { hasSourceMapUploadCredentials } from '@sentry/bundler-plugins/core';
+import { resolveSourceMapsFeatures } from '@sentry/core';
+import type { SentryNuxtModuleOptions } from '../common/types';
+
 /** A valid source map setting */
 export type SourceMapSetting = boolean | 'hidden' | 'inline';
 
@@ -36,4 +40,52 @@ export function validateDifferentSourceMapSettings({
       `[Sentry] Source map generation settings are conflicting. Sentry uses \`${nuxtSettingKey}: ${nuxtSettingValue}\`. However, a conflicting setting was discovered (\`${otherSettingKey}: ${otherSettingValue}\`). This setting was probably explicitly set in your configuration. Sentry won't override this setting but it may affect source maps generation and upload. Without source maps, code snippets on the Sentry Issues page will remain minified.`,
     );
   }
+}
+
+/**
+ * Whether Sentry turns source maps on that the user did not set: when it uploads them, or when
+ * `sourcemaps.delete: false` keeps them for a manual upload.
+ */
+export function sentryEnablesSourceMaps(moduleOptions: SentryNuxtModuleOptions): boolean {
+  const { sourcemaps } = moduleOptions;
+  const { injectDebugIds, upload, legacyDisable } = resolveSourceMapsFeatures(sourcemaps);
+  // TODO(v12): Remove the `disable-upload` case along with `sourcemaps.disable`.
+  return (
+    legacyDisable === 'disable-upload' ||
+    (upload && hasSourceMapUploadCredentials(moduleOptions)) ||
+    (sourcemaps?.delete === false && injectDebugIds)
+  );
+}
+
+/** Logs that the user's source map setting is kept. */
+export function logKeepEnabledSourceMapSetting(
+  sentryNuxtModuleOptions: SentryNuxtModuleOptions,
+  settingKey: string,
+  settingValue: string,
+): void {
+  if (sentryNuxtModuleOptions.debug) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[Sentry] \`${settingKey}\` is enabled with \`${settingValue}\`. This will correctly un-minify the code snippet on the Sentry Issue Details page.`,
+    );
+  }
+}
+
+/** Warns that the user turned source maps off. */
+export function warnExplicitlyDisabledSourceMap(settingKey: string, isDebug: boolean | undefined): void {
+  if (isDebug) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[Sentry] Source map generation is currently disabled in your Vite configuration (\`${settingKey}: false \`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
+    );
+  } else {
+    // eslint-disable-next-line no-console
+    console.warn(`[Sentry] Source map generation (\`${settingKey}\`) is disabled in your Vite configuration.`);
+  }
+}
+
+/** Logs that Sentry turned source maps on. */
+export function logSentryEnablesSourceMap(settingKey: string, settingValue: string): void {
+  // eslint-disable-next-line no-console
+  console.log(`[Sentry] Enabled source map generation in the build options with \`${settingKey}: ${settingValue}\`.`);
 }

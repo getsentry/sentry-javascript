@@ -20,6 +20,34 @@
         ],
         "import/first": "off"
       }
+    },
+    {
+      "files": ["suites/**/test.ts", "suites/**/*.test.ts"],
+      "rules": {
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "process",
+            "property": "version",
+            "message": "Gate the test with `test.runIf(supports({ ... }))` from `utils/index.ts` instead."
+          },
+          {
+            "object": "process",
+            "property": "versions",
+            "message": "Gate the test with `test.runIf(supports({ ... }))` from `utils/index.ts` instead."
+          },
+          {
+            "object": "ctx",
+            "property": "skip",
+            "message": "Gate the test with `test.runIf(supports({ ... }))` from `utils/index.ts` instead."
+          },
+          {
+            "object": "context",
+            "property": "skip",
+            "message": "Gate the test with `test.runIf(supports({ ... }))` from `utils/index.ts` instead."
+          }
+        ]
+      }
     }
   ]
 }

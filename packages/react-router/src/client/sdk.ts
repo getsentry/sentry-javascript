@@ -4,7 +4,7 @@ import type { Client } from '@sentry/core';
 import {
   _INTERNAL_captureOptionsSetByUser,
   applySdkMetadata,
-  _INTERNAL_applyBrowserTunnelDefaults as applyBrowserTunnelDefaults,
+  applyBrowserTunnelDefaults,
   consoleSandbox,
   GLOBAL_OBJ,
   setTag,

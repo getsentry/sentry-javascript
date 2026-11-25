@@ -1,6 +1,6 @@
 import type { Client } from '@sentry/core';
 import { getCurrentScope, getTunnelPath, makeDsn } from '@sentry/core';
-import { _INTERNAL_resetTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
+import { resetTunnelDefaults, serveTunnelIntegration } from '@sentry/core/server';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setTunnelRoute } from '../../src/server/tunnelRoute';
 
@@ -19,7 +19,7 @@ function setClient(managedTunnel: object | undefined): void {
 describe('setTunnelRoute', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
-    _INTERNAL_resetTunnelDefaults();
+    resetTunnelDefaults();
   });
 
   it('enables `tunnelRoute` on the client like `serveTunnelIntegration` would, dropping its spans from the start', () => {

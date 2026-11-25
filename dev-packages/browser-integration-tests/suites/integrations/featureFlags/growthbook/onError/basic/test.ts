@@ -1,10 +1,10 @@
 import { expect } from '@playwright/test';
-import { _INTERNAL_FLAG_BUFFER_SIZE as FLAG_BUFFER_SIZE } from '@sentry/core';
 import { sentryTest } from '../../../../../../utils/fixtures';
 import {
   envelopeRequestParser,
   shouldSkipFeatureFlagsTest,
   waitForErrorRequest,
+  FLAG_BUFFER_SIZE,
 } from '../../../../../../utils/helpers';
 
 sentryTest('GrowthBook onError: basic eviction/update and no async tasks', async ({ getLocalTestUrl, page }) => {

@@ -1,6 +1,11 @@
-import { escapeStringForRegex, resolveSourceMapsFeatures, uuid4 } from '@sentry/core';
+import {
+  escapeStringForRegex,
+  resolveSourceMapsFeatures,
+  uuid4,
+  warnOnConflictingSourceMapOptions,
+} from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
-import { addDebugIdToEmittedArtifacts } from '@sentry/bundler-plugins/core';
+import { addDebugIdToEmittedArtifacts, hasSourceMapUploadCredentials } from '@sentry/bundler-plugins/core';
 import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import * as child_process from 'child_process';
@@ -52,6 +57,8 @@ export async function makeCustomSentryVitePlugins(
   },
 ): Promise<Plugin[]> {
   const { getAdapterOutputDir, getKitConfig } = deps;
+  // The plugin does not get `sourcemaps.delete`.
+  warnOnConflictingSourceMapOptions(options?.sourcemaps);
 
   const defaultPluginOptions: SentryVitePluginOptions = {
     release: {
@@ -398,7 +405,7 @@ export function _getUpdatedSourceMapSettings(
   } else if (
     // TODO(v12): Remove the `disable-upload` case along with `sourcemaps.disable`.
     legacyDisable === 'disable-upload' ||
-    upload ||
+    (upload && hasSourceMapUploadCredentials(sentryPluginOptions)) ||
     (deleteOption === false && injectDebugIds)
   ) {
     updatedSourceMapSetting = 'hidden';

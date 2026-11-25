@@ -29,7 +29,7 @@ import {
 } from '../../../src/utils/tunnelForward';
 import { serveTunnelIntegration } from '../../../src/integrations/serveTunnel';
 import {
-  _INTERNAL_resetTunnelDefaults,
+  resetTunnelDefaults,
   applyServerTunnelDefaults,
   enableManagedTunnel,
   setTunnelDefaults,
@@ -1041,7 +1041,7 @@ describe('a forward that throws right away', () => {
 describe('serveTunnelIntegration', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
-    _INTERNAL_resetTunnelDefaults();
+    resetTunnelDefaults();
   });
 
   it('ignores the server spans of tunnel requests and keeps user filters', () => {
@@ -1190,7 +1190,7 @@ describe('normalizeTunnelBasePath', () => {
 describe('setTunnelDefaults', () => {
   afterEach(() => {
     getCurrentScope().setClient(undefined);
-    _INTERNAL_resetTunnelDefaults();
+    resetTunnelDefaults();
   });
 
   it('serves the tunnel under the base path and drops its spans there', () => {
@@ -1223,13 +1223,13 @@ describe('setTunnelDefaults', () => {
     const client = getCurrentScope().getClient()!;
     setTunnelDefaults({ basePath: '/app' });
     expect(client.getOptions()._managedTunnel).toEqual({ basePath: '/custom' });
-    _INTERNAL_resetTunnelDefaults();
+    resetTunnelDefaults();
 
     setTestClient(TEST_DSN, {});
     const rootClient = getCurrentScope().getClient()!;
     setTunnelDefaults({ basePath: '/' });
     expect(rootClient.getOptions()._managedTunnel).toEqual({});
-    _INTERNAL_resetTunnelDefaults();
+    resetTunnelDefaults();
 
     setTestClient(TEST_DSN);
     const offClient = getCurrentScope().getClient()!;

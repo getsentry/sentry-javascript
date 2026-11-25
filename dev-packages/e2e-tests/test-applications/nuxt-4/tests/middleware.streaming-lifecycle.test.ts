@@ -2,10 +2,8 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
 import { isViteServer, NITRO_ONLY } from './isViteServer';
-import { NO_SERVER_CONFIG_INSTRUMENTATION, RUNTIME } from './runtime';
 
 test.skip(isViteServer, NITRO_ONLY);
-test.skip(RUNTIME === 'cloudflare', NO_SERVER_CONFIG_INSTRUMENTATION);
 
 // Nitro runs every file in `server/middleware/` on every request, so each surface tells its spans apart by
 // middleware name. `nuxt/server` has no object syntax (`onRequest`, `onBeforeResponse`) and no `eventHandler`
@@ -31,7 +29,11 @@ const MIDDLEWARE = {
 } as const;
 
 async function collectRequestSpans(path = '/api/middleware-test') {
-  const spans = await collectStreamedSpansUntilSegment('nuxt-4', span => span.attributes['url.path']?.value === path);
+  const spans = await collectStreamedSpansUntilSegment(
+    'nuxt-4',
+    span => span.attributes['url.path']?.value === path,
+    span => getSpanOp(span) === 'middleware',
+  );
   const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === path);
 
   return spans.filter(span => span.trace_id === rootSpan?.trace_id);

@@ -32,7 +32,7 @@ import {
 } from '@sentry/core';
 import type { ServerRequestOptions } from '@sentry/core/server';
 import {
-  _INTERNAL_isServedTunnelRequest as isServedTunnelRequest,
+  isServedTunnelRequest,
   classifyResponseStreaming,
   getClientIPAddress,
   isStaticAssetRequest,
@@ -40,6 +40,7 @@ import {
 } from '@sentry/core/server';
 import { DEBUG_BUILD } from '../debug-build';
 import { monitorStream } from './monitorStream';
+import { withServerTimingTraceHeader } from './serverTimingTraceHeader';
 
 export interface ServerRequestHandlerConfig {
   request: Request;
@@ -185,7 +186,7 @@ export async function wrapServerRequestHandler<R extends Response | undefined = 
       if (!createSpan) {
         let response: R;
         try {
-          response = await handler();
+          response = withServerTimingTraceHeader(client, await handler());
         } catch (e) {
           captureError(e);
           finish(undefined);
@@ -262,7 +263,7 @@ export async function wrapServerRequestHandler<R extends Response | undefined = 
 
         let response: R;
         try {
-          response = await handler();
+          response = withServerTimingTraceHeader(client, await handler());
         } catch (e) {
           span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
           span.end();

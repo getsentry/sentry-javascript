@@ -4,7 +4,7 @@ import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-
 import type * as Hooks from 'preact/hooks';
 import { DOCUMENT, WINDOW } from '../../constants';
 import IconCloseFactory from './IconClose';
-import { createScreenshotInputStyles } from './ScreenshotInput.css';
+import { createScreenshotInputStyles } from './ScreenshotInput.styles';
 import ToolbarFactory from './Toolbar';
 import { useTakeScreenshotFactory } from './useTakeScreenshot';
 
@@ -123,7 +123,7 @@ export function ScreenshotEditorFactory({
   const useTakeScreenshot = useTakeScreenshotFactory({ hooks });
   const Toolbar = ToolbarFactory({ h });
   const IconClose = IconCloseFactory({ h });
-  const editorStyleInnerText = { __html: createScreenshotInputStyles(options.styleNonce).innerText };
+  const editorStyles = createScreenshotInputStyles(options.styleNonce).textContent;
 
   const dialogStyle = (dialog.el as HTMLElement).style;
 
@@ -294,7 +294,7 @@ export function ScreenshotEditorFactory({
 
     return (
       <div class="editor">
-        <style nonce={options.styleNonce} dangerouslySetInnerHTML={editorStyleInnerText} />
+        <style nonce={options.styleNonce}>{editorStyles}</style>
         <div class="editor__image-container">
           <div class="editor__canvas-container" ref={measurementRef}>
             <canvas ref={backgroundRef} id="background" style={dimensions} />

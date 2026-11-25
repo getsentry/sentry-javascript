@@ -5,6 +5,7 @@ import type { Integration } from '../../../src/types/integration';
 import { experimentalReportSdkConfigIntegration } from '../../../src/integrations/reportSdkConfig';
 import type * as metricsApi from '../../../src/metrics/public-api';
 import { count } from '../../../src/metrics/public-api';
+import { isBrowser } from '../../../src/utils/isBrowser';
 import { captureOptionsSetByUser } from '../../../src/utils/sdkMetadata';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
@@ -13,12 +14,18 @@ vi.mock('../../../src/metrics/public-api', async importOriginal => ({
   count: vi.fn(),
 }));
 
+vi.mock('../../../src/utils/isBrowser', () => ({ isBrowser: vi.fn(() => false) }));
+
 const tagIntegration = defineIntegration((_options: { tag?: string; filter?: RegExp } = {}) => ({ name: 'Tag' }));
 
 function reportConfig(options: ReturnType<typeof getDefaultTestClientOptions>): Record<string, unknown> {
-  let payload: Record<string, unknown> = {};
+  return JSON.parse(reportAttributes(options)['sentry.sdk_config.payload'] as string);
+}
+
+function reportAttributes(options: ReturnType<typeof getDefaultTestClientOptions>): Record<string, unknown> {
+  let attributes: Record<string, unknown> = {};
   vi.mocked(count).mockImplementation((_name, _value, metricOptions) => {
-    payload = JSON.parse(String(metricOptions?.attributes?.['sentry.sdk_config.payload']));
+    attributes = metricOptions?.attributes ?? {};
   });
 
   const client = new TestClient(options);
@@ -26,7 +33,7 @@ function reportConfig(options: ReturnType<typeof getDefaultTestClientOptions>): 
   client.init();
   vi.advanceTimersByTime(0);
 
-  return payload;
+  return attributes;
 }
 
 describe('experimentalReportSdkConfigIntegration', () => {
@@ -65,13 +72,11 @@ describe('experimentalReportSdkConfigIntegration', () => {
     );
 
     expect(payload).toEqual({
-      version: 3,
+      version: 4,
       sdk: { name: 'sentry.javascript.node', version: '11.14.0' },
       runtime: { name: 'node', version: 'v24.22.1' },
-      environment: 'staging',
       options: {
         runtime: { name: 'node', version: 'v24.22.1' },
-        environment: 'staging',
         defaultIntegrations: false,
         integrations: [
           { name: 'ExperimentalReportSdkConfig' },
@@ -102,10 +107,123 @@ describe('experimentalReportSdkConfigIntegration', () => {
     );
 
     expect(payload).toEqual({
-      version: 3,
-      ...resolvedOptions,
+      version: 4,
+      runtime: resolvedOptions.runtime,
       options: { integrations: [{ name: 'ExperimentalReportSdkConfig' }] },
     });
+  });
+
+  it('reports the same payload for every environment, so environments share a hash', () => {
+    const payloads = ['staging', 'production'].map(environment =>
+      reportConfig(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          ...captureOptionsSetByUser({ environment, integrations: [experimentalReportSdkConfigIntegration()] }),
+        }),
+      ),
+    );
+
+    expect(payloads[1]).toEqual(payloads[0]);
+    expect(payloads[0]).toEqual({ version: 4, options: { integrations: [{ name: 'ExperimentalReportSdkConfig' }] } });
+  });
+
+  it('reports a browser runtime when the client sets none', () => {
+    vi.mocked(isBrowser).mockReturnValueOnce(true);
+
+    const payload = reportConfig(
+      getDefaultTestClientOptions({
+        dsn: 'https://username@domain/123',
+        integrations: [experimentalReportSdkConfigIntegration()],
+      }),
+    );
+
+    expect(payload.runtime).toEqual({ name: 'browser' });
+  });
+
+  it('reports no runtime outside the browser when the client sets none', () => {
+    const payload = reportConfig(
+      getDefaultTestClientOptions({
+        dsn: 'https://username@domain/123',
+        integrations: [experimentalReportSdkConfigIntegration()],
+      }),
+    );
+
+    expect(payload).not.toHaveProperty('runtime');
+  });
+
+  it('reports a different hash for a different runtime', () => {
+    const options = { dsn: 'https://username@domain/123', integrations: [experimentalReportSdkConfigIntegration()] };
+    // Server clients set the runtime; the test client's options type doesn't declare it.
+    const nodeRuntime = { runtime: { name: 'node', version: 'v24.22.1' } };
+    const otherNodeRuntime = { runtime: { name: 'node', version: 'v26.0.0' } };
+
+    const node = reportAttributes(getDefaultTestClientOptions({ ...options, ...nodeRuntime }));
+    const otherNode = reportAttributes(getDefaultTestClientOptions({ ...options, ...otherNodeRuntime }));
+    vi.mocked(isBrowser).mockReturnValueOnce(true);
+    const browser = reportAttributes(getDefaultTestClientOptions(options));
+
+    expect(new Set([node, otherNode, browser].map(attributes => attributes['sentry.sdk_config.hash'])).size).toBe(3);
+  });
+
+  it('reports non-finite numbers as markers, so they differ from null', () => {
+    const userOptions = captureOptionsSetByUser({
+      tracesSampleRate: NaN,
+      sampleRate: Infinity,
+      profileSessionSampleRate: -Infinity,
+      maxBreadcrumbs: null as unknown as number,
+      integrations: [experimentalReportSdkConfigIntegration()],
+    });
+
+    const payload = reportConfig(getDefaultTestClientOptions({ dsn: 'https://username@domain/123', ...userOptions }));
+
+    expect(payload.options).toEqual({
+      integrations: [{ name: 'ExperimentalReportSdkConfig' }],
+      maxBreadcrumbs: null,
+      profileSessionSampleRate: '[-Infinity]',
+      sampleRate: '[Infinity]',
+      tracesSampleRate: '[NaN]',
+    });
+  });
+
+  it('reports only the shape of initialScope, so per-user values neither leave the app nor split the hash', () => {
+    const payloads = ['42', '43'].map(id =>
+      reportConfig(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          ...captureOptionsSetByUser({
+            initialScope: {
+              user: { id, email: `${id}@example.com` },
+              tags: { plan: 'pro' },
+              level: 'warning' as const,
+              fingerprint: [id],
+            },
+            integrations: [experimentalReportSdkConfigIntegration()],
+          }),
+        }),
+      ),
+    );
+
+    expect(payloads[1]).toEqual(payloads[0]);
+    expect((payloads[0]?.options as Record<string, unknown>).initialScope).toEqual({
+      fingerprint: '[value]',
+      level: '[value]',
+      tags: { plan: '[value]' },
+      user: { email: '[value]', id: '[value]' },
+    });
+  });
+
+  it('reports an initialScope callback as a function', () => {
+    const payload = reportConfig(
+      getDefaultTestClientOptions({
+        dsn: 'https://username@domain/123',
+        ...captureOptionsSetByUser({
+          initialScope: scope => scope,
+          integrations: [experimentalReportSdkConfigIntegration()],
+        }),
+      }),
+    );
+
+    expect((payload.options as Record<string, unknown>).initialScope).toMatch(/^\[Function:\w+\]$/);
   });
 
   it('reports the names of the default integrations the user passed', () => {
@@ -172,11 +290,11 @@ describe('experimentalReportSdkConfigIntegration', () => {
     );
 
     expect(addedPayload).toEqual({
-      version: 3,
+      version: 4,
       options: { integrations: [{ name: 'Tag', options: { tag: 'user' } }] },
     });
     expect(removedPayload).toEqual({
-      version: 3,
+      version: 4,
       removed_default_integrations: ['Dropped'],
       options: { integrations: [] },
     });
@@ -203,7 +321,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
     );
 
     expect(payload).toEqual({
-      version: 3,
+      version: 4,
       removed_default_integrations: ['Dropped', 'Zeta'],
       options: {
         integrations: [{ name: 'Tag', options: { tag: 'user' } }, { name: 'ExperimentalReportSdkConfig' }],
@@ -228,7 +346,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
       ),
     );
 
-    expect(payloads[0]).toEqual({ version: 3, options: { integrations: [{ name: 'Tag', options: { tag: 'user' } }] } });
+    expect(payloads[0]).toEqual({ version: 4, options: { integrations: [{ name: 'Tag', options: { tag: 'user' } }] } });
     expect(payloads[1]).toEqual(payloads[0]);
   });
 
@@ -252,7 +370,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
     );
 
     expect(payload).toEqual({
-      version: 3,
+      version: 4,
       removed_default_integrations: ['Dropped'],
       options: { integrations: [{ name: 'Tag', options: { tag: 'only' } }] },
     });
@@ -344,6 +462,6 @@ describe('experimentalReportSdkConfigIntegration', () => {
       }),
     );
 
-    expect(payload).toEqual({ version: 3, options: {} });
+    expect(payload).toEqual({ version: 4, options: {} });
   });
 });

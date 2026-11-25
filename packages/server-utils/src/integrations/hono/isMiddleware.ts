@@ -1,7 +1,8 @@
 import type { HonoRoute } from './honoTypes';
 
-// Hono stores the original (unwrapped) handler under this key when it wraps a sub-app's handlers
+// Hono 4 stores the original (unwrapped) handler under this key when it wraps a sub-app's handlers
 // for a custom `onError`. Unwrapping it lets us inspect the real handler instead of the wrapper.
+// Hono 5 does not wrap them.
 // See https://github.com/honojs/hono/blob/9f0dadf141a3242a6c3b77462c7d33c6ce0f599d/src/hono-base.ts#L224-L226
 const COMPOSED_HANDLER = '__COMPOSED_HANDLER';
 

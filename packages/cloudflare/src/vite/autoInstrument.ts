@@ -19,6 +19,9 @@ const JS_EXTENSION_REGEX = /\.[cm]?[jt]sx?$/;
 // Re-exports everything the generated code uses, and adds the Next.js span handling and OpenTelemetry context.
 const NEXTJS_CLOUDFLARE_MODULE = '@sentry/nextjs/cloudflare';
 
+// `@cloudflare/vite-plugin` loads the Worker from this module. `resolveId` prefixes it with `\0`.
+const CLOUDFLARE_WORKER_ENTRY_ID = 'virtual:cloudflare/worker-entry';
+
 /**
  * Whether `@sentry/nextjs/cloudflare` resolves from `importer`. Vite throws instead of returning `null` when
  * `@sentry/nextjs` is installed in a version without that entry.
@@ -29,6 +32,33 @@ async function resolvesNextjsCloudflare(resolver: ModuleResolver, importer: stri
   } catch {
     return false;
   }
+}
+
+function isCloudflareWorkerEntry(id: string): boolean {
+  const bare = (id.charCodeAt(0) === 0 ? id.slice(1) : id).replace(/[?#].*$/, '');
+  return bare === CLOUDFLARE_WORKER_ENTRY_ID;
+}
+
+/**
+ * Exported names of the `export { A, B } from "..."` statements other plugins append to the
+ * worker-entry facade, such as vinext's Workers Cache response stages. `default` is the user entry,
+ * which the entry transform wraps.
+ */
+function appendedNamedReexports(ast: ProgramBody): string[] {
+  const names: string[] = [];
+  for (const node of ast.body) {
+    if (node.type !== 'ExportNamedDeclaration') continue;
+    const { source, specifiers } = node as BaseNode & {
+      source?: { value?: unknown } | null;
+      specifiers?: Array<{ exported?: { name?: string } }>;
+    };
+    if (typeof source?.value !== 'string') continue;
+    for (const specifier of specifiers ?? []) {
+      const exported = specifier.exported?.name;
+      if (exported && exported !== 'default') names.push(exported);
+    }
+  }
+  return names;
 }
 
 /**
@@ -81,8 +111,50 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
     return entry;
   }
 
+  async function instrumentFacadeEntrypoints(
+    ctx: TransformContext,
+    code: string,
+  ): Promise<{ code: string; map: unknown } | undefined> {
+    let ast: ProgramBody;
+    try {
+      ast = ctx.parse(code);
+    } catch {
+      return undefined;
+    }
+
+    const names = appendedNamedReexports(ast);
+    if (names.length === 0) return undefined;
+
+    // A virtual module has no directory. Resolve options and `@sentry/nextjs/cloudflare` from a real file.
+    const importer = entryFilePath ?? wranglerConfigPath;
+    if (!importer) return undefined;
+
+    const sentryModule =
+      isVinext && (await resolvesNextjsCloudflare(ctx, importer)) ? NEXTJS_CLOUDFLARE_MODULE : undefined;
+    const { optionsFn, importStmt: optionsImport } = instrumentFilePath
+      ? buildOptionsImport(importer, instrumentFilePath, { absolute: true })
+      : { optionsFn: ENV_FALLBACK_OPTIONS_FN, importStmt: undefined };
+
+    // Adapters build some entrypoints with a factory, which no static check can see. `withSentry`
+    // checks at run time whether the value extends `WorkerEntrypoint`, and returns any other value,
+    // such as a Durable Object, unchanged.
+    const classWrappers = new Map<string, ClassWrapperKind>(names.map(name => [name, 'workerEntrypoint']));
+    return (
+      applyAutoInstrumentTransforms(code, ast, {
+        classWrappers,
+        optionsFn,
+        optionsImport,
+        sentryModule,
+        wrapDefault: false,
+      }) ?? undefined
+    );
+  }
+
   return {
     name: 'sentry-cloudflare-auto-instrument',
+    // vinext appends its Workers Cache entrypoints to the worker-entry module in a normal transform.
+    // Running after all normal plugins makes them visible here in any plugin order.
+    enforce: 'post' as const,
     // Without it, `vite dev` calls `buildStart` only for the client environment, which this plugin skips.
     perEnvironmentStartEndDuringDev: true,
 
@@ -157,6 +229,12 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
       // client entry next to a `src/index.ts` worker) out of the browser bundle.
       if (this.environment?.name === 'client') return undefined;
 
+      // Named entrypoints appended to this facade are invoked through `ctx.exports` and never run
+      // the wrapped default export, so `Sentry.init` does not run in that invocation.
+      if (isCloudflareWorkerEntry(id)) {
+        return instrumentFacadeEntrypoints(this, code);
+      }
+
       const virtualEntry = this.environment && virtualEntries.get(this.environment.name);
       const entryPath =
         virtualEntry ?? (entrySpecifier ? await resolveEntrySpecifier(this, entrySpecifier) : entryFilePath);
@@ -208,7 +286,7 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
         agentCandidates.size > 0
           ? await detectAgentClasses(ast, normalizedId, agentCandidates, {
               parse: code => this.parse(code),
-              resolve: this.resolve ? (source, importer) => this.resolve!(source, importer) : undefined,
+              resolve: this.resolve?.bind(this),
             })
           : undefined;
 

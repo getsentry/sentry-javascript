@@ -20,4 +20,9 @@
       "database_id": "00000000-0000-0000-0000-000000000003",
     },
   ],
+  // The binding name and the class that the `cloudflare_durable` preset of Nitro use.
+  "durable_objects": {
+    "bindings": [{ "name": "$DurableObject", "class_name": "$DurableObject" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["$DurableObject"] }],
 }

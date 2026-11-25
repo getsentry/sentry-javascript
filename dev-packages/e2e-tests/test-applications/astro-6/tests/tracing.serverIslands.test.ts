@@ -1,8 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
-
-const APP_NAME = 'astro-6';
+import { APP_NAME, BROWSER_ACCEPT_ENCODING } from './constants';
 
 test.describe('tracing in static routes with server islands', () => {
   test('only sends client pageload span and server island endpoint span', async ({ page }) => {
@@ -35,8 +34,8 @@ test.describe('tracing in static routes with server islands', () => {
       'sentry.origin': { value: 'auto.pageload.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'url.template': { value: '/server-island', type: 'string' },
-      'url.path': { value: '/server-island', type: 'string' },
-      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/server-island$/), type: 'string' },
+      'url.path': { value: expect.stringMatching(/^\/server-island\/?$/), type: 'string' },
+      'url.full': { value: expect.stringMatching(/^https?:\/\/localhost:\d+\/server-island\/?$/), type: 'string' },
     });
 
     // the pageload trace contains a resource link span for the preloaded server island request.
@@ -56,7 +55,7 @@ test.describe('tracing in static routes with server islands', () => {
       'sentry.origin': { value: 'auto.http.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
-      'http.request.header.accept-encoding': { value: ['gzip, deflate, br, zstd'], type: 'array' },
+      'http.request.header.accept-encoding': { value: [BROWSER_ACCEPT_ENCODING], type: 'array' },
       'http.request.header.accept-language': { value: ['en-US'], type: 'array' },
       'http.request.header.sec-fetch-mode': { value: ['cors'], type: 'array' },
       'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },

@@ -161,9 +161,9 @@ describe('withSentry()', () => {
     expect(names).toEqual([
       'sentry-solidstart-tunnel-base-path',
       'sentry-solidstart-build-instrumentation-file',
+      'sentry-solidstart-update-source-map-setting',
       'sentry-vite-plugin',
       'sentry-vite-upload-staging',
-      'sentry-solidstart-update-source-map-setting',
     ]);
   });
 
@@ -186,9 +186,9 @@ describe('withSentry()', () => {
     expect(names).toEqual([
       'sentry-solidstart-tunnel-base-path',
       'sentry-solidstart-build-instrumentation-file',
+      'sentry-solidstart-update-source-map-setting',
       'sentry-vite-plugin',
       'sentry-vite-upload-staging',
-      'sentry-solidstart-update-source-map-setting',
       'my-test-plugin',
     ]);
   });
@@ -215,9 +215,9 @@ describe('withSentry()', () => {
     expect(names).toEqual([
       'sentry-solidstart-tunnel-base-path',
       'sentry-solidstart-build-instrumentation-file',
+      'sentry-solidstart-update-source-map-setting',
       'sentry-vite-plugin',
       'sentry-vite-upload-staging',
-      'sentry-solidstart-update-source-map-setting',
       'my-test-plugin',
     ]);
   });
