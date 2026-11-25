@@ -881,7 +881,6 @@ function toExtractState(state: unknown): ExtractState {
   // Each text gets a separator in front, which is cut off from the start of `state` at the end.
   let joined = '';
 
-  // `stringify` returns a string as it is, so a plain string state takes the JSON path.
   const parts = (Array.isArray(state) ? state : [{ type: 'json', value: state }]).map(part => {
     if (!isObjectLike(part)) {
       return undefined;
