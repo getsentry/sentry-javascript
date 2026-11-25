@@ -1,22 +1,29 @@
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
+import type { Scope } from '../scope';
 import type { Event } from '../types/event';
 import type { Exception } from '../types/exception';
 import type { IntegrationFn } from '../types/integration';
 import { debug } from '../utils/debug-logger';
+import { getDedupeContext } from '../utils/dedupeContext';
+import { hasUnhandledException } from '../utils/misc';
 import { getFramesFromEvent } from '../utils/stacktrace';
 
 const INTEGRATION_NAME = 'Dedupe' as const;
 
 const _dedupeIntegration = (() => {
   let previousEvent: Event | undefined;
+  // Isolation scopes (e.g. requests) that already had a copy of the previous event.
+  let previousEventScopes = new WeakSet<Scope>();
 
   return {
     name: INTEGRATION_NAME,
-    processEvent(currentEvent) {
+    processEvent(currentEvent, hint) {
+      const context = getDedupeContext(hint);
       // We want to ignore any non-error type events, e.g. transactions or replays
       // These should never be deduped, and also not be compared against as _previousEvent.
-      if (currentEvent.type) {
+      // Errors that are never sent (e.g. sampled out) must not make a later error a duplicate.
+      if (currentEvent.type || context?.mode === 'ignore') {
         return currentEvent;
       }
 
@@ -24,10 +31,20 @@ const _dedupeIntegration = (() => {
       try {
         if (_shouldDropEvent(currentEvent, previousEvent)) {
           DEBUG_BUILD && debug.warn('Event dropped due to being a duplicate of previously captured event.');
+          // A later copy in the same isolation scope cannot change the session status, unless it is unhandled.
+          if (
+            context?.mode === 'mark' &&
+            (!previousEventScopes.has(context.isolationScope) || hasUnhandledException(currentEvent, hint))
+          ) {
+            previousEventScopes.add(context.isolationScope);
+            context.isDuplicate = true;
+            return currentEvent;
+          }
           return null;
         }
       } catch {} // eslint-disable-line no-empty
 
+      previousEventScopes = new WeakSet(context ? [context.isolationScope] : []);
       return (previousEvent = currentEvent);
     },
   };

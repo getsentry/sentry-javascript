@@ -36,6 +36,7 @@ import type { StartSpanOptions } from './types/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types/transport';
 import type { ResolvedDataCollection } from './types/datacollection';
 import { createClientReportEnvelope } from './utils/clientreport';
+import { setDedupeContext } from './utils/dedupeContext';
 import { consoleSandbox, debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem, getDataCategoryByType } from './utils/envelope';
@@ -79,7 +80,7 @@ interface InternalError {
   [INTERNAL_ERROR_SYMBOL]: true;
 }
 
-interface DoNotSendEventError {
+export interface DoNotSendEventError {
   message: string;
   [DO_NOT_SEND_EVENT_SYMBOL]: true;
 }
@@ -91,7 +92,8 @@ function _makeInternalError(message: string): InternalError {
   };
 }
 
-function _makeDoNotSendEventError(message: string): DoNotSendEventError {
+/** @internal */
+export function _makeDoNotSendEventError(message: string): DoNotSendEventError {
   return {
     message,
     [DO_NOT_SEND_EVENT_SYMBOL]: true,
@@ -268,6 +270,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           .then(event => this._captureEvent(event, hintWithEventId, scope))
           .then(res => res),
       'error',
+      hintWithEventId,
     );
 
     return hintWithEventId.event_id;
@@ -337,6 +340,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._process(
       () => this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope, capturedSpanIsolationScope),
       dataCategory,
+      isExceptionEvent(event) ? hintWithEventId : undefined,
     );
 
     return hintWithEventId.event_id;
@@ -1299,7 +1303,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /**
    * Updates the sessions that an error counts towards. Runs after event processors and `beforeSend` kept the error,
-   * also when sampling drops it: sampling only saves quota, so the error must still count.
+   * also when sampling or Dedupe drop it: these only save quota, so the error must still count.
    */
   protected _updateSessions(event: Event, currentScope: Scope, isolationScope: Scope): void {
     const session = currentScope.getSession() || isolationScope.getSession();
@@ -1322,6 +1326,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     return (currentScope.getSession() || isolationScope.getSession())?.status === 'ok';
   }
 
+  /** Called for an error that never reaches the event pipeline, because the promise buffer is full. */
+  protected _onQueueOverflow(_hint: EventHint): void {
+    // Sessions are updated in the event pipeline only.
+  }
+
   /**
    * Counts a sampled-out error in sessions if the filters keep it, because sampling only saves quota.
    * Records the outcome of the error.
@@ -1337,6 +1346,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       return resolvedSyncPromise();
     }
 
+    // The error is never sent, so it must not make a later copy of it a duplicate.
+    setDedupeContext(hint, { mode: 'ignore' });
     return this._applyFilters(event, hint, currentScope, isolationScope).then(processedEvent => {
       this._updateSessions(processedEvent, currentScope, isolationScope);
       this.recordDroppedEvent('sample_rate', 'error');
@@ -1648,7 +1659,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Occupies the client with processing and event
    */
-  protected _process<T>(taskProducer: () => PromiseLike<T>, dataCategory: DataCategory): void {
+  protected _process<T>(taskProducer: () => PromiseLike<T>, dataCategory: DataCategory, errorHint?: EventHint): void {
     this._numProcessing++;
 
     void this._promiseBuffer.add(taskProducer).then(
@@ -1661,6 +1672,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
         if (reason === SENTRY_BUFFER_FULL_ERROR) {
           this.recordDroppedEvent('queue_overflow', dataCategory);
+          if (errorHint) {
+            this._onQueueOverflow(errorHint);
+          }
         }
 
         return reason;
@@ -1844,4 +1858,9 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
+}
+
+/** Whether the event is an error event with an exception. */
+export function isExceptionEvent(event: Event): boolean {
+  return isErrorEvent(event) && !!event.exception?.values?.length;
 }
