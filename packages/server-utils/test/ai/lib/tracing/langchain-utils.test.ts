@@ -1,9 +1,10 @@
-import { GEN_AI_CONVERSATION_ID } from '@sentry/conventions/attributes';
+import { GEN_AI_CONVERSATION_ID, GEN_AI_RESPONSE_FINISH_REASONS } from '@sentry/conventions/attributes';
 import { describe, expect, it, vi } from 'vitest';
 import type { LangChainMessage } from '../../../../src/ai/langchain/types';
 import {
   _INTERNAL_addLangChainCallbackHandler,
   _INTERNAL_mergeLangChainCallbackHandler,
+  extractLlmResponseAttributes,
   getConversationIdFromMetadata,
   getConversationIdMetadataFromConfig,
   normalizeLangChainMessages,
@@ -242,5 +243,42 @@ describe('getConversationIdMetadataFromConfig', () => {
 
   it('returns nothing without configurable', () => {
     expect(getConversationIdMetadataFromConfig({})).toEqual({});
+  });
+});
+
+describe('extractLlmResponseAttributes finish reasons', () => {
+  it('reads the finish reason from message response_metadata for the OpenAI Responses API', () => {
+    const result = {
+      generations: [
+        [
+          {
+            text: 'hi',
+            message: { response_metadata: { finish_reason: 'completed', normalized_finish_reason: 'stop' } },
+          },
+        ],
+      ],
+    };
+
+    expect(extractLlmResponseAttributes(result, false)).toMatchObject({
+      [GEN_AI_RESPONSE_FINISH_REASONS]: '["completed"]',
+    });
+  });
+
+  it('prefers generationInfo over message response_metadata', () => {
+    const result = {
+      generations: [
+        [
+          {
+            text: 'hi',
+            generationInfo: { finish_reason: 'stop' },
+            message: { response_metadata: { finish_reason: 'other' } },
+          },
+        ],
+      ],
+    };
+
+    expect(extractLlmResponseAttributes(result, false)).toMatchObject({
+      [GEN_AI_RESPONSE_FINISH_REASONS]: '["stop"]',
+    });
   });
 });
