@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @pranav514. Thank you for your contribution!
+
 ### Important Changes
 
 - **feat(effect)!: Rename exports and add layers for tracing and logs ([#26731](https://github.com/getsentry/sentry-javascript/pull/26731))**
