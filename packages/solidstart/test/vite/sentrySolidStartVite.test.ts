@@ -28,6 +28,7 @@ describe('sentrySolidStartVite()', () => {
       'sentry-solidstart-build-instrumentation-file',
       'sentry-solidstart-update-source-map-setting',
       'sentry-vite-plugin',
+      'sentry-vite-module-versions',
       'sentry-vite-upload-staging',
     ]);
   });
@@ -42,6 +43,7 @@ describe('sentrySolidStartVite()', () => {
       'sentry-solidstart-tunnel-base-path',
       'sentry-solidstart-build-instrumentation-file',
       'sentry-vite-plugin',
+      'sentry-vite-module-versions',
       'sentry-vite-upload-staging',
     ]);
     expect(sentryVitePluginSpy).toHaveBeenCalledWith({

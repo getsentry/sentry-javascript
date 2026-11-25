@@ -210,8 +210,11 @@ type WebpackModule = {
   default?: { version?: string };
 };
 
+// Electron's preload and renderer contexts run browser SDKs, so only its main process counts.
+const NODE_TARGET = /^(?:(?:async-)?node(?:\d+(?:\.\d+)?)?|electron(?:\d+(?:\.\d+)?)?-main)$/;
+
 function isNodeTarget(target: string | string[] | false | undefined): boolean {
-  return (Array.isArray(target) ? target : [target]).some(t => typeof t === 'string' && /^(async-)?node/.test(t));
+  return (Array.isArray(target) ? target : [target]).some(t => typeof t === 'string' && NODE_TARGET.test(t));
 }
 
 // Only used for telemetry; `webpack` is an optional peer dependency and may be absent (e.g. rspack).

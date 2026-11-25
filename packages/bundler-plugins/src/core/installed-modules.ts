@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { collectInstalledModules } from '@sentry/server-utils/no-diagnostic-channels';
+import { collectInstalledModules } from '@sentry/core/server';
 import type { Options } from './types';
 
 /**

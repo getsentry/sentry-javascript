@@ -1167,9 +1167,6 @@ importers:
       '@sentry/core':
         specifier: 11.17.0
         version: link:../core
-      '@sentry/server-utils':
-        specifier: 11.17.0
-        version: link:../server-utils
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2

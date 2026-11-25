@@ -106,7 +106,6 @@ export {
   CodeInjection,
   replaceBooleanFlagsInCode,
   replaceInCode,
-  getBooleanFlagReplacements,
   stringToUUID,
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,

@@ -383,9 +383,7 @@ export function getServerModulesReplacement(serverModules: Record<string, string
 }
 
 /** The boolean flags as code, such as `'false'`. Flags without a value are left out. */
-export function getBooleanFlagReplacements(
-  replacementValues: Record<string, boolean | undefined>,
-): Record<string, string> {
+function getBooleanFlagReplacements(replacementValues: Record<string, boolean | undefined>): Record<string, string> {
   const replacements: Record<string, string> = {};
   Object.keys(replacementValues).forEach(key => {
     const value = replacementValues[key];

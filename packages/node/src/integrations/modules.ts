@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { Module } from 'node:module';
 import type { IntegrationFn } from '@sentry/core';
-import { collectInstalledModules } from '@sentry/server-utils';
+import { collectInstalledModules } from '@sentry/core/server';
 
 type ModuleInfo = Record<string, string>;
 

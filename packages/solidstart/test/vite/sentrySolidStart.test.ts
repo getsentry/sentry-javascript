@@ -61,6 +61,7 @@ describe('sentrySolidStart()', () => {
       'code-transformer',
       'sentry-solidstart-update-source-map-setting',
       'sentry-vite-plugin',
+      'sentry-vite-module-versions',
       'sentry-vite-upload-staging',
     ]);
   });
@@ -86,6 +87,7 @@ describe('sentrySolidStart()', () => {
       'sentry-solidstart-server-entry',
       'code-transformer',
       'sentry-vite-plugin',
+      'sentry-vite-module-versions',
       'sentry-vite-upload-staging',
     ]);
   });

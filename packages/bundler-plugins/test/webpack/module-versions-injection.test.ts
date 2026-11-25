@@ -40,7 +40,7 @@ describe('module versions injection (webpack)', () => {
     });
   }
 
-  it.each(['node', 'async-node', 'node18', ['node20', 'es2020']])(
+  it.each(['node', 'async-node', 'node18', ['node20', 'es2020'], 'electron-main', 'electron28-main'])(
     'injects into builds with the %j target',
     { timeout: 15_000 },
     async target => {
@@ -48,13 +48,18 @@ describe('module versions injection (webpack)', () => {
     },
   );
 
-  it.each([undefined, 'web', 'webworker', ['web', 'es6']])(
-    'does not inject into builds with the %j target',
-    { timeout: 15_000 },
-    async target => {
-      expect(runAndReadModules(await buildApp(target))).toBeUndefined();
-    },
-  );
+  it.each([
+    undefined,
+    'web',
+    'webworker',
+    ['web', 'es6'],
+    'node-webkit',
+    'nwjs',
+    'electron-preload',
+    'electron-renderer',
+  ])('does not inject into builds with the %j target', { timeout: 15_000 }, async target => {
+    expect(runAndReadModules(await buildApp(target))).toBeUndefined();
+  });
 
   it('does not inject with `injectModuleVersions: false`', { timeout: 15_000 }, async () => {
     expect(runAndReadModules(await buildApp('node', { injectModuleVersions: false }))).toBeUndefined();
