@@ -1,7 +1,7 @@
 import type { CfProperties, IncomingRequestCfProperties } from '@cloudflare/workers-types';
 import { NETWORK_PROTOCOL_NAME, NETWORK_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
 import type { SpanAttributes } from '@sentry/core';
-import { addNonEnumerableProperty, getIsolationScope, safeCallback } from '@sentry/core';
+import { getIsolationScope, safeCallback } from '@sentry/core';
 import {
   _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
   _INTERNAL_setScopeFlushedByRuntime as setScopeFlushedByRuntime,
@@ -36,38 +36,40 @@ function getRequestErrorMechanismType(context: ExecutionContextCompat | undefine
 function stripVinextInternalData(
   request: Request<unknown, IncomingRequestCfProperties<unknown> | CfProperties<unknown>>,
 ): Request<unknown, IncomingRequestCfProperties<unknown> | CfProperties<unknown>> {
+  // Most requests have nothing to do with vinext: skip parsing the URL and copying
+  // headers unless the URL carries the cache key. Transport headers are checked too,
+  // because a forged header reaches Sentry before vinext's own gateway strips it.
+  const hasCacheKey = request.url.includes('__vinext_cache_key=');
+  if (!hasCacheKey) {
+    let hasVinextHeaders = false;
+    for (const name of request.headers.keys()) {
+      if (name.startsWith('x-vinext-internal-')) {
+        hasVinextHeaders = true;
+        break;
+      }
+    }
+    if (!hasVinextHeaders) {
+      return request;
+    }
+  }
   try {
     const url = new URL(request.url);
     const vinextQueryParams = [...url.searchParams.keys()].filter(key => key.startsWith('__vinext_'));
-    const headers = new Headers(request.headers);
-    const vinextHeaders = [...headers.keys()].filter(name => name.startsWith('x-vinext-internal-'));
-    if (vinextQueryParams.length === 0 && vinextHeaders.length === 0) {
-      return request;
-    }
     for (const key of vinextQueryParams) {
       url.searchParams.delete(key);
     }
+    const headers = new Headers(request.headers);
+    const vinextHeaders = [...headers.keys()].filter(name => name.startsWith('x-vinext-internal-'));
     for (const name of vinextHeaders) {
       headers.delete(name);
     }
-    // The sanitized copy carries no body: the recording path only reads its method, URL and
-    // headers (the body is only read for the best-effort `normalizedRequest.data`, see
-    // `captureBodyFromWinterCGRequest`), and a teed body would leave an unread branch that
-    // backpressures the original body on workerd. The handler still receives the original.
-    const sanitized = new Request(url.toString(), {
+    // No body: the handler reads the body of the original request.
+    return new Request(url.toString(), {
       method: request.method,
       headers,
       signal: request.signal,
       cf: request.cf,
     });
-    // `wrapServerRequestHandler` passes this request to the `onSpanCreated`/`onSpanEnd` and
-    // `ignoreIncomingRequests`/`ignoreRequestBody` callbacks, which read Cloudflare metadata
-    // off it. `cf` in `RequestInit` is honored by workerd but ignored by some runtimes
-    // (undici drops it), so attach it directly when it did not survive construction.
-    if (sanitized.cf === undefined && request.cf !== undefined) {
-      addNonEnumerableProperty(sanitized, 'cf', request.cf);
-    }
-    return sanitized;
   } catch {
     // Never break the request to hide data: if sanitizing fails, record the original.
     return request;
@@ -166,9 +168,6 @@ export function wrapRequestHandlerWithInit(
     // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
     return wrapServerRequestHandler(
       {
-        // The response-stage request of vinext's Workers Cache adapter carries vinext's internal
-        // data; record a sanitized copy so it does not land in spans or error events. The handler
-        // itself still receives the original request.
         request: stripVinextInternalData(request),
         client,
         // Without `AsyncLocalStorage`, `withInvocationIsolationScope` does not fork, and the scope it

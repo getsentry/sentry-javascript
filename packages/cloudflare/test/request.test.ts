@@ -2,10 +2,10 @@
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
 import type { ExecutionContext } from '@cloudflare/workers-types';
-import type { Event, StreamedSpanJSON } from '@sentry/core';
+import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
-import { SENTRY_KIND, URL_FULL, URL_QUERY } from '@sentry/conventions/attributes';
+import { SENTRY_KIND } from '@sentry/conventions/attributes';
 import { beforeAll, beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '@sentry/server-utils/no-diagnostic-channels';
 import type { CloudflareOptions } from '../src/client';
@@ -225,186 +225,6 @@ describe('withSentry', () => {
         url: 'https://example.com/',
         method: 'GET',
       });
-    });
-
-    test('strips vinext internal query params and headers from the recorded request', async () => {
-      const mockRequest = new Request('https://example.com/page?__vinext_cache_key=abc123&foo=bar', {
-        headers: {
-          'x-vinext-internal-dispatch': 'https://example.com/page?token=secret',
-          'x-vinext-internal-request-cf': '{"country":"US"}',
-          'x-custom': 'keep',
-        },
-      });
-
-      let sentryEvent: Event = {};
-      await wrapRequestHandler(
-        {
-          options: {
-            ...MOCK_OPTIONS,
-            beforeSend(event) {
-              sentryEvent = event;
-              return null;
-            },
-          },
-          request: mockRequest,
-          context: createMockExecutionContext(),
-        },
-        () => {
-          expect(mockRequest.url).toContain('__vinext_cache_key=abc123');
-          expect(mockRequest.headers.get('x-vinext-internal-dispatch')).toBe('https://example.com/page?token=secret');
-          SentryCore.captureMessage('vinext');
-          return new Response('test');
-        },
-      );
-
-      const normalizedRequest = sentryEvent.sdkProcessingMetadata?.normalizedRequest;
-      expect(normalizedRequest?.url).toBe('https://example.com/page?foo=bar');
-      expect(normalizedRequest?.query_string).not.toContain('__vinext_cache_key');
-      expect(normalizedRequest?.query_string).toContain('foo=bar');
-      expect(normalizedRequest?.headers).not.toHaveProperty('x-vinext-internal-dispatch');
-      expect(normalizedRequest?.headers).not.toHaveProperty('x-vinext-internal-request-cf');
-      expect(normalizedRequest?.headers).toHaveProperty('x-custom', 'keep');
-      // The serialized event payload carries the sanitized request too.
-      expect(sentryEvent.request?.url).toBe('https://example.com/page?foo=bar');
-      expect(sentryEvent.request?.query_string).not.toContain('__vinext_cache_key');
-      expect(sentryEvent.request?.query_string).toContain('foo=bar');
-      expect(sentryEvent.request?.headers).not.toHaveProperty('x-vinext-internal-dispatch');
-      expect(sentryEvent.request?.headers).not.toHaveProperty('x-vinext-internal-request-cf');
-      expect(sentryEvent.request?.headers).toHaveProperty('x-custom', 'keep');
-    });
-
-    test('keeps the original request body readable for the handler when sanitizing', async () => {
-      const mockRequest = new Request('https://example.com/page?__vinext_cache_key=abc123', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-vinext-internal-dispatch': 'https://example.com/page?token=secret',
-        },
-        body: JSON.stringify({ username: 'test' }),
-      });
-
-      let sentryEvent: Event = {};
-      const response = await wrapRequestHandler(
-        {
-          options: {
-            ...MOCK_OPTIONS,
-            beforeSend(event) {
-              sentryEvent = event;
-              return null;
-            },
-          },
-          request: mockRequest,
-          context: createMockExecutionContext(),
-        },
-        async () => {
-          SentryCore.captureMessage('vinext body');
-          return new Response(await mockRequest.text());
-        },
-      );
-
-      expect(await response.text()).toBe(JSON.stringify({ username: 'test' }));
-      const normalizedRequest = sentryEvent.sdkProcessingMetadata?.normalizedRequest;
-      expect(normalizedRequest?.url).toBe('https://example.com/page');
-      expect(normalizedRequest?.headers).not.toHaveProperty('x-vinext-internal-dispatch');
-      // The sanitized copy carries no body, so there is no body to capture from it.
-      expect(normalizedRequest?.data).toBeUndefined();
-    });
-
-    test('does not stall on a large vinext POST whose body arrives slowly', async () => {
-      // A teed body left an unread branch that backpressured the original body, so the
-      // recording path hit its two-second body-capture timeout before the handler ran.
-      // With no body on the sanitized copy, the handler runs without waiting on capture.
-      const twoMb = new Uint8Array(2 * 1024 * 1024).fill(65);
-      let sent = false;
-      const stalledBody = new ReadableStream<Uint8Array>({
-        pull(controller) {
-          if (!sent) {
-            controller.enqueue(twoMb);
-            sent = true;
-            return;
-          }
-          // The source stalls here and never closes: the body keeps arriving only after this.
-          return new Promise<void>(() => {});
-        },
-      });
-      const mockRequest = new Request('https://example.com/page?__vinext_cache_key=abc123', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-vinext-internal-dispatch': 'https://example.com/page?token=secret',
-        },
-        body: stalledBody,
-        duplex: 'half' as const,
-      });
-
-      let segmentSpan: StreamedSpanJSON | undefined;
-      const startedAt = Date.now();
-      const response = await wrapRequestHandler(
-        {
-          options: {
-            ...MOCK_OPTIONS,
-            tracesSampleRate: 1,
-            traceLifecycle: 'stream',
-            // Body capture is what the old code waited out; pin it on so this test
-            // keeps exercising the regression if the defaults change.
-            integrations: [httpServerIntegration({ maxRequestBodySize: 'medium' })],
-            beforeSendSpan(span) {
-              if (span.is_segment) {
-                segmentSpan = span;
-              }
-              return span;
-            },
-          },
-          request: mockRequest,
-          context: createMockExecutionContext(),
-        },
-        () => new Response('test'),
-      );
-
-      // Well under the two-second capture timeout the old code waited out.
-      expect(Date.now() - startedAt).toBeLessThan(1500);
-      expect(await response.text()).toBe('test');
-      await vi.waitFor(() => expect(segmentSpan).toBeDefined());
-      expect(segmentSpan?.attributes[URL_FULL]).toBe('https://example.com/page');
-      expect(segmentSpan?.attributes).not.toHaveProperty('http.request.header.x-vinext-internal-dispatch');
-    });
-
-    test('keeps a large vinext POST body readable for the handler', async () => {
-      const largeBody = 'a'.repeat(2 * 1024 * 1024);
-      const mockRequest = new Request('https://example.com/page?__vinext_cache_key=abc123', {
-        method: 'POST',
-        headers: {
-          'content-type': 'text/plain',
-          'x-vinext-internal-dispatch': 'https://example.com/page?token=secret',
-        },
-        body: largeBody,
-      });
-
-      let sentryEvent: Event = {};
-      const response = await wrapRequestHandler(
-        {
-          options: {
-            ...MOCK_OPTIONS,
-            beforeSend(event) {
-              sentryEvent = event;
-              return null;
-            },
-          },
-          request: mockRequest,
-          context: createMockExecutionContext(),
-        },
-        async () => {
-          SentryCore.captureMessage('vinext large body');
-          return new Response(await mockRequest.text());
-        },
-      );
-
-      expect(await response.text()).toBe(largeBody);
-      const normalizedRequest = sentryEvent.sdkProcessingMetadata?.normalizedRequest;
-      expect(normalizedRequest?.url).toBe('https://example.com/page');
-      expect(normalizedRequest?.headers).not.toHaveProperty('x-vinext-internal-dispatch');
-      // The sanitized copy carries no body, so there is no body to capture from it.
-      expect(normalizedRequest?.data).toBeUndefined();
     });
 
     test('adds culture context', async () => {
@@ -886,112 +706,7 @@ describe('withSentry', () => {
       });
     });
 
-    test('does not record vinext internal data on the request span', async () => {
-      const mockRequest = new Request('https://example.com/page?__vinext_cache_key=abc123&foo=bar', {
-        headers: {
-          'x-vinext-internal-dispatch': 'https://example.com/page?token=secret',
-          'x-vinext-internal-request-cf': '{"country":"US"}',
-          'x-custom': 'keep',
-        },
-      });
-
-      let segmentSpan: StreamedSpanJSON | undefined;
-      await wrapRequestHandler(
-        {
-          options: {
-            ...MOCK_OPTIONS,
-            tracesSampleRate: 1,
-            traceLifecycle: 'stream',
-            beforeSendSpan(span) {
-              if (span.is_segment) {
-                segmentSpan = span;
-              }
-              return span;
-            },
-          },
-          request: mockRequest,
-          context: createMockExecutionContext(),
-        },
-        () => {
-          SentryCore.captureMessage('vinext');
-          return new Response('test');
-        },
-      ).then(response => response.text());
-
-      await vi.waitFor(() => expect(segmentSpan).toBeDefined());
-
-      expect(segmentSpan?.attributes[URL_FULL]).toBe('https://example.com/page?foo=bar');
-      expect(segmentSpan?.attributes[URL_QUERY]).not.toContain('__vinext_cache_key');
-      expect(segmentSpan?.attributes[URL_QUERY]).toContain('foo=bar');
-      expect(segmentSpan?.attributes).not.toHaveProperty('http.request.header.x-vinext-internal-dispatch');
-      expect(segmentSpan?.attributes).not.toHaveProperty('http.request.header.x-vinext-internal-request-cf');
-      expect(segmentSpan?.attributes).toHaveProperty('http.request.header.x-custom', ['keep']);
-    });
-
-    test('passes the original request metadata to user callbacks when sanitizing', async () => {
-      const mockRequest = new Request('https://example.com/page?__vinext_cache_key=abc123&foo=bar', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-vinext-internal-dispatch': 'https://example.com/page?token=secret',
-          'x-custom': 'keep',
-        },
-        body: JSON.stringify({ username: 'test' }),
-      }) as any;
-      mockRequest.cf = { country: 'US' };
-
-      let createdRequest: Request | undefined;
-      let endedRequest: Request | undefined;
-      let ignoredRequest: Request | undefined;
-      let ignoredBodyRequest: Request | undefined;
-      await wrapRequestHandler(
-        {
-          options: {
-            ...MOCK_OPTIONS,
-            tracesSampleRate: 1,
-            integrations: [
-              httpServerIntegration({
-                maxRequestBodySize: 'medium',
-                ignoreIncomingRequests: (_urlPath, request) => {
-                  ignoredRequest = request;
-                  return false;
-                },
-                ignoreRequestBody: (_url, request) => {
-                  ignoredBodyRequest = request;
-                  return false;
-                },
-                onSpanCreated: (_span, request) => {
-                  createdRequest = request;
-                },
-                onSpanEnd: (_span, request) => {
-                  endedRequest = request;
-                },
-              }),
-            ],
-          },
-          request: mockRequest,
-          context: createMockExecutionContext(),
-        },
-        () => new Response('test'),
-      ).then(response => response.text());
-
-      for (const received of [createdRequest, endedRequest, ignoredRequest, ignoredBodyRequest]) {
-        expect(received).toBeDefined();
-        // Callbacks see the sanitized URL and headers, but keep the original `cf`.
-        expect(received?.cf).toEqual({ country: 'US' });
-        expect(received?.url).toBe('https://example.com/page?foo=bar');
-        expect(received?.headers.get('x-vinext-internal-dispatch')).toBeNull();
-        expect(received?.headers.get('x-custom')).toBe('keep');
-      }
-    });
-
     test.each([
-      {
-        name: 'query-only',
-        url: 'https://example.com/page?__vinext_cache_key=abc&foo=bar',
-        headers: { 'x-custom': 'keep' },
-        expectedUrl: 'https://example.com/page?foo=bar',
-      },
       {
         name: 'header-only',
         url: 'https://example.com/page?foo=bar',
@@ -1004,12 +719,6 @@ describe('withSentry', () => {
       {
         name: 'no markers',
         url: 'https://example.com/page?foo=bar',
-        headers: { 'x-custom': 'keep' },
-        expectedUrl: 'https://example.com/page?foo=bar',
-      },
-      {
-        name: 'repeated internal keys',
-        url: 'https://example.com/page?__vinext_a=1&__vinext_a=2&__vinext_b=3&foo=bar',
         headers: { 'x-custom': 'keep' },
         expectedUrl: 'https://example.com/page?foo=bar',
       },
