@@ -137,38 +137,35 @@ test.describe('server - instrumentation API performance', () => {
       'Dev server emits extra http.server segments for module requests',
     );
 
-    // Navigate to `/performance/` with the trailing slash: `/performance` is answered with a 301 to
-    // it, and that redirect is a second request with a second `http.server` segment. It should not
-    // be sent at all — `ignoreStatusCodes` covers 301 — but that option is only applied to
-    // transactions, so span streaming emits it. Going straight to the final URL keeps this test
-    // about double-instrumentation instead of failing on the redirect.
+    // The route is only requested by this test, and segments are filtered by its path: the event
+    // proxy receives the segments of every test running in parallel, so without the filter
+    // requests from other tests would show up as duplicates.
     //
     // A streamed server segment is named after the method alone until a route is matched, so a
-    // duplicate shows up as a bare `GET`. Collect the origin and path alongside the name — they are
-    // what says which instrumentation emitted the extra segment, and for which request.
+    // duplicate shows up as a bare `GET`. Collect the origin alongside the name — it is what says
+    // which instrumentation emitted the extra segment.
+    const urlPath = '/performance/single-segment';
     const httpServerSegments: Array<Record<string, unknown>> = [];
     void waitForStreamedSpans(APP_NAME, spans => {
       for (const span of spans) {
-        if (getSpanOp(span) === 'http.server' && span.is_segment) {
+        if (getSpanOp(span) === 'http.server' && span.is_segment && span.attributes['url.path']?.value === urlPath) {
           httpServerSegments.push({
             name: span.name,
             origin: span.attributes['sentry.origin']?.value,
-            urlPath: span.attributes['url.path']?.value,
           });
         }
       }
       return false;
     });
 
-    await page.goto(`/performance/`);
+    await page.goto(urlPath);
     // Give any (erroneous) duplicate span time to arrive before asserting.
     await page.waitForTimeout(3000);
 
     expect(httpServerSegments).toEqual([
       {
-        name: 'GET /performance',
+        name: 'GET /performance/single-segment',
         origin: 'auto.http.react_router.instrumentation_api',
-        urlPath: '/performance/',
       },
     ]);
   });
