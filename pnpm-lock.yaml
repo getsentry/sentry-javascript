@@ -1539,9 +1539,6 @@ importers:
 
   packages/hono:
     dependencies:
-      '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.10.0
       '@sentry/conventions':
         specifier: ^0.36.0
         version: 0.36.0
