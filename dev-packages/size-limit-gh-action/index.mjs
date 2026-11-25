@@ -120,6 +120,9 @@ async function getMergedBaseSha(octokit) {
  * tested on top of its base PR's test merge, whose second parent is the base PR's head. With a plain base branch, the
  * merge base is the base PR's head itself. Re-runs keep their original test merge, so the base PR may have moved on
  * since. Open PRs that contain this PR's head are this PR itself or stacked on top of it.
+ *
+ * The baseline is looked up by the returned commit, so a wrong guess between sibling PRs stacked on the same base only
+ * affects the PR number in the report. Base PRs are usually opened before the PRs stacked on them.
  */
 async function findBasePr(octokit, mergedBaseSha, pr) {
   try {
@@ -129,7 +132,11 @@ async function findBasePr(octokit, mergedBaseSha, pr) {
 
     for (const sha of candidates) {
       const prs = (await listOpenPrsWithCommit(octokit, sha)).filter(({ number }) => !prsAbove.has(number));
-      const basePr = prs.find(({ head }) => head.sha === sha) ?? prs.find(({ base }) => base.ref === pr.base.ref);
+      const basePr =
+        prs.find(({ head }) => head.sha === sha) ??
+        prs
+          .filter(({ head, base }) => head.ref === pr.base.ref || base.ref === pr.base.ref)
+          .sort((a, b) => a.number - b.number)[0];
       if (basePr) {
         return { number: basePr.number, sha };
       }
