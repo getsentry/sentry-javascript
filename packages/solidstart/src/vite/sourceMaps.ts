@@ -239,7 +239,7 @@ export function makeEnableSourceMapsVitePlugin(
  *     3. Users didn't set source maps generation
  *       - we enable 'hidden' source maps generation when Sentry uploads the maps, or when
  *         `sourcemaps.delete: false` keeps them for a manual upload. Otherwise we leave it unset
- *       - without `sourcemaps.delete` we pass `deleteSourcemapsAfterUpload: true`, so the maps never
+ *       - without `sourcemaps.delete` we pass `sdkDeleteSourceMaps: true`, so the maps never
  *         reach the build output
  *
  * --> only exported for testing

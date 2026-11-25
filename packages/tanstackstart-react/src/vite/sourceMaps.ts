@@ -168,7 +168,7 @@ export function makeEnableSourceMapsVitePlugin(
  *     3. Users didn't set source maps generation
  *       - we enable 'hidden' source maps generation when Sentry can upload them, or when `sourcemaps.delete: false`
  *         keeps them for a manual upload
- *       - without `sourcemaps.delete` we pass `deleteSourcemapsAfterUpload: true`, so the bundler plugin removes
+ *       - without `sourcemaps.delete` we pass `sdkDeleteSourceMaps: true`, so the bundler plugin removes
  *         these .map files from the build output
  *
  * @internal Only exported for testing.
