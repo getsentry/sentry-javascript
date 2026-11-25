@@ -10,7 +10,7 @@
 
 - **feat(effect)!: Rename exports and add layers for tracing and logs ([#26731](https://github.com/getsentry/sentry-javascript/pull/26731))**
 
-  The alpha `@sentry/effect` SDK exports now use Effect's naming style, and tracing and logs are now layers, so the setup is the same for Effect v3 and v4. The old names are removed.
+  The `@sentry/effect` exports now use Effect's naming style, and tracing and logs are now layers, so the setup is the same for Effect v3 and v4. The old names are removed.
   - `effectLayer` is now `layer`.
   - `SentryEffectTracer` is now `layerTracer`. It replaces `Layer.setTracer(SentryEffectTracer)` (Effect v3) and `Layer.succeed(Tracer.Tracer, SentryEffectTracer)` (Effect v4).
   - `SentryEffectLogger` is now `layerLogger`. It replaces `Logger.replace(Logger.defaultLogger, SentryEffectLogger)` (Effect v3) and `Logger.layer([SentryEffectLogger])` (Effect v4). It keeps the loggers in place, so Effect still logs to the console.
@@ -26,50 +26,41 @@
   );
   ```
 
-- **feat(frameworks): Add source map upload, debug ID and deletion controls**
-
-  Astro, Gatsby, Next.js, Nitro, Nuxt, SolidStart and TanStack Start now support `sourcemaps.upload`, `sourcemaps.injectDebugIds` and `sourcemaps.delete`. These options let you control source map upload, debug ID injection and file deletion independently.
-
-  Related PRs: [#26334](https://github.com/getsentry/sentry-javascript/pull/26334), [#26333](https://github.com/getsentry/sentry-javascript/pull/26333), [#26337](https://github.com/getsentry/sentry-javascript/pull/26337), [#26584](https://github.com/getsentry/sentry-javascript/pull/26584), [#26338](https://github.com/getsentry/sentry-javascript/pull/26338), [#26335](https://github.com/getsentry/sentry-javascript/pull/26335), [#26336](https://github.com/getsentry/sentry-javascript/pull/26336)
-
-- **feat(node): Improve module detection in `modulesIntegration` ([#26637](https://github.com/getsentry/sentry-javascript/pull/26637))**
-
-  `modulesIntegration` now reports exact installed dependency versions consistently for CommonJS and ESM apps on Node.js and Bun. It finds the app's `package.json` from its entry file, with a working-directory fallback, and Next.js injects exact versions at build time instead of version ranges.
-
-- **fix(core): Stabilize experimental SDK configuration reports**
-
-  SDK config reports now use payload version 4 and exclude `environment`, so otherwise identical configurations share a hash across environments. Non-finite numbers are reported as markers, and `initialScope` objects retain their structure with values replaced by placeholders to avoid hashes that vary by user.
-
-  Related PRs: [#26835](https://github.com/getsentry/sentry-javascript/pull/26835), [#26838](https://github.com/getsentry/sentry-javascript/pull/26838)
-
-- **fix(nextjs, remix, sveltekit, gatsby): Don't turn on source maps without upload credentials ([#26841](https://github.com/getsentry/sentry-javascript/pull/26841))**
-
-  When no source map option is set, these SDKs now skip enabling hidden source maps if upload credentials are missing. To generate source maps for a manual upload, set `sourcemaps.delete: false`.
-
 ### Other Changes
 
 - chore(deps): Bump rrweb to 2.47.0 ([#26837](https://github.com/getsentry/sentry-javascript/pull/26837), [#26883](https://github.com/getsentry/sentry-javascript/pull/26883))
+- feat(astro): Support `sourcemaps.upload`, `injectDebugIds` and `delete` ([#26334](https://github.com/getsentry/sentry-javascript/pull/26334))
 - feat(astro): Use the Bun and Deno integrations when Astro runs on Bun or Deno ([#26844](https://github.com/getsentry/sentry-javascript/pull/26844))
 - feat(cloudflare): Send the trace to the browser in a Server-Timing header ([#26774](https://github.com/getsentry/sentry-javascript/pull/26774))
 - feat(core): Report a browser runtime in SDK config ([#26834](https://github.com/getsentry/sentry-javascript/pull/26834))
 - feat(core): Share the source map option warnings with the SDKs ([#26626](https://github.com/getsentry/sentry-javascript/pull/26626))
+- feat(gatsby): Support `sourcemaps.upload`, `injectDebugIds` and `delete` ([#26333](https://github.com/getsentry/sentry-javascript/pull/26333))
 - feat(hono): Support Hono 5 ([#26813](https://github.com/getsentry/sentry-javascript/pull/26813))
+- feat(nextjs): Support `sourcemaps.upload`, `injectDebugIds` and `delete` ([#26337](https://github.com/getsentry/sentry-javascript/pull/26337))
 - feat(nitro): Add the orchestrion plugin to the server build ([#26799](https://github.com/getsentry/sentry-javascript/pull/26799))
+- feat(nitro): Support `sourcemaps.upload`, `injectDebugIds` and `delete` ([#26584](https://github.com/getsentry/sentry-javascript/pull/26584))
+- feat(node): Improve module detection in `modulesIntegration` ([#26637](https://github.com/getsentry/sentry-javascript/pull/26637))
 - feat(nuxt): Capture errors caught by `<NuxtErrorBoundary>` during SSR ([#26815](https://github.com/getsentry/sentry-javascript/pull/26815))
 - feat(nuxt): Set up Cloudflare from `sentry.cloudflare.config.ts` ([#26754](https://github.com/getsentry/sentry-javascript/pull/26754))
+- feat(nuxt): Support `sourcemaps.upload`, `injectDebugIds` and `delete` ([#26338](https://github.com/getsentry/sentry-javascript/pull/26338))
 - feat(server-utils): Instrument the Vercel AI experimental_extract channel event ([#26777](https://github.com/getsentry/sentry-javascript/pull/26777))
 - feat(server-utils): normalize Vercel AI `gen_ai.extract` spans ([#26831](https://github.com/getsentry/sentry-javascript/pull/26831))
 - feat(solid): Continue the server trace in the pageload on Cloudflare Workers ([#26791](https://github.com/getsentry/sentry-javascript/pull/26791))
+- feat(solidstart): Support `sourcemaps.upload`, `injectDebugIds` and `delete` ([#26335](https://github.com/getsentry/sentry-javascript/pull/26335))
+- feat(tanstackstart-react): Support `sourcemaps.upload`, `injectDebugIds` and `delete` ([#26336](https://github.com/getsentry/sentry-javascript/pull/26336))
 - fix: Warn about conflicting source map options that the SDKs apply themselves ([#26787](https://github.com/getsentry/sentry-javascript/pull/26787))
 - fix(astro): Report the Astro SDK name with the Cloudflare Vite plugin ([#26848](https://github.com/getsentry/sentry-javascript/pull/26848))
 - fix(bundler-plugins): Use forward slashes in rewritten source map sources ([#26792](https://github.com/getsentry/sentry-javascript/pull/26792))
 - fix(cloudflare): wrap Worker entrypoints reached through ctx.exports ([#26739](https://github.com/getsentry/sentry-javascript/pull/26739))
+- fix(core): Exclude environment from SDK configuration reports ([#26835](https://github.com/getsentry/sentry-javascript/pull/26835))
+- fix(core): Report non-finite numbers and initialScope values as placeholders in SDK config ([#26838](https://github.com/getsentry/sentry-javascript/pull/26838))
 - fix(deno): Fill module and trim trailing context line in stack frames ([#26641](https://github.com/getsentry/sentry-javascript/pull/26641))
 - fix(effect): Report a failure once when the Sentry layer is provided twice ([#26734](https://github.com/getsentry/sentry-javascript/pull/26734))
 - fix(feedback): Rename `*.css.ts` style modules to `*.styles.ts` ([#26842](https://github.com/getsentry/sentry-javascript/pull/26842))
 - fix(feedback): Render feedback widget without innerHTML for Trusted Types ([#26707](https://github.com/getsentry/sentry-javascript/pull/26707))
 - fix(hono): Skip middleware spans for Hono 5 error and not-found handlers ([#26827](https://github.com/getsentry/sentry-javascript/pull/26827))
 - fix(langchain): Record finish reasons for the OpenAI Responses API ([#26800](https://github.com/getsentry/sentry-javascript/pull/26800))
+- fix(nextjs, remix, sveltekit, gatsby): Don't turn on source maps without upload credentials ([#26841](https://github.com/getsentry/sentry-javascript/pull/26841))
 - fix(nuxt): Ignore build output spans with span streaming ([#26781](https://github.com/getsentry/sentry-javascript/pull/26781))
 - fix(nuxt): Percent-encode public file paths for the span filter ([#26817](https://github.com/getsentry/sentry-javascript/pull/26817))
 - fix(remix, tanstackstart-react): Let a user's `filesToDeleteAfterUpload` replace the SDK's deletion ([#26821](https://github.com/getsentry/sentry-javascript/pull/26821))
