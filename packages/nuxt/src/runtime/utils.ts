@@ -100,11 +100,8 @@ export function reportNuxtError(options: {
     }
   }
 
-  // Capture exception in the next event loop, to make sure that all breadcrumbs are recorded in time.
-  setTimeout(() => {
-    captureException(error, {
-      captureContext: { contexts: { nuxt: metadata } },
-      mechanism: { handled: false, type: `auto.function.nuxt.${instance ? 'vue' : 'app'}-error` },
-    });
+  captureException(error, {
+    captureContext: { contexts: { nuxt: metadata } },
+    mechanism: { handled: false, type: `auto.function.nuxt.${instance ? 'vue' : 'app'}-error` },
   });
 }
