@@ -64,6 +64,7 @@ const ESM: Format[] = ['esm'];
 const CASES: Case[] = [
   { specifier: '@sentry/node', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/node/import', conditions: NODE, formats: ESM },
+  { specifier: '@sentry/node/nitro/runtime', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/bun', conditions: ['bun', 'node'], formats: BOTH },
   { specifier: '@sentry/bun/import', conditions: ['bun', 'node'], formats: ESM },
   { specifier: '@sentry/deno', conditions: ['deno', 'node'], formats: ESM },
@@ -139,6 +140,7 @@ const BUILD_TIME_CASES: Case[] = [
   { specifier: '@sentry/node/rollup', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/node/webpack', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/node/esbuild', conditions: NODE, formats: BOTH },
+  { specifier: '@sentry/node/nitro', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/bun/plugin', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/cloudflare/vite', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/nextjs/config', conditions: NODE, formats: BOTH },
