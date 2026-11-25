@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForStreamedSpan, collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
+import { RUNTIME } from './constants';
 
 test('Sends correct error event', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('node-fastify-5', event => {
+  const errorEventPromise = waitForError('fastify-5', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
-  const segmentEventPromise = collectStreamedSpansUntilSegment('node-fastify-5', 'GET /test-exception/:id');
+  const segmentEventPromise = collectStreamedSpansUntilSegment('fastify-5', 'GET /test-exception/:id');
 
   await fetch(`${baseURL}/test-exception/123`);
 
@@ -56,7 +57,7 @@ test('Sends correct error event', async ({ baseURL }) => {
 test('Does not send error when shouldHandleError returns false', async ({ baseURL }) => {
   let errorEventOccurred = false;
 
-  waitForError('node-fastify-5', event => {
+  waitForError('fastify-5', event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'This is an error that will not be captured') {
       errorEventOccurred = true;
     }
@@ -64,7 +65,7 @@ test('Does not send error when shouldHandleError returns false', async ({ baseUR
   });
 
   const segmentEventPromise = waitForStreamedSpan(
-    'node-fastify-5',
+    'fastify-5',
     segment => segment.is_segment && segment.name === 'GET /test-error-not-captured',
   );
 
@@ -83,9 +84,13 @@ test('Does not send error when shouldHandleError returns false', async ({ baseUR
 // The error diagnostic channel was always sending 200 unless explicitly changed.
 // This was fixed in Fastify 5.7.0
 test('Error in child plugin with rethrown error handler reports correct 500 status', async ({ baseURL }) => {
+  // Fastify sets the 500 status only when its `fastify.request.handler` tracing channel has subscribers. Bun up to
+  // 1.4.5 has no `TracingChannel#hasSubscribers` (oven-sh/bun#49415), so Fastify skips the channel and sends 200.
+  test.fail(RUNTIME === 'bun');
+
   let errorEventOccurred = false;
 
-  waitForError('node-fastify-5', event => {
+  waitForError('fastify-5', event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'This is an error that will not be captured') {
       errorEventOccurred = true;
     }
@@ -93,7 +98,7 @@ test('Error in child plugin with rethrown error handler reports correct 500 stat
   });
 
   const segmentEventPromise = waitForStreamedSpan(
-    'node-fastify-5',
+    'fastify-5',
     segment => segment.is_segment && segment.name === 'GET /test-error-ignored',
   );
 

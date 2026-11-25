@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "@sentry/deno/import": "./node_modules/@sentry/deno/build/import.mjs"
+  },
+  "nodeModulesDir": "manual",
+  "unstable": ["sloppy-imports"]
+}
