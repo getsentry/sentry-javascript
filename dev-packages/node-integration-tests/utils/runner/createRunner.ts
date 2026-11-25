@@ -801,7 +801,16 @@ export function createRunner(...paths: string[]) {
           } = {},
         ): Promise<T | undefined> {
           try {
-            await waitForEvent(portReady.promise, PORT_TIMEOUT, 'Timed out waiting for server port');
+            await waitForEvent(
+              Promise.race([
+                portReady.promise,
+                Promise.race([completedDeferred.promise, exitedDeferred.promise]).then(() => {
+                  throw completeError ?? new Error('Scenario stopped before reporting its server port');
+                }),
+              ]),
+              PORT_TIMEOUT,
+              'Timed out waiting for server port',
+            );
           } catch (e) {
             complete(e as Error);
             return;
