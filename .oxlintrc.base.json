@@ -254,7 +254,9 @@
     {
       "files": ["**/src/**"],
       "rules": {
-        "no-restricted-globals": ["error", "window", "document", "location", "navigator"]
+        "no-restricted-globals": ["error", "window", "document", "location", "navigator"],
+        "no-eval": "error",
+        "no-new-func": "error"
       }
     },
     {
