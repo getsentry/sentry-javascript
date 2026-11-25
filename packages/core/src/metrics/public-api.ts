@@ -1,7 +1,7 @@
 import type { Scope } from '../scope';
 import type { MetricUnit } from '../types/measurement';
 import type { Metric, MetricType } from '../types/metric';
-import { captureMetric as captureMetricEvent } from './internal';
+import { captureMetricEvent } from './internal';
 
 /**
  * Options for capturing a metric.

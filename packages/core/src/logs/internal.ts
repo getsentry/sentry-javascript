@@ -52,7 +52,8 @@ function setLogAttribute(
 }
 
 /**
- * Captures a serialized log event and adds it to the log buffer for the given client.
+ * Adds an already serialized log to the log buffer for the given client.
+ * It skips enrichment and `beforeSendLog`, so the log must be fully processed.
  *
  * @param client - A client. Uses the current client if not provided.
  * @param serializedLog - The serialized log event to capture.
@@ -60,7 +61,7 @@ function setLogAttribute(
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function captureSerializedLog(client: Client, serializedLog: SerializedLog): void {
+export function bufferSerializedLog(client: Client, serializedLog: SerializedLog): void {
   const bufferMap = _getBufferMap();
   const logBuffer = _INTERNAL_getLogBuffer(client);
 
@@ -79,10 +80,10 @@ export function captureSerializedLog(client: Client, serializedLog: SerializedLo
 }
 
 /**
- * @deprecated Use `captureSerializedLog` instead.
+ * @deprecated Use `bufferSerializedLog` instead.
  */
 // TODO(v12): Remove once the Electron SDK no longer uses it.
-export const _INTERNAL_captureSerializedLog = captureSerializedLog;
+export const _INTERNAL_captureSerializedLog = bufferSerializedLog;
 
 /**
  * Captures a log event and sends it to Sentry.
@@ -90,7 +91,7 @@ export const _INTERNAL_captureSerializedLog = captureSerializedLog;
  * @param log - The log event to capture.
  * @param scope - A scope. Uses the current scope if not provided.
  * @param client - A client. Uses the current client if not provided.
- * @param captureSerialized - A function to capture the serialized log.
+ * @param captureSerializedLog - A function to capture the serialized log.
  *
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
@@ -98,7 +99,7 @@ export const _INTERNAL_captureSerializedLog = captureSerializedLog;
 export function _INTERNAL_captureLog(
   beforeLog: Log,
   currentScope = getCurrentScope(),
-  captureSerialized: (client: Client, log: SerializedLog) => void = captureSerializedLog,
+  captureSerializedLog: (client: Client, log: SerializedLog) => void = bufferSerializedLog,
 ): void {
   const client = currentScope?.getClient() ?? getClient();
   if (!client) {
@@ -201,7 +202,7 @@ export function _INTERNAL_captureLog(
     }),
   };
 
-  captureSerialized(client, serializedLog);
+  captureSerializedLog(client, serializedLog);
 
   client.emit('afterCaptureLog', log);
 }

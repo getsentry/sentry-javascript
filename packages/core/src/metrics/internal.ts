@@ -49,7 +49,8 @@ function setMetricAttribute(
 }
 
 /**
- * Captures a serialized metric event and adds it to the metric buffer for the given client.
+ * Adds an already serialized metric to the metric buffer for the given client.
+ * It skips enrichment and `beforeSendMetric`, so the metric must be fully processed.
  *
  * @param client - A client. Uses the current client if not provided.
  * @param serializedMetric - The serialized metric event to capture.
@@ -57,7 +58,7 @@ function setMetricAttribute(
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function captureSerializedMetric(client: Client, serializedMetric: SerializedMetric): void {
+export function bufferSerializedMetric(client: Client, serializedMetric: SerializedMetric): void {
   const bufferMap = _getBufferMap();
   const metricBuffer = _INTERNAL_getMetricBuffer(client);
 
@@ -82,10 +83,10 @@ export function captureSerializedMetric(client: Client, serializedMetric: Serial
 }
 
 /**
- * @deprecated Use `captureSerializedMetric` instead.
+ * @deprecated Use `bufferSerializedMetric` instead.
  */
 // TODO(v12): Remove once the Electron SDK no longer uses it.
-export const _INTERNAL_captureSerializedMetric = captureSerializedMetric;
+export const _INTERNAL_captureSerializedMetric = bufferSerializedMetric;
 
 /**
  * Options for capturing a metric internally.
@@ -190,9 +191,9 @@ function _buildSerializedMetric(
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function captureMetric(beforeMetric: Metric, options?: InternalCaptureMetricOptions): void {
+export function captureMetricEvent(beforeMetric: Metric, options?: InternalCaptureMetricOptions): void {
   const currentScope = options?.scope ?? getCurrentScope();
-  const captureSerialized = options?.captureSerializedMetric ?? captureSerializedMetric;
+  const captureSerializedMetric = options?.captureSerializedMetric ?? bufferSerializedMetric;
   const client = currentScope?.getClient() ?? getClient();
   if (!client) {
     DEBUG_BUILD && debug.warn('No client available to capture metric.');
@@ -230,16 +231,16 @@ export function captureMetric(beforeMetric: Metric, options?: InternalCaptureMet
 
   DEBUG_BUILD && debug.log('[Metric]', serializedMetric);
 
-  captureSerialized(client, serializedMetric);
+  captureSerializedMetric(client, serializedMetric);
 
   client.emit('afterCaptureMetric', processedMetric);
 }
 
 /**
- * @deprecated Use `captureMetric` instead.
+ * @deprecated Use `captureMetricEvent` instead.
  */
 // TODO(v12): Remove once the Electron SDK no longer uses it.
-export const _INTERNAL_captureMetric = captureMetric;
+export const _INTERNAL_captureMetric = captureMetricEvent;
 
 /**
  * Flushes the metrics buffer to Sentry.
