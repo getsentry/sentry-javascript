@@ -139,10 +139,13 @@ export function addRequestAttributes(span: Span, inputs: unknown, operationName:
   }
 
   if (operationName === 'extract') {
-    // Record the request body as passed, but never the image data.
+    // Record the request body as passed, but never the image or document data.
     const { model: _model, ...request } = inputs as Record<string, unknown>;
-    if (Array.isArray(request.images)) {
-      request.images = request.images.map(() => BLOB_SUBSTITUTE);
+    for (const key of ['images', 'documents']) {
+      const blobs = request[key];
+      if (Array.isArray(blobs)) {
+        request[key] = blobs.map(() => BLOB_SUBSTITUTE);
+      }
     }
     span.setAttribute(GEN_AI_INPUT_MESSAGES, stringify([request]));
     return;

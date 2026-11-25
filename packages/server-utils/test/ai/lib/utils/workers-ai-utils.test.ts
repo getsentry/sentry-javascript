@@ -147,7 +147,7 @@ describe('workers-ai utils', () => {
   });
 
   describe('addRequestAttributes', () => {
-    it('records extract requests without the model and image data', () => {
+    it('records extract requests without the model, image and document data', () => {
       const { span, attributes } = createMockSpan();
       const fields = { total: { type: 'number', unit: 'USD' } };
 
@@ -158,6 +158,7 @@ describe('workers-ai utils', () => {
           state: 'Total: $10',
           fields,
           images: ['data:image/png;base64,AAAA', 'data:image/png;base64,BBBB'],
+          documents: ['data:application/pdf;base64,CCCC'],
           reference_date: '2026-10-21',
         },
         'extract',
@@ -169,6 +170,7 @@ describe('workers-ai utils', () => {
             state: 'Total: $10',
             fields,
             images: ['[Blob substitute]', '[Blob substitute]'],
+            documents: ['[Blob substitute]'],
             reference_date: '2026-10-21',
           },
         ]),
