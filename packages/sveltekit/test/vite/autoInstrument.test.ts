@@ -57,10 +57,15 @@ function expectWrappedLoad(result: TransformResult, id: string, wrapper: string)
     .filter(node => node.type === 'VariableDeclaration')
     .flatMap(node => node.declarations)
     .find((declarator: Node) => declarator.id.name === local);
-  expect(declarator.init.type).toBe('CallExpression');
-  expect(declarator.init.callee.name).toBe(wrapper);
-  expect(declarator.init.arguments).toHaveLength(1);
-  return declarator.init.arguments[0].name;
+  const { test, consequent, alternate } = declarator.init;
+  expect(declarator.init.type).toBe('ConditionalExpression');
+  expect(consequent.type).toBe('CallExpression');
+  expect(consequent.callee.name).toBe(wrapper);
+  expect(consequent.arguments).toHaveLength(1);
+  const target = consequent.arguments[0].name;
+  expect(test.left.argument.name).toBe(target);
+  expect(alternate.name).toBe(target);
+  return target;
 }
 
 describe('makeAutoInstrumentationPlugin()', () => {
@@ -451,6 +456,9 @@ describe('load export forms', () => {
       '__SENTRY_REEXPORT_load__',
     ],
     ['imported binding exported again', "import { load } from './shared';\nexport { load };", 'load'],
+    ['value that may be undefined', 'export const load = browser ? loadPageData : undefined;', 'load'],
+    ['destructured binding', 'const { load } = shared;\nexport { load };', 'load'],
+    ['exported destructured binding', 'export const { load, other } = shared;', 'load'],
   ])('wraps a load declaration (%s)', async (_, code, target) => {
     expect(expectWrappedLoad(await transformPage(code), PATH, 'wrapLoadWithSentry')).toBe(target);
   });

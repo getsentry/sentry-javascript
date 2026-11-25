@@ -126,7 +126,8 @@ function loadRule(basename: RegExp, wrapper: LoadWrapper, debug: boolean): Rewri
 function wrapLoadExport({ ast, state }: RuleContext, wrapper: LoadWrapper): boolean {
   const handWrapped = collectManuallyWrappedLocals(ast, LOAD_WRAPPERS);
   const declaringStatements = collectDeclaringStatements(ast);
-  const wrap = (target: string): string => `${wrapper}(${target})`;
+  // The wrapper runs while the module loads, so `load` may still be unset.
+  const wrap = (target: string): string => `typeof ${target} === 'function' ? ${wrapper}(${target}) : ${target}`;
   let wrapped = false;
 
   for (const node of findNamedExports(ast, 'load')) {
