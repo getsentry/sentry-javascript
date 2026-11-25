@@ -137,13 +137,11 @@ describe('decideSourceMapHandling', () => {
     it.each([true, 'disable-upload'] as const)(
       'removes source maps the SDK turned on when `sourcemaps.disable` is `%s`',
       disable => {
-        expect(
-          decideSourceMapHandling(
-            'hidden',
-            options({ disable, deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true }),
-            true,
-          ),
-        ).toMatchObject({ enableHidden: false, deleteAfterUpload: true, removeAllSourceMaps: true });
+        expect(decideSourceMapHandling('hidden', options({ disable, sdkDeleteSourceMaps: true }), true)).toMatchObject({
+          enableHidden: false,
+          deleteAfterUpload: true,
+          removeAllSourceMaps: true,
+        });
       },
     );
 
@@ -157,8 +155,8 @@ describe('decideSourceMapHandling', () => {
     );
   });
 
-  describe('with source maps the SDK turned on', () => {
-    const sdkOptions = { deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true };
+  describe('with `sdkDeleteSourceMaps`', () => {
+    const sdkOptions = { sdkDeleteSourceMaps: true };
 
     it.each<SourceMapKind>(['hidden', 'visible'])('removes all `%s` source maps', kind => {
       expect(decideSourceMapHandling(kind, options(sdkOptions), true)).toMatchObject({
@@ -169,10 +167,26 @@ describe('decideSourceMapHandling', () => {
     });
 
     it.each<SourceMapKind>(['hidden', 'visible'])('removes all `%s` source maps when no upload can run', kind => {
-      expect(decideSourceMapHandling(kind, options(sdkOptions), false)).toMatchObject({
+      const decision = decideSourceMapHandling(kind, options(sdkOptions), false);
+
+      expect(decision).toEqual({
         enableHidden: kind === 'visible',
         deleteAfterUpload: true,
         removeAllSourceMaps: true,
+        log: {
+          level: 'info',
+          message:
+            'Source maps are not uploaded. They are removed from the build output, because the Sentry SDK turned them on.',
+        },
+      });
+    });
+
+    it('names the SDK when it switches visible source maps to hidden', () => {
+      expect(decideSourceMapHandling('visible', options(sdkOptions), true).log).toEqual({
+        level: 'info',
+        message:
+          'Switching to hidden source maps, because the Sentry SDK removes them from the build output. ' +
+          'Without the `sourceMappingURL` comment browsers do not request the removed map files.',
       });
     });
 
@@ -180,41 +194,62 @@ describe('decideSourceMapHandling', () => {
       expect(decideSourceMapHandling(kind, options(sdkOptions), false)).toEqual(NO_CHANGE);
     });
 
-    it.each([undefined, false])('keeps them when `deleteSourcemapsAfterUpload` is %s', deleteSourcemapsAfterUpload => {
+    it.each<SourceMapKind>(['hidden', 'visible'])('keeps `%s` source maps when it is `false`', kind => {
+      expect(decideSourceMapHandling(kind, options({ sdkDeleteSourceMaps: false }), true)).toEqual(NO_CHANGE);
+    });
+
+    it('keeps the source maps the plugin turns on when it is `false`', () => {
+      expect(decideSourceMapHandling('unset', options({ sdkDeleteSourceMaps: false }), true)).toMatchObject({
+        enableHidden: true,
+        deleteAfterUpload: false,
+      });
+    });
+
+    it('lets the user-set `deleteSourcemapsAfterUpload` win', () => {
       expect(
-        decideSourceMapHandling('hidden', options({ deleteSourcemapsAfterUpload, sdkEnabledSourceMaps: true }), true),
+        decideSourceMapHandling(
+          'hidden',
+          options({ deleteSourcemapsAfterUpload: false, sdkDeleteSourceMaps: true }),
+          true,
+        ),
       ).toEqual(NO_CHANGE);
+      expect(
+        decideSourceMapHandling(
+          'hidden',
+          options({ deleteSourcemapsAfterUpload: true, sdkDeleteSourceMaps: false }),
+          true,
+        ),
+      ).toEqual({ enableHidden: false, deleteAfterUpload: true, removeAllSourceMaps: false });
+    });
+
+    it('names `deleteSourcemapsAfterUpload` in the logs when the user set it to `true`', () => {
+      const userOptions = options({ deleteSourcemapsAfterUpload: true, sdkDeleteSourceMaps: true });
+
+      expect(decideSourceMapHandling('hidden', userOptions, false).log).toEqual({
+        level: 'warn',
+        message:
+          'Source maps are not uploaded, but they are removed from the build output because `sourcemaps.deleteSourcemapsAfterUpload` is set.',
+      });
+      expect(decideSourceMapHandling('visible', userOptions, true).log?.message).toMatch(
+        /^Switching to hidden source maps because `sourcemaps\.deleteSourcemapsAfterUpload` is set\./,
+      );
     });
 
     it('calls the function form when it decides', () => {
       let value: boolean | undefined;
-      const normalized = options({ deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: () => value });
-
-      expect(decideSourceMapHandling('hidden', normalized, true)).toMatchObject({ removeAllSourceMaps: false });
-      value = true;
-      expect(decideSourceMapHandling('hidden', normalized, true)).toMatchObject({ removeAllSourceMaps: true });
-    });
-  });
-
-  describe('with the internal function form', () => {
-    it('calls the function when it decides', () => {
-      let value: boolean | undefined;
-      const normalized = options({ deleteSourcemapsAfterUpload: () => value });
+      const normalized = options({ sdkDeleteSourceMaps: () => value });
 
       expect(decideSourceMapHandling('hidden', normalized, true)).toEqual(NO_CHANGE);
       value = true;
       expect(decideSourceMapHandling('hidden', normalized, true)).toEqual({
         enableHidden: false,
         deleteAfterUpload: true,
-        removeAllSourceMaps: false,
+        removeAllSourceMaps: true,
       });
     });
 
-    it('passes the environment to both functions', () => {
-      const normalized = options({
-        deleteSourcemapsAfterUpload: environment => environment === 'client',
-        sdkEnabledSourceMaps: environment => environment === 'client',
-      });
+    it('passes the environment to the function', () => {
+      const normalized = options({ sdkDeleteSourceMaps: environment => environment === 'client' || undefined });
 
       expect(decideSourceMapHandling('hidden', normalized, true, 'client')).toMatchObject({
         deleteAfterUpload: true,
@@ -225,7 +260,7 @@ describe('decideSourceMapHandling', () => {
     });
 
     it('treats `undefined` from the function like an unset option', () => {
-      expect(decideSourceMapHandling('unset', options({ deleteSourcemapsAfterUpload: () => undefined }), true)).toEqual(
+      expect(decideSourceMapHandling('unset', options({ sdkDeleteSourceMaps: () => undefined }), true)).toEqual(
         decideSourceMapHandling('unset', options(), true),
       );
     });
@@ -286,9 +321,14 @@ describe('getDeleteOption', () => {
   it('reads `sourcemaps.deleteSourcemapsAfterUpload` when `sourcemaps.delete` is unset', () => {
     expect(getDeleteOption(options())).toBeUndefined();
     expect(getDeleteOption(options({ deleteSourcemapsAfterUpload: true }))).toBe(true);
-    expect(
-      getDeleteOption(options({ deleteSourcemapsAfterUpload: environment => environment === 'client' }), 'client'),
-    ).toBe(true);
+  });
+
+  it('reads `sourcemaps.sdkDeleteSourceMaps` when both user options are unset', () => {
+    const sdkDeleteSourceMaps = (environment?: string): boolean | undefined => environment === 'client' || undefined;
+
+    expect(getDeleteOption(options({ sdkDeleteSourceMaps }), 'client')).toBe(true);
+    expect(getDeleteOption(options({ sdkDeleteSourceMaps }), 'ssr')).toBeUndefined();
+    expect(getDeleteOption(options({ deleteSourcemapsAfterUpload: false, sdkDeleteSourceMaps }), 'client')).toBe(false);
   });
 
   it.each([true, false])('prefers `sourcemaps.delete: %s`', value => {
@@ -409,7 +449,7 @@ describe('decideSourceMapHandling with `sourcemaps.delete`', () => {
       expect(
         decideSourceMapHandling(
           'hidden',
-          options({ delete: false, deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true }),
+          options({ delete: false, deleteSourcemapsAfterUpload: true, sdkDeleteSourceMaps: true }),
           true,
         ),
       ).toEqual(NO_CHANGE);

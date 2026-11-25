@@ -230,8 +230,7 @@ describe('onCreateWebpackConfig', () => {
         expect.objectContaining({
           sourcemaps: {
             assets: ['./public/**'],
-            deleteSourcemapsAfterUpload: expected.deleteOptions,
-            sdkEnabledSourceMaps: expected.deleteOptions,
+            sdkDeleteSourceMaps: expected.deleteOptions,
             ignore: ['polyfill-*', 'framework-*', 'webpack-runtime-*'],
           },
         }),
@@ -269,8 +268,7 @@ describe('onCreateWebpackConfig', () => {
               assets: ['./public/**'],
               upload: 'upload' in sourcemaps ? sourcemaps.upload : undefined,
               injectDebugIds: 'injectDebugIds' in sourcemaps ? sourcemaps.injectDebugIds : undefined,
-              deleteSourcemapsAfterUpload: deletes,
-              sdkEnabledSourceMaps: deletes,
+              sdkDeleteSourceMaps: deletes,
               ignore: ['polyfill-*', 'framework-*', 'webpack-runtime-*'],
             },
           }),
@@ -318,7 +316,7 @@ describe('onCreateWebpackConfig', () => {
       onCreateWebpackConfig({ actions, getConfig, stage: 'build-javascript' }, { ...flatOptions, sourcemaps });
 
       expect(sentryWebpackPlugin).toHaveBeenCalledWith(
-        expect.objectContaining({ sourcemaps: expect.objectContaining({ deleteSourcemapsAfterUpload: deletes }) }),
+        expect.objectContaining({ sourcemaps: expect.objectContaining({ sdkDeleteSourceMaps: deletes }) }),
       );
     });
   });

@@ -216,7 +216,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
   it.each([true, 'hidden'] as const)(
     'removes `%s` source maps an output enables when the SDK turned source maps on',
     async sourcemap => {
-      const config = viteConfig({ sourcemaps: { deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true } });
+      const config = viteConfig({ sourcemaps: { sdkDeleteSourceMaps: true } });
       await build({
         ...config,
         build: { ...config.build, rollupOptions: { input: entry, output: { sourcemap } } },
@@ -236,7 +236,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     expect(uploads).toHaveLength(0);
   });
 
-  it('reads the option from the internal function form when it decides', async () => {
+  it('reads `sdkDeleteSourceMaps` from its function form when it decides', async () => {
     let deleteMaps: boolean | undefined;
     const sdkPlugin: Plugin = {
       name: 'sdk',
@@ -250,7 +250,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
       ...config,
       plugins: [
         sdkPlugin,
-        ...sentryVitePlugin({ ...credentials, sourcemaps: { deleteSourcemapsAfterUpload: () => deleteMaps } }),
+        ...sentryVitePlugin({ ...credentials, sourcemaps: { sdkDeleteSourceMaps: () => deleteMaps } }),
       ],
     });
 
@@ -274,8 +274,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     const config = viteConfig(
       {
         sourcemaps: {
-          deleteSourcemapsAfterUpload: true,
-          sdkEnabledSourceMaps: () => sdkEnabled,
+          sdkDeleteSourceMaps: () => sdkEnabled,
           ignore: ['**/lazy-*'],
         },
       },
@@ -419,7 +418,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (vite)', () => {
     const builder = await createBuilder({
       ...viteConfig({
         sourcemaps: {
-          deleteSourcemapsAfterUpload: environment => {
+          sdkDeleteSourceMaps: environment => {
             askedFor.push(environment);
             return environment === undefined ? true : undefined;
           },

@@ -181,7 +181,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (esbuild)', () => {
     'deletes every map the SDK turned on, also those of chunks and CSS that were not uploaded (%s)',
     async (_, options) => {
       await build(
-        { ...options, sourcemaps: { deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true } },
+        { ...options, sourcemaps: { sdkDeleteSourceMaps: true } },
         { ...writeSplitBuild(), sourcemap: 'external' },
       );
 

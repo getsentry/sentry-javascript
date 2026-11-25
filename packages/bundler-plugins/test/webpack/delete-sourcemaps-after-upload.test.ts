@@ -459,7 +459,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (webpack)', () => {
   });
 
   describe('with source maps the SDK turned on', () => {
-    const sdkSourcemaps = { deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true };
+    const sdkSourcemaps = { sdkDeleteSourceMaps: true };
 
     function sdkConfig(pluginOptions: InternalOptions): Configuration {
       fs.writeFileSync(path.join(tmpDir, 'style.css'), 'body { color: red; }\n');
@@ -495,8 +495,8 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (webpack)', () => {
       expect(mkdtempSpy).not.toHaveBeenCalled();
     });
 
-    it('keeps the maps when `deleteSourcemapsAfterUpload` is not true', async () => {
-      await build(sdkConfig({ sourcemaps: { sdkEnabledSourceMaps: true } }));
+    it('keeps the maps when the user sets `deleteSourcemapsAfterUpload: false`', async () => {
+      await build(sdkConfig({ sourcemaps: { deleteSourcemapsAfterUpload: false, sdkDeleteSourceMaps: true } }));
 
       expect(
         fs
