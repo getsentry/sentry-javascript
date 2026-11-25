@@ -174,6 +174,15 @@ describe.each([[{ subSdkName: 'browser', Sentry: sentryClient }], [{ subSdkName:
       }).pipe(Effect.provide(makeLayer())),
     );
 
+    it.effect('reports a failure once when the Sentry layer is provided twice', () =>
+      Effect.gen(function* () {
+        yield* Effect.fail('Provided twice').pipe(Effect.withErrorReporting, Effect.exit);
+        yield* flush;
+
+        expect(events).toHaveLength(1);
+      }).pipe(Effect.provide(makeLayer()), Effect.provide(makeLayer())),
+    );
+
     it.effect('keeps reporters registered before the Sentry layer', () =>
       Effect.gen(function* () {
         const userReporter = vi.fn();

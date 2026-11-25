@@ -36,44 +36,45 @@ const SEVERITY_TO_LEVEL = new Map<unknown, SeverityLevel>([
   ['Trace', 'debug'],
 ]);
 
-function makeSentryErrorReporter(): EffectErrorReporter.ErrorReporter {
-  const reported = new WeakSet<object>();
+const reported = new WeakSet<object>();
 
-  return {
-    [TYPE_ID]: TYPE_ID,
-    report({ cause }: { readonly cause: Cause.Cause<unknown> }): void {
-      if (reported.has(cause)) {
-        return;
+/**
+ * One instance for every Sentry layer, so the reporters set holds it once even when the layer is provided twice.
+ */
+const sentryErrorReporter: EffectErrorReporter.ErrorReporter = {
+  [TYPE_ID]: TYPE_ID,
+  report({ cause }: { readonly cause: Cause.Cause<unknown> }): void {
+    if (reported.has(cause)) {
+      return;
+    }
+    reported.add(cause);
+
+    for (const reason of cause.reasons) {
+      if (reason._tag === 'Interrupt') {
+        continue;
       }
-      reported.add(cause);
 
-      for (const reason of cause.reasons) {
-        if (reason._tag === 'Interrupt') {
+      // The raw error is captured rather than Effect's pretty-printed copy so Sentry sees the original stack,
+      // `cause` chain and error class.
+      const error = reason._tag === 'Fail' ? reason.error : reason.defect;
+
+      if (isObjectLike(error)) {
+        if (reported.has(error) || error[IGNORE] === true) {
           continue;
         }
-
-        // The raw error is captured rather than Effect's pretty-printed copy so Sentry sees the original stack,
-        // `cause` chain and error class.
-        const error = reason._tag === 'Fail' ? reason.error : reason.defect;
-
-        if (isObjectLike(error)) {
-          if (reported.has(error) || error[IGNORE] === true) {
-            continue;
-          }
-          reported.add(error);
-        }
-
-        captureException(error, {
-          mechanism: { type: 'auto.function.effect.error_reporter', handled: false },
-          captureContext: {
-            level: (isObjectLike(error) && SEVERITY_TO_LEVEL.get(error[SEVERITY])) || 'error',
-            extra: isObjectLike(error) ? { ...(error[ATTRIBUTES] as Record<string, unknown> | undefined) } : undefined,
-          },
-        });
+        reported.add(error);
       }
-    },
-  };
-}
+
+      captureException(error, {
+        mechanism: { type: 'auto.function.effect.error_reporter', handled: false },
+        captureContext: {
+          level: (isObjectLike(error) && SEVERITY_TO_LEVEL.get(error[SEVERITY])) || 'error',
+          extra: isObjectLike(error) ? { ...(error[ATTRIBUTES] as Record<string, unknown> | undefined) } : undefined,
+        },
+      });
+    }
+  },
+};
 
 /**
  * Registers a Sentry `ErrorReporter` for `Effect.withErrorReporting`, `ErrorReporter.report` and the
@@ -85,8 +86,6 @@ export function makeSentryErrorReporterLayer(): Layer.Layer<never> {
   if (!CurrentErrorReporters) {
     return Layer.empty;
   }
-
-  const sentryErrorReporter = makeSentryErrorReporter();
 
   return Layer.effect(
     CurrentErrorReporters,
