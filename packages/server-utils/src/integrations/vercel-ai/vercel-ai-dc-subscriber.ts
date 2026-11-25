@@ -876,45 +876,41 @@ interface ExtractState {
  * offset of each part, so that the answer spans point into the joined `state`.
  */
 function toExtractState(state: unknown): ExtractState {
-  const parts = Array.isArray(state)
-    ? state
-    : [typeof state === 'string' ? { type: 'text', text: state } : { type: 'json', value: state }];
-  let text: string | undefined;
   const images: string[] = [];
   const documents: string[] = [];
+  // Each text gets a separator in front, which is cut off from the start of `state` at the end.
+  let joined = '';
 
-  const offsets = parts.map(part => {
+  // `stringify` returns a string as it is, so a plain string state takes the JSON path.
+  const parts = (Array.isArray(state) ? state : [{ type: 'json', value: state }]).map(part => {
     if (!isObjectLike(part)) {
       return undefined;
     }
     if (part.type === 'file') {
-      const mediaType = asString(part.mediaType);
-      if (mediaType?.startsWith('image/')) {
+      if (String(part.mediaType).startsWith('image/')) {
         images.push(BLOB_SUBSTITUTE);
         return 'image' as const;
       }
-      if (mediaType === 'application/pdf') {
+      if (part.mediaType === 'application/pdf') {
         documents.push(BLOB_SUBSTITUTE);
       }
       return undefined;
     }
-    const partText =
-      part.type === 'text' ? asString(part.text) : part.type === 'json' ? stringify(part.value) : undefined;
-    if (partText === undefined) {
+    const text = part.type === 'text' ? part.text : stringify(part.value);
+    if (typeof text !== 'string') {
       return undefined;
     }
-    const offset = text === undefined ? 0 : text.length + EXTRACT_STATE_SEPARATOR.length;
-    text = text === undefined ? partText : `${text}${EXTRACT_STATE_SEPARATOR}${partText}`;
-    return offset;
+    joined += EXTRACT_STATE_SEPARATOR + text;
+    return joined.length - text.length - EXTRACT_STATE_SEPARATOR.length;
   });
 
   return {
     request: {
-      state: text,
-      ...(images.length ? { images } : {}),
-      ...(documents.length ? { documents } : {}),
+      state: joined ? joined.slice(EXTRACT_STATE_SEPARATOR.length) : undefined,
+      images: images.length ? images : undefined,
+      documents: documents.length ? documents : undefined,
     },
-    parts: offsets,
+    parts,
   };
 }
 
@@ -922,18 +918,12 @@ function toExtractState(state: unknown): ExtractState {
  * The AI SDK also takes JSON or `null` as field `instructions`, but the schema allows only a string.
  */
 function toExtractFields(fields: unknown): unknown {
-  if (!isObjectLike(fields)) {
-    return fields;
-  }
-  return Object.fromEntries(
-    Object.entries(fields).map(([id, field]) => {
-      if (!isObjectLike(field) || typeof field.instructions === 'string' || field.instructions === undefined) {
-        return [id, field];
-      }
-      const { instructions, ...rest } = field;
-      return [id, instructions === null ? rest : { ...rest, instructions: stringify(instructions) }];
-    }),
-  );
+  return isObjectLike(fields)
+    ? mapObjectValues(fields, field => ({
+        ...field,
+        instructions: field.instructions === null ? undefined : stringify(field.instructions),
+      }))
+    : fields;
 }
 
 /**
@@ -941,51 +931,35 @@ function toExtractFields(fields: unknown): unknown {
  * `gen_ai.output.messages` on `gen_ai.extract` spans. The AI SDK does not expose `truncated`.
  */
 function toExtractAnswers(answers: Record<string, unknown>, parts: ExtractState['parts']): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(answers).map(([id, answer]) => {
-      if (!isObjectLike(answer)) {
-        return [id, answer];
+  return mapObjectValues(answers, ({ pNull, source, items, ...rest }) => {
+    const mapped: Record<string, unknown> = { ...rest, p_null: pNull };
+    const span = toExtractSpan(source, parts);
+    if (span) {
+      mapped.source = 'input';
+      mapped.span = span;
+    } else if (isObjectLike(source) && parts[Number(source.part)] === 'image') {
+      mapped.source = 'image';
+    }
+    if (Array.isArray(items)) {
+      const confidences = items.map(item => (isObjectLike(item) ? item.confidence : undefined));
+      if (confidences.every(confidence => typeof confidence === 'number')) {
+        mapped.confidences = confidences;
       }
-      const { pNull, source, items, ...rest } = answer;
-      const mapped: Record<string, unknown> = { ...rest };
-      if (pNull !== undefined) {
-        mapped.p_null = pNull;
+      const spans = items.map(item => toExtractSpan(isObjectLike(item) ? item.source : undefined, parts));
+      if (spans.some(Boolean)) {
+        mapped.spans = spans;
       }
-      const span = toExtractSpan(source, parts);
-      if (span) {
-        mapped.source = 'input';
-        mapped.span = span;
-      } else if (isObjectLike(source) && source.type === 'file' && partAt(parts, source.part) === 'image') {
-        mapped.source = 'image';
-      }
-      if (Array.isArray(items)) {
-        const confidences = items.map(item => (isObjectLike(item) ? asNumber(item.confidence) : undefined));
-        if (confidences.every(confidence => confidence !== undefined)) {
-          mapped.confidences = confidences;
-        }
-        const spans = items.map(item => (isObjectLike(item) ? toExtractSpan(item.source, parts) : null));
-        if (spans.some(itemSpan => itemSpan !== null)) {
-          mapped.spans = spans;
-        }
-      }
-      return [id, mapped];
-    }),
-  );
-}
-
-function partAt(parts: ExtractState['parts'], part: unknown): ExtractState['parts'][number] {
-  const index = asNumber(part);
-  return index === undefined ? undefined : parts[index];
+    }
+    return mapped;
+  });
 }
 
 function toExtractSpan(source: unknown, parts: ExtractState['parts']): [number, number] | null {
   if (!isObjectLike(source) || source.type !== 'text') {
     return null;
   }
-  const offset = partAt(parts, source.part);
-  const start = asNumber(source.start);
-  const end = asNumber(source.end);
-  return typeof offset === 'number' && start !== undefined && end !== undefined ? [offset + start, offset + end] : null;
+  const offset = parts[Number(source.part)];
+  return typeof offset === 'number' ? [offset + Number(source.start), offset + Number(source.end)] : null;
 }
 
 /**
@@ -1006,19 +980,24 @@ function withProviderAnswerFields(result: Record<string, unknown>): unknown {
     return answers;
   }
 
+  return mapObjectValues(answers, (answer, id) => {
+    const openrouterAnswer = openrouterById?.[id];
+    const fields = isObjectLike(openrouterAnswer) ? openrouterAnswer : {};
+    const {
+      confidence = asNumber(confidenceById?.[id]) ?? asNumber(fields.confidence),
+      legend = isObjectLike(fields.legend) ? fields.legend : undefined,
+    } = answer;
+    return { ...answer, confidence, legend };
+  });
+}
+
+/** Maps each object value of `record` and keeps the other values as they are. */
+function mapObjectValues(
+  record: Record<string, unknown>,
+  fn: (value: Record<string, unknown>, key: string) => unknown,
+): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(answers).map(([id, answer]) => {
-      if (!isObjectLike(answer)) {
-        return [id, answer];
-      }
-      const openrouterAnswer = openrouterById?.[id];
-      const fields = isObjectLike(openrouterAnswer) ? openrouterAnswer : {};
-      const {
-        confidence = asNumber(confidenceById?.[id]) ?? asNumber(fields.confidence),
-        legend = isObjectLike(fields.legend) ? fields.legend : undefined,
-      } = answer;
-      return [id, { ...answer, confidence, legend }];
-    }),
+    Object.entries(record).map(([key, value]) => [key, isObjectLike(value) ? fn(value, key) : value]),
   );
 }
 
