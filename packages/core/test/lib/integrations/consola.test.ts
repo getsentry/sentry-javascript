@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getClient, getCurrentScope } from '../../../src/currentScopes';
 import { createConsolaReporter } from '../../../src/integrations/consola';
-import { _INTERNAL_captureLog } from '../../../src/logs/internal';
+import { captureLogEvent } from '../../../src/logs/internal';
 import { formatConsoleArgs } from '../../../src/logs/utils';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 // Mock dependencies
 vi.mock('../../../src/logs/internal', () => ({
-  _INTERNAL_captureLog: vi.fn(),
-  _INTERNAL_flushLogsBuffer: vi.fn(),
+  captureLogEvent: vi.fn(),
+  flushLogsBuffer: vi.fn(),
 }));
 
 vi.mock('../../../src/logs/utils', async importOriginal => {
@@ -72,7 +72,7 @@ describe('createConsolaReporter', () => {
           userId: 123,
           smallObj: { word: 'hi' },
         });
-        const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+        const call = vi.mocked(captureLogEvent).mock.calls[0]![0];
         expect(call.message).toBe(
           'Calling: consola.log({ message: "", time: new Date(), userId: 123, smallObj: { word: "hi" } })',
         );
@@ -95,7 +95,7 @@ describe('createConsolaReporter', () => {
             },
           ],
         });
-        const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+        const call = vi.mocked(captureLogEvent).mock.calls[0]![0];
         expect(call.message).toBe(
           '{"noMessage":"Calling: consola.log({ noMessage: \\"\\", time: new Date() })","time":"2026-02-24T10:24:04.477Z"}',
         );
@@ -118,7 +118,7 @@ describe('createConsolaReporter', () => {
             },
           ],
         });
-        const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+        const call = vi.mocked(captureLogEvent).mock.calls[0]![0];
         expect(call.message).toBe(
           '{"message":"Calling: consola.raw({ message: \\"\\", userId: 123, smallObj: { word: \\"hi\\" } })","userId":123,"smallObj":{"word":"hi"}}',
         );
@@ -137,7 +137,7 @@ describe('createConsolaReporter', () => {
       });
 
       expect(formatConsoleArgs).toHaveBeenCalledWith(['Hello', 'world', 123, { key: 'value' }], 3, 1000);
-      expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
+      expect(captureLogEvent).toHaveBeenCalledWith({
         level: 'info',
         message: 'Hello world 123 {"key":"value"}',
         attributes: {
@@ -158,7 +158,7 @@ describe('createConsolaReporter', () => {
         args: [],
       });
 
-      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      const call = vi.mocked(captureLogEvent).mock.calls[0]![0];
       expect(call.message).toBe('From consola message key');
     });
 
@@ -169,7 +169,7 @@ describe('createConsolaReporter', () => {
       });
 
       expect(formatConsoleArgs).toHaveBeenCalledWith([], 3, 1000);
-      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      const call = vi.mocked(captureLogEvent).mock.calls[0]![0];
       expect(call.message).toBe('');
     });
 
@@ -181,7 +181,7 @@ describe('createConsolaReporter', () => {
         args: [{ 'sentry.origin': 'object-args', 'consola.tag': 'object-args-tag' }, 'Test'],
       });
 
-      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      const call = vi.mocked(captureLogEvent).mock.calls[0]![0];
       expect(call.attributes?.['sentry.origin']).toBe('object-args');
       expect(call.attributes?.['consola.tag']).toBe('object-args-tag');
     });
@@ -198,7 +198,7 @@ describe('createConsolaReporter', () => {
         ],
       });
 
-      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      const call = vi.mocked(captureLogEvent).mock.calls[0]![0];
       expect(call.attributes?.['sentry.message.parameter.0']).toEqual({
         level1: { level2: { level3: '[Object]' } },
         simpleKey: 'simple value',
@@ -219,7 +219,7 @@ describe('createConsolaReporter', () => {
         ],
       });
 
-      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      const call = vi.mocked(captureLogEvent).mock.calls[0]![0];
       expect(call.message).toBe(
         '{"level1":{"level2":{"level3":"[Object]"}},"simpleKey":"simple value"} Deep object 12345 {"another":"object","level1":{"level2":{"level3":"[Object]"}}}',
       );
@@ -237,14 +237,14 @@ describe('createConsolaReporter', () => {
     it('stores Date and Error in message params (fallback)', () => {
       const date = new Date('2023-01-01T00:00:00.000Z');
       sentryReporter.log({ type: 'info', args: ['Time:', date] });
-      expect(vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0]!.attributes?.['sentry.message.parameter.0']).toBe(
+      expect(vi.mocked(captureLogEvent).mock.calls[0]![0]!.attributes?.['sentry.message.parameter.0']).toBe(
         '2023-01-01T00:00:00.000Z',
       );
 
       vi.clearAllMocks();
       const err = new Error('Test error');
       sentryReporter.log({ type: 'error', args: ['Error occurred:', err] });
-      const errCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      const errCall = vi.mocked(captureLogEvent).mock.calls[0]![0];
       expect(errCall.attributes?.['sentry.message.parameter.0']).toMatchObject({
         message: 'Test error',
         name: 'Error',
@@ -253,7 +253,7 @@ describe('createConsolaReporter', () => {
 
     it('handles console substitution patterns in first arg', () => {
       sentryReporter.log({ type: 'info', args: ['Value: %d, another: %s', 42, 'hello'] });
-      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      const call = vi.mocked(captureLogEvent).mock.calls[0]![0];
 
       // We don't substitute as it gets too complicated on the client-side: https://github.com/getsentry/sentry-javascript/pull/17703
       expect(call.message).toBe('Value: %d, another: %s 42 hello');
@@ -270,7 +270,7 @@ describe('createConsolaReporter', () => {
       // @ts-expect-error Testing legacy fallback
       sentryReporter.log({ type: level ?? 'info', args });
       expect(formatConsoleArgs).toHaveBeenCalled();
-      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      const call = vi.mocked(captureLogEvent).mock.calls[0]![0];
       if (template !== undefined) expect(call.attributes?.['sentry.message.template']).toBe(template);
       if (template === 'Normal log {} {}') expect(call.attributes?.data).toBeUndefined();
       if (level) expect(call.level).toBe(level);
@@ -278,7 +278,7 @@ describe('createConsolaReporter', () => {
 
     it('object-first: empty object as first arg', () => {
       sentryReporter.log({ type: 'info', args: [{}, 'Empty object log'] });
-      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      const call = vi.mocked(captureLogEvent).mock.calls[0]![0];
       expect(call.message).toBe('{} Empty object log');
       expect(call.attributes?.['sentry.origin']).toBe('auto.log.consola');
     });
@@ -292,7 +292,7 @@ describe('createConsolaReporter', () => {
         args: ['Message', circular],
       });
 
-      expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
+      expect(captureLogEvent).toHaveBeenCalledWith({
         level: 'info',
         message: 'Message {"self":"[Circular ~]"}',
         attributes: {
@@ -311,7 +311,7 @@ describe('createConsolaReporter', () => {
       });
 
       expect(formatConsoleArgs).toHaveBeenCalledWith(['Hello', 'world', 123, { key: 'value' }], 3, 1000);
-      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      const call = vi.mocked(captureLogEvent).mock.calls[0]![0];
       expect(call.level).toBe('info');
       expect(call.message).toContain('Hello');
       expect(call.attributes?.['sentry.message.template']).toBe('Hello {} {} {}');
@@ -328,7 +328,7 @@ describe('createConsolaReporter', () => {
         sessionId: 'abc-123',
       });
 
-      const call = vi.mocked(_INTERNAL_captureLog).mock.calls[0]![0];
+      const call = vi.mocked(captureLogEvent).mock.calls[0]![0];
       expect(call.message).toBe('User action');
       expect(call.attributes).toMatchObject({
         'consola.type': 'info',
@@ -349,7 +349,7 @@ describe('createConsolaReporter', () => {
     ] as const)('maps type "%s" to Sentry level "%s"', (type, expectedLevel) => {
       sentryReporter.log({ type, args: [`${type} message`] });
 
-      expect(_INTERNAL_captureLog).toHaveBeenCalledWith(
+      expect(captureLogEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           level: expectedLevel,
           message: `${type} message`,
@@ -369,7 +369,7 @@ describe('createConsolaReporter', () => {
     ] as const)('maps consola type "%s" to Sentry level "%s"', (type, expectedLevel) => {
       sentryReporter.log({ type, args: [`Test ${type}`] });
 
-      expect(_INTERNAL_captureLog).toHaveBeenCalledWith(
+      expect(captureLogEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           level: expectedLevel,
           message: `Test ${type}`,
@@ -387,7 +387,7 @@ describe('createConsolaReporter', () => {
         args: ['Fatal message'],
       });
 
-      expect(_INTERNAL_captureLog).toHaveBeenCalledWith(
+      expect(captureLogEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           level: 'fatal',
           message: 'Fatal message',
@@ -411,21 +411,21 @@ describe('createConsolaReporter', () => {
         type: 'error',
         args: ['Error message'],
       });
-      expect(_INTERNAL_captureLog).toHaveBeenCalledTimes(1);
+      expect(captureLogEvent).toHaveBeenCalledTimes(1);
 
       // Should capture warn
       filteredReporter.log({
         type: 'warn',
         args: ['Warn message'],
       });
-      expect(_INTERNAL_captureLog).toHaveBeenCalledTimes(2);
+      expect(captureLogEvent).toHaveBeenCalledTimes(2);
 
       // Should not capture info
       filteredReporter.log({
         type: 'info',
         args: ['Info message'],
       });
-      expect(_INTERNAL_captureLog).toHaveBeenCalledTimes(2);
+      expect(captureLogEvent).toHaveBeenCalledTimes(2);
     });
 
     it('should use default levels when none specified', () => {
@@ -439,7 +439,7 @@ describe('createConsolaReporter', () => {
         });
       });
 
-      expect(_INTERNAL_captureLog).toHaveBeenCalledTimes(6);
+      expect(captureLogEvent).toHaveBeenCalledTimes(6);
     });
   });
 });

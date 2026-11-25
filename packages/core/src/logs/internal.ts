@@ -63,15 +63,15 @@ function setLogAttribute(
  */
 export function bufferSerializedLog(client: Client, serializedLog: SerializedLog): void {
   const bufferMap = _getBufferMap();
-  const logBuffer = _INTERNAL_getLogBuffer(client);
+  const logBuffer = getLogBuffer(client);
 
   if (logBuffer === undefined) {
     // Set up flushing on the first log, so apps that never capture logs don't bundle the flush code.
-    setupWeightBasedFlushing(client, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
+    setupWeightBasedFlushing(client, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, flushLogsBuffer);
     bufferMap.set(client, [serializedLog]);
   } else {
     if (logBuffer.length >= MAX_LOG_BUFFER_SIZE) {
-      _INTERNAL_flushLogsBuffer(client, logBuffer);
+      flushLogsBuffer(client, logBuffer);
       bufferMap.set(client, [serializedLog]);
     } else {
       bufferMap.set(client, [...logBuffer, serializedLog]);
@@ -96,7 +96,7 @@ export const _INTERNAL_captureSerializedLog = bufferSerializedLog;
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function _INTERNAL_captureLog(
+export function captureLogEvent(
   beforeLog: Log,
   currentScope = getCurrentScope(),
   captureSerializedLog: (client: Client, log: SerializedLog) => void = bufferSerializedLog,
@@ -208,6 +208,12 @@ export function _INTERNAL_captureLog(
 }
 
 /**
+ * @deprecated Use `captureLogEvent` instead.
+ */
+// TODO(v12): Remove once the Electron SDK no longer uses it.
+export const _INTERNAL_captureLog = captureLogEvent;
+
+/**
  * Flushes the logs buffer to Sentry.
  *
  * @param client - A client.
@@ -216,8 +222,8 @@ export function _INTERNAL_captureLog(
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array<SerializedLog>): void {
-  const logBuffer = maybeLogBuffer ?? _INTERNAL_getLogBuffer(client) ?? [];
+export function flushLogsBuffer(client: Client, maybeLogBuffer?: Array<SerializedLog>): void {
+  const logBuffer = maybeLogBuffer ?? getLogBuffer(client) ?? [];
   if (logBuffer.length === 0) {
     return;
   }
@@ -242,6 +248,12 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
 }
 
 /**
+ * @deprecated Use `flushLogsBuffer` instead.
+ */
+// TODO(v12): Remove once the React Native SDK no longer uses it.
+export const _INTERNAL_flushLogsBuffer = flushLogsBuffer;
+
+/**
  * Returns the log buffer for a given client.
  *
  * Exported for testing purposes.
@@ -249,7 +261,7 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
  * @param client - The client to get the log buffer for.
  * @returns The log buffer for the given client.
  */
-export function _INTERNAL_getLogBuffer(client: Client): Array<SerializedLog> | undefined {
+export function getLogBuffer(client: Client): Array<SerializedLog> | undefined {
   return _getBufferMap().get(client);
 }
 

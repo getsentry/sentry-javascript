@@ -7,7 +7,7 @@ import type { IntegrationFn } from '../types/integration';
 import { CONSOLE_LEVELS } from '../utils/debug-logger';
 import { isPlainObject } from '../utils/is';
 import { normalize } from '../utils/normalize';
-import { _INTERNAL_captureLog } from './internal';
+import { captureLogEvent } from './internal';
 import { createConsoleTemplateAttributes, formatConsoleArgs, hasConsoleSubstitutions } from './utils';
 
 interface CaptureConsoleOptions {
@@ -42,7 +42,7 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
               followingArgs.length > 0
                 ? `Assertion failed: ${formatConsoleArgs(followingArgs, normalizeDepth, normalizeMaxBreadth)}`
                 : 'Assertion failed';
-            _INTERNAL_captureLog({ level: 'error', message: assertionMessage, attributes: DEFAULT_ATTRIBUTES });
+            captureLogEvent({ level: 'error', message: assertionMessage, attributes: DEFAULT_ATTRIBUTES });
           }
           return;
         }
@@ -76,7 +76,7 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
           }
         }
 
-        _INTERNAL_captureLog({
+        captureLogEvent({
           level: isLevelLog ? 'info' : level,
           message: formatConsoleArgs(args, normalizeDepth, normalizeMaxBreadth),
           severityNumber: isLevelLog ? 10 : undefined,

@@ -182,18 +182,24 @@ export { instrumentFetchRequest, _INTERNAL_getTracingHeadersForFetchRequest } fr
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
 export {
-  _INTERNAL_captureLog,
-  _INTERNAL_flushLogsBuffer,
+  captureLogEvent,
+  flushLogsBuffer,
   bufferSerializedLog,
+  // oxlint-disable-next-line typescript/no-deprecated
+  _INTERNAL_captureLog,
+  // oxlint-disable-next-line typescript/no-deprecated
+  _INTERNAL_flushLogsBuffer,
   // oxlint-disable-next-line typescript/no-deprecated
   _INTERNAL_captureSerializedLog,
 } from './logs/internal';
 export { logger } from './logs/public-api';
 export { consoleLoggingIntegration } from './logs/console-integration';
 export {
-  _INTERNAL_flushMetricsBuffer,
+  flushMetricsBuffer,
   captureMetricEvent,
   bufferSerializedMetric,
+  // oxlint-disable-next-line typescript/no-deprecated
+  _INTERNAL_flushMetricsBuffer,
   // oxlint-disable-next-line typescript/no-deprecated
   _INTERNAL_captureMetric,
   // oxlint-disable-next-line typescript/no-deprecated

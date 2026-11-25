@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Scope } from '../../../src';
-import {
-  captureMetricEvent,
-  _INTERNAL_flushMetricsBuffer,
-  _INTERNAL_getMetricBuffer,
-} from '../../../src/metrics/internal';
+import { captureMetricEvent, flushMetricsBuffer, getMetricBuffer } from '../../../src/metrics/internal';
 import type { Metric } from '../../../src/types/metric';
 import * as loggerModule from '../../../src/utils/debug-logger';
 import * as isBrowserModule from '../../../src/utils/isBrowser';
@@ -28,8 +24,8 @@ describe('captureMetricEvent', () => {
     scope.setClient(client);
 
     captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
-    expect(_INTERNAL_getMetricBuffer(client)).toHaveLength(1);
-    expect(_INTERNAL_getMetricBuffer(client)?.[0]).toEqual(
+    expect(getMetricBuffer(client)).toHaveLength(1);
+    expect(getMetricBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
         name: 'test.metric',
         type: 'counter',
@@ -53,7 +49,7 @@ describe('captureMetricEvent', () => {
 
     captureMetricEvent({ type: 'gauge', name: 'test.gauge', value: 42 }, { scope });
 
-    expect(_INTERNAL_getMetricBuffer(client)?.[0]).toEqual(
+    expect(getMetricBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
         trace_id: '3d9355f71e9c444b81161599adac6e29',
       }),
@@ -72,7 +68,7 @@ describe('captureMetricEvent', () => {
 
     captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
-    const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+    const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
     expect(metricAttributes).toEqual({
       ...SEQUENCE_ATTR,
       'sentry.release': {
@@ -103,7 +99,7 @@ describe('captureMetricEvent', () => {
 
     captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
-    const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+    const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
     expect(metricAttributes).toEqual({
       ...SEQUENCE_ATTR,
       'sentry.sdk.name': {
@@ -129,7 +125,7 @@ describe('captureMetricEvent', () => {
 
     captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
-    const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+    const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
     expect(metricAttributes).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ key: 'sentry.sdk.name' }),
@@ -154,7 +150,7 @@ describe('captureMetricEvent', () => {
       { scope },
     );
 
-    const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+    const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
     expect(metricAttributes).toEqual({
       ...SEQUENCE_ATTR,
       endpoint: {
@@ -178,7 +174,7 @@ describe('captureMetricEvent', () => {
 
     captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
-    const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+    const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
     expect(metricAttributes).toEqual({
       ...SEQUENCE_ATTR,
       scope_attribute_1: {
@@ -209,7 +205,7 @@ describe('captureMetricEvent', () => {
       { scope },
     );
 
-    const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+    const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
     expect(metricAttributes).toEqual({
       ...SEQUENCE_ATTR,
       'my-attribute': { value: 43, type: 'integer' },
@@ -227,13 +223,13 @@ describe('captureMetricEvent', () => {
       captureMetricEvent({ type: 'counter', name: `metric.${i}`, value: i }, { scope });
     }
 
-    expect(_INTERNAL_getMetricBuffer(client)).toHaveLength(1000);
+    expect(getMetricBuffer(client)).toHaveLength(1000);
 
     // Add one more to trigger flush
     captureMetricEvent({ type: 'counter', name: 'trigger.flush', value: 999 }, { scope });
 
     // After flushing the 1000 metrics, the new metric starts a fresh buffer with 1 item
-    const buffer = _INTERNAL_getMetricBuffer(client);
+    const buffer = getMetricBuffer(client);
     expect(buffer).toHaveLength(1);
     expect(buffer?.[0]?.name).toBe('trigger.flush');
   });
@@ -249,7 +245,7 @@ describe('captureMetricEvent', () => {
     captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
     const sendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => {});
-    _INTERNAL_flushMetricsBuffer(client);
+    flushMetricsBuffer(client);
 
     const envelope = sendEnvelope.mock.calls[0]![0];
     const envelopeItemPayload = envelope[1][0][1];
@@ -267,7 +263,7 @@ describe('captureMetricEvent', () => {
     captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
     const sendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => {});
-    _INTERNAL_flushMetricsBuffer(client);
+    flushMetricsBuffer(client);
 
     const envelope = sendEnvelope.mock.calls[0]![0];
     const envelopeItemPayload = envelope[1][0][1];
@@ -279,7 +275,7 @@ describe('captureMetricEvent', () => {
     const client = new TestClient(options);
 
     const mockSendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => {});
-    _INTERNAL_flushMetricsBuffer(client);
+    flushMetricsBuffer(client);
     expect(mockSendEnvelope).not.toHaveBeenCalled();
   });
 
@@ -315,7 +311,7 @@ describe('captureMetricEvent', () => {
       attributes: { original: true },
     });
 
-    const metricBuffer = _INTERNAL_getMetricBuffer(client);
+    const metricBuffer = getMetricBuffer(client);
     expect(metricBuffer).toBeDefined();
     expect(metricBuffer?.[0]).toEqual(
       expect.objectContaining({
@@ -360,7 +356,7 @@ describe('captureMetricEvent', () => {
     expect(beforeSendMetric).toHaveBeenCalled();
     expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'trace_metric', 1);
     expect(loggerWarnSpy).toHaveBeenCalledWith('`beforeSendMetric` returned `null`, will not send metric.');
-    expect(_INTERNAL_getMetricBuffer(client)).toBeUndefined();
+    expect(getMetricBuffer(client)).toBeUndefined();
 
     recordDroppedEventSpy.mockRestore();
     loggerWarnSpy.mockRestore();
@@ -390,7 +386,7 @@ describe('captureMetricEvent', () => {
       'The `beforeSendMetric` callback threw an error, dropping the metric:',
       exception,
     );
-    expect(_INTERNAL_getMetricBuffer(client)).toBeUndefined();
+    expect(getMetricBuffer(client)).toBeUndefined();
 
     recordDroppedEventSpy.mockRestore();
   });
@@ -436,7 +432,7 @@ describe('captureMetricEvent', () => {
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
         ...SEQUENCE_ATTR,
         'sentry.replay_id': {
@@ -465,7 +461,7 @@ describe('captureMetricEvent', () => {
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({ ...SEQUENCE_ATTR });
     });
 
@@ -489,7 +485,7 @@ describe('captureMetricEvent', () => {
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
         ...SEQUENCE_ATTR,
         'sentry.replay_id': {
@@ -514,7 +510,7 @@ describe('captureMetricEvent', () => {
 
       captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({ ...SEQUENCE_ATTR });
     });
 
@@ -547,7 +543,7 @@ describe('captureMetricEvent', () => {
         { scope },
       );
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
         ...SEQUENCE_ATTR,
         endpoint: {
@@ -583,7 +579,7 @@ describe('captureMetricEvent', () => {
 
       testCases.forEach(returnValue => {
         // Clear buffer for each test
-        _INTERNAL_getMetricBuffer(client)?.splice(0);
+        getMetricBuffer(client)?.splice(0);
 
         const mockReplayIntegration = {
           getReplayId: vi.fn(() => returnValue),
@@ -593,7 +589,7 @@ describe('captureMetricEvent', () => {
 
         captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
-        const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+        const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
         expect(metricAttributes).toEqual({ ...SEQUENCE_ATTR });
         expect(metricAttributes).not.toHaveProperty('sentry.replay_id');
       });
@@ -618,7 +614,7 @@ describe('captureMetricEvent', () => {
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
       expect(mockReplayIntegration.getRecordingMode).toHaveBeenCalled();
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
         ...SEQUENCE_ATTR,
         'sentry.replay_id': {
@@ -651,7 +647,7 @@ describe('captureMetricEvent', () => {
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
       expect(mockReplayIntegration.getRecordingMode).toHaveBeenCalled();
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
         ...SEQUENCE_ATTR,
         'sentry.replay_id': {
@@ -681,7 +677,7 @@ describe('captureMetricEvent', () => {
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
       expect(mockReplayIntegration.getRecordingMode).toHaveBeenCalled();
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
         ...SEQUENCE_ATTR,
         'sentry.replay_id': {
@@ -712,7 +708,7 @@ describe('captureMetricEvent', () => {
       // getRecordingMode should not be called if there's no replay ID
       expect(mockReplayIntegration.getRecordingMode).not.toHaveBeenCalled();
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({ ...SEQUENCE_ATTR });
       expect(metricAttributes).not.toHaveProperty('sentry.replay_id');
       expect(metricAttributes).not.toHaveProperty('sentry._internal.replay_is_buffering');
@@ -729,7 +725,7 @@ describe('captureMetricEvent', () => {
 
       captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({ ...SEQUENCE_ATTR });
       expect(metricAttributes).not.toHaveProperty('sentry.replay_id');
       expect(metricAttributes).not.toHaveProperty('sentry._internal.replay_is_buffering');
@@ -764,7 +760,7 @@ describe('captureMetricEvent', () => {
         { scope },
       );
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
         ...SEQUENCE_ATTR,
         endpoint: {
@@ -811,7 +807,7 @@ describe('captureMetricEvent', () => {
 
       captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
         ...SEQUENCE_ATTR,
         'user.id': {
@@ -843,7 +839,7 @@ describe('captureMetricEvent', () => {
 
       captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
         ...SEQUENCE_ATTR,
         'user.id': {
@@ -868,7 +864,7 @@ describe('captureMetricEvent', () => {
 
       captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
         ...SEQUENCE_ATTR,
         'user.email': {
@@ -893,7 +889,7 @@ describe('captureMetricEvent', () => {
 
       captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({ ...SEQUENCE_ATTR });
     });
 
@@ -922,7 +918,7 @@ describe('captureMetricEvent', () => {
         { scope },
       );
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
         ...SEQUENCE_ATTR,
         endpoint: {
@@ -967,7 +963,7 @@ describe('captureMetricEvent', () => {
 
       captureMetricEvent({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
         ...SEQUENCE_ATTR,
         'user.id': {
@@ -1006,7 +1002,7 @@ describe('captureMetricEvent', () => {
         { scope },
       );
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
         ...SEQUENCE_ATTR,
         'user.custom': {
@@ -1050,7 +1046,7 @@ describe('captureMetricEvent', () => {
         { scope },
       );
 
-      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
         ...SEQUENCE_ATTR,
         'other.attr': {
@@ -1107,7 +1103,7 @@ describe('captureMetricEvent', () => {
       { scope },
     );
 
-    const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+    const metricAttributes = getMetricBuffer(client)?.[0]?.attributes;
     expect(metricAttributes).toEqual({
       ...SEQUENCE_ATTR,
       'user.custom': {
@@ -1148,7 +1144,7 @@ describe('captureMetricEvent', () => {
       captureMetricEvent({ type: 'counter', name: 'second', value: 2 }, { scope });
       captureMetricEvent({ type: 'counter', name: 'third', value: 3 }, { scope });
 
-      const buffer = _INTERNAL_getMetricBuffer(client);
+      const buffer = getMetricBuffer(client);
       expect(buffer?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
       expect(buffer?.[1]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 1, type: 'integer' });
       expect(buffer?.[2]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 2, type: 'integer' });
@@ -1172,7 +1168,7 @@ describe('captureMetricEvent', () => {
 
       captureMetricEvent({ type: 'counter', name: 'after reset', value: 2 }, { scope: scope2 });
 
-      const buffer2 = _INTERNAL_getMetricBuffer(client2);
+      const buffer2 = getMetricBuffer(client2);
       expect(buffer2?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
     });
   });
