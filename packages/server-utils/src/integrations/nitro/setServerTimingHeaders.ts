@@ -36,7 +36,7 @@ export function captureServerTimingHeaders(): void {
  * Sets Server-Timing response headers for trace propagation to the client.
  * The browser SDK reads these via the Performance API to connect pageload traces.
  */
-export function setServerTimingHeaders(event: NitroH3Event): void {
+function setServerTimingHeaders(event: NitroH3Event): void {
   if (event.context?._sentryServerTimingSet) {
     return;
   }

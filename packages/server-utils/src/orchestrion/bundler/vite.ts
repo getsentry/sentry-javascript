@@ -8,6 +8,8 @@ import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
 import { createExternalRequireResolver } from './externalRequire';
+import type { NitroModuleLike } from './nitro';
+import { sentryNitroModule } from './nitro';
 import { resolveOrchestrionRuntimeRequest, SNIPPET_IMPORT_SPECIFIER, SNIPPET_IMPORT_SPECIFIER_FILTER } from './resolve';
 
 type TransformHandler = (this: unknown, code: string, id: string, opts?: { ssr?: boolean }) => unknown;
@@ -20,7 +22,11 @@ const INSTANCE_KEY = '__sentryOrchestrionInstance';
 
 type OrchestrionInstance = { transformOptimizedDeps: boolean };
 
-type OrchestrionVitePlugin = Plugin & { [INSTANCE_KEY]?: OrchestrionInstance };
+type OrchestrionVitePlugin = Plugin & {
+  [INSTANCE_KEY]?: OrchestrionInstance;
+  // Nitro's Vite plugin installs this as a Nitro module, also under `nitro build` with a Vite config.
+  nitro?: NitroModuleLike;
+};
 
 function gateTransform(
   transform: Plugin['transform'],
@@ -155,6 +161,7 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
   const plugin: OrchestrionVitePlugin = {
     ...upstream,
     [INSTANCE_KEY]: instance,
+    nitro: sentryNitroModule,
     // On Vite >= 6 `applyToEnvironment` (below) keeps the whole plugin out of
     // client environments. Vite 5 (e.g. Remix v2) ignores that hook, so without
     // this gate the transform would also run in the CLIENT build — where modules

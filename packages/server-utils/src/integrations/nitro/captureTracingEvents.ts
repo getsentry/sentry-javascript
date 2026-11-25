@@ -283,7 +283,7 @@ function setupSrvxTracingChannels(): void {
 /**
  * Sets the parameterized route attributes on the span.
  */
-export function setParameterizedRouteAttributes(span: Span, event: NitroH3Event): void {
+function setParameterizedRouteAttributes(span: Span, event: NitroH3Event): void {
   const matchedRoutePath = getParameterizedRoute(event);
   if (!matchedRoutePath) {
     return;

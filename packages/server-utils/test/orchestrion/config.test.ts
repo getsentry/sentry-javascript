@@ -9,7 +9,6 @@ import {
   withoutInstrumentedExternals,
 } from '../../src/orchestrion/config';
 import { CHANNEL_INTEGRATION_DEFINITIONS } from '../../src/orchestrion/config/channel-integration-definitions';
-import { nitroChannels, nitroConfig } from '../../src/orchestrion/config/nitro';
 import { MODULE_REGISTRATION_TRANSFORM } from '../../src/orchestrion/config/registration-only';
 
 describe('orchestrion config — scoped @hapi/hapi module', () => {
@@ -77,16 +76,6 @@ describe('orchestrion config — Flue', () => {
   // Registration-only configs carry a custom transform the runtime loader cannot apply.
   it('excludes @flue/runtime from the runtime loader', () => {
     expect(SENTRY_RUNTIME_INSTRUMENTATIONS.map(i => i.module.name)).not.toContain('@flue/runtime');
-  });
-});
-
-describe('orchestrion config — Nitro', () => {
-  it('names a channel in nitroChannels for every injected target', () => {
-    const channels = nitroConfig
-      .filter(config => !config.transform)
-      .map(config => `orchestrion:${config.module.name}:${config.channelName}`);
-
-    expect(channels.sort()).toEqual(Object.values(nitroChannels).sort());
   });
 });
 

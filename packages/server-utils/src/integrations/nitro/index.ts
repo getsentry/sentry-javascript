@@ -1,10 +1,7 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
-import { capturePrepareResponse } from './capturePrepareResponse';
 import { captureStorageEvents } from './captureStorageEvents';
 import { captureTracingEvents } from './captureTracingEvents';
-import { captureNitroDevServer } from './devServer';
 import { captureServerTimingHeaders } from './setServerTimingHeaders';
 
 const INTEGRATION_NAME = 'Nitro' as const;
@@ -42,15 +39,6 @@ const _nitroIntegration = ((options: NitroIntegrationOptions = {}) => {
         captureServerTimingHeaders();
       }
     },
-    setup(client) {
-      // These create no spans, so they do not need the tracing channel binding.
-      invokeOrchestrionInstrumentation(client, ['h3'], capturePrepareResponse, [serverTiming], {
-        requiresTracingChannelBinding: false,
-      });
-      invokeOrchestrionInstrumentation(client, ['nitro'], captureNitroDevServer, [], {
-        requiresTracingChannelBinding: false,
-      });
-    },
   };
 }) satisfies IntegrationFn;
 
@@ -58,8 +46,7 @@ const _nitroIntegration = ((options: NitroIntegrationOptions = {}) => {
  * Instruments a Nitro server via its `node:diagnostics_channel` tracing channels: HTTP server and
  * middleware spans (h3/srvx), cache spans (unstorage) and `Server-Timing` trace-propagation headers.
  * It subscribes to those channels, so it is inert unless a Nitro app (or a framework that enables the
- * same tracing channels) is running. With the Sentry runtime hook or bundler plugin, it also sets the
- * route name and the `Server-Timing` headers through channels injected into h3.
+ * same tracing channels) is running.
  *
  * Registered regardless of whether tracing is enabled, because trace propagation must work in
  * tracing-without-performance mode too; without tracing, the spans it starts are non-recording.

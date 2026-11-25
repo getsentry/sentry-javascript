@@ -94,16 +94,14 @@ test('captures Vercel AI agent spans (invoke_agent, generate_content, execute_to
   const agentServerSpans = traceSpans.filter(isAgentServerSpan);
   expect(agentServerSpans.length).toBeGreaterThanOrEqual(1);
 
-  // Orchestrion instruments the h3 app inside eve, which names the span after the route it matched. Both agent
-  // paths are static routes, so the route is the path. Without it, the server span name is just the method.
-  const hasRoute = process.env.USE_ORCHESTRION === '1';
   for (const span of agentServerSpans) {
     expect(span).toMatchObject({
-      name: hasRoute ? `POST ${span.attributes?.['url.path']?.value}` : 'POST',
+      // no parametrization available, so the server span name is just the method
+      name: 'POST',
       attributes: {
         'sentry.origin': { value: 'auto.http.http_server', type: 'string' },
         'sentry.op': { value: 'http.server', type: 'string' },
-        'sentry.segment.name.source': { value: hasRoute ? 'route' : 'url', type: 'string' },
+        'sentry.segment.name.source': { value: 'url', type: 'string' },
         'sentry.kind': { value: 'server', type: 'string' },
         'url.path': { value: expect.stringMatching(EVE_AGENT_PATH), type: 'string' },
         'http.request.method': { value: 'POST', type: 'string' },
