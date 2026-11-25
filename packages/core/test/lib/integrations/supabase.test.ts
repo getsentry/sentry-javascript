@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as breadcrumbModule from '../../../src/breadcrumbs';
 import * as exportsModule from '../../../src/exports';
+import { setHttpStatus } from '../../../src/tracing';
 import {
   extractOperation,
   instrumentSupabaseClient,
@@ -221,6 +222,18 @@ describe('Supabase Integration', () => {
       await builder.select('*');
 
       expect(captureExceptionSpy).toHaveBeenCalled();
+    });
+
+    it.each([
+      { status: 0, expected: 0 },
+      { status: undefined, expected: 500 },
+    ])('reports HTTP status $expected when response status is $status', async ({ status, expected }) => {
+      const client = createMockSupabaseClient({ status, error: { message: 'TypeError: fetch failed' } });
+      instrumentSupabaseClient(client);
+
+      await (client as any).from('todos').select('*');
+
+      expect(setHttpStatus).toHaveBeenCalledWith(expect.anything(), expected);
     });
   });
 
