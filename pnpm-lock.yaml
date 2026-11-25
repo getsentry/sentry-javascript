@@ -891,6 +891,9 @@ importers:
       ws:
         specifier: ^8.20.1
         version: 8.22.2
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
       yargs:
         specifier: ^18.2.0
         version: 18.2.0
