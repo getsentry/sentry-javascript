@@ -92,6 +92,7 @@ export class ServerRuntimeClient<
    */
   public captureException(exception: unknown, hint?: EventHint, scope?: Scope): string {
     setCurrentRequestSessionErroredOrCrashed(hint);
+    // oxlint-disable-next-line sdk/require-exception-mechanism -- passes the caller's hint through
     return super.captureException(exception, hint, scope);
   }
 

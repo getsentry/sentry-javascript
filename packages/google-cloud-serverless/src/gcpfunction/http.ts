@@ -101,6 +101,7 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
           return handleCallbackErrors(
             () => fn(req, res),
             err => {
+              // oxlint-disable-next-line sdk/require-exception-mechanism -- mechanism is set by `markEventUnhandled`
               captureException(err, scope => markEventUnhandled(scope, 'auto.function.serverless.gcp_http'));
             },
           );

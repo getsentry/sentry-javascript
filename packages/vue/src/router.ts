@@ -73,7 +73,7 @@ export function instrumentVueRouter(
   // Vue Router 4+ uses `options.history` instead and does not expose `mode`.
   const isLegacyRouter = 'mode' in router;
 
-  router.onError(error => captureException(error, { mechanism: { handled: false } }));
+  router.onError(error => captureException(error, { mechanism: { handled: false, type: 'auto.function.vue.router' } }));
 
   // Use rest params to capture `next` without declaring it as a named parameter.
   // This keeps Function.length === 2, which tells Vue Router 4+/5+ to use the

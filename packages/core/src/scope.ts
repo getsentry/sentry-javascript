@@ -681,6 +681,7 @@ export class Scope {
 
     const syntheticException = new Error('Sentry syntheticException');
 
+    // oxlint-disable-next-line sdk/require-exception-mechanism -- public API, passes the caller's hint through
     this._client.captureException(
       exception,
       {

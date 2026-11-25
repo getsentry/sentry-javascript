@@ -134,6 +134,7 @@ export function bindTracingChannelToSpan<TData extends object>(
   // channel `error` lifecycle and the deferred `end` util so the two can't drift.
   const annotateSpanError = (span: Span, error: unknown): void => {
     if (opts?.captureError) {
+      // oxlint-disable-next-line sdk/require-exception-mechanism -- hint comes from `getErrorHint`, which sets a mechanism unless `captureError` overrides it
       captureException(error, getErrorHint(error));
     }
 

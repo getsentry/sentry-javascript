@@ -511,6 +511,7 @@ function instrumentPostgRESTFilterBuilder(
                       supabaseContext.body = bodyPayload;
                     }
 
+                    // oxlint-disable-next-line sdk/require-exception-mechanism -- mechanism is set by the event processor below
                     captureException(err, scope => {
                       scope.addEventProcessor(e => {
                         addExceptionMechanism(e, {

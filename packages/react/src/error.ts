@@ -58,6 +58,7 @@ export function captureReactException(
     setCause(error, errorBoundaryError);
   }
 
+  // oxlint-disable-next-line sdk/require-exception-mechanism -- public API, passes the caller's hint through
   return captureException(error, hint);
 }
 

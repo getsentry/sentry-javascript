@@ -185,6 +185,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
 
             const error = captureObj[errorKey];
             if (error) {
+              // oxlint-disable-next-line sdk/require-exception-mechanism -- mechanism is set by the event processor above
               captureException(error, captureContext);
               return;
             }
