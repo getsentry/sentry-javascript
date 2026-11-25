@@ -496,7 +496,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up build Node
+      - name: Set up repository-pinned Node.js for building
         uses: ./.github/actions/setup-node
       - name: Restore workspace dependencies
         uses: ./.github/actions/install-dependencies
@@ -587,7 +587,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up build Node
+      - name: Set up repository-pinned Node.js for building
         uses: ./.github/actions/setup-node
       - name: Restore workspace dependencies
         uses: ./.github/actions/install-dependencies

@@ -13,7 +13,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Set up build Node
+    - name: Set up repository-pinned Node.js for building
       if: inputs.setup == 'true'
       uses: ./.github/actions/setup-node
     - name: Restore workspace dependencies
