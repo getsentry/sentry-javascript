@@ -8,8 +8,7 @@
 import { MCP_AUTH_CLIENT_NAME, MCP_METHOD_NAME, MCP_PROTOCOL_VERSION } from '@sentry/conventions/attributes';
 import { getClient, getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { DEBUG_BUILD } from '../../debug-build';
-import { withActiveSpan } from '../../tracing';
-import { startInactiveSpan } from '../../tracing/trace';
+import { startInactiveSpan, startSpanManual } from '../../tracing/trace';
 import type { Span } from '../../types/span';
 import { getActiveSpan, spanToJSON } from '../../utils/spanUtils';
 import { fill } from '../../utils/object';
@@ -150,7 +149,10 @@ export function wrapTransportOnMessage(
                 );
               }
 
-              return withActiveSpan(startRequestSpan(), callOriginal);
+              return startSpanManual(spanConfig, span => {
+                storeSpanForRequest(transport, request.id, span, request.method, resolvedOptions);
+                return callOriginal();
+              });
             }),
           );
         }

@@ -63,7 +63,7 @@ function createStartingMcpServer() {
 
 describe('MCP Server Transport Instrumentation', () => {
   const startSpanSpy = vi.spyOn(tracingModule, 'startSpan');
-  const startInactiveSpanSpy = vi.spyOn(tracingModule, 'startInactiveSpan');
+  const startSpanManualSpy = vi.spyOn(tracingModule, 'startSpanManual');
   const getClientSpy = vi.spyOn(currentScopes, 'getClient');
 
   beforeEach(() => {
@@ -141,24 +141,27 @@ describe('MCP Server Transport Instrumentation', () => {
 
       await wrapMcpServerWithSentry(createStartingMcpServer()).connect(transport);
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
-        name: 'tools/call get-weather',
-        forceTransaction: true,
-        attributes: {
-          'mcp.method.name': 'tools/call',
-          'mcp.tool.name': 'get-weather',
-          'mcp.request.id': 'queued-request',
-          'mcp.transport': 'InMemoryTransport',
-          'network.transport': 'unknown',
-          'network.protocol.version': '2.0',
-          'sentry.op': 'mcp.server',
-          'sentry.origin': 'auto.function.mcp_server',
-          'sentry.segment.name.source': 'route',
+      expect(startSpanManualSpy).toHaveBeenCalledOnce();
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
+        {
+          name: 'tools/call get-weather',
+          forceTransaction: true,
+          attributes: {
+            'mcp.method.name': 'tools/call',
+            'mcp.tool.name': 'get-weather',
+            'mcp.request.id': 'queued-request',
+            'mcp.transport': 'InMemoryTransport',
+            'network.transport': 'unknown',
+            'network.protocol.version': '2.0',
+            'sentry.op': 'mcp.server',
+            'sentry.origin': 'auto.function.mcp_server',
+            'sentry.segment.name.source': 'route',
+          },
         },
-      });
+        expect.any(Function),
+      );
 
-      startInactiveSpanSpy.mockClear();
+      startSpanManualSpy.mockClear();
       transport.onmessage?.({
         jsonrpc: '2.0',
         method: 'tools/call',
@@ -166,7 +169,7 @@ describe('MCP Server Transport Instrumentation', () => {
         params: { name: 'get-weather' },
       });
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
+      expect(startSpanManualSpy).toHaveBeenCalledOnce();
     });
 
     it('preserves the start receiver and Promise and restores the inherited method before calling it', async () => {
@@ -258,7 +261,7 @@ describe('MCP Server Transport Instrumentation', () => {
       });
 
       expect(originalStart).toHaveBeenCalledOnce();
-      expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
+      expect(startSpanManualSpy).toHaveBeenCalledOnce();
     });
 
     it('should create spans for incoming JSON-RPC requests', async () => {
@@ -274,11 +277,12 @@ describe('MCP Server Transport Instrumentation', () => {
       // Simulate incoming message
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/call get-weather',
           forceTransaction: true,
         }),
+        expect.any(Function),
       );
     });
 
@@ -349,7 +353,7 @@ describe('MCP Server Transport Instrumentation', () => {
         end: vi.fn(),
         isRecording: vi.fn().mockReturnValue(true),
       };
-      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+      startSpanManualSpy.mockImplementation((_options, callback) => callback(mockSpan as any, () => {}));
 
       await wrappedMcpServer.connect(mockTransport);
 
@@ -382,7 +386,7 @@ describe('MCP Server Transport Instrumentation', () => {
         end: vi.fn(),
         isRecording: vi.fn().mockReturnValue(true),
       };
-      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+      startSpanManualSpy.mockImplementation((_options, callback) => callback(mockSpan as any, () => {}));
 
       await wrappedMcpServer.connect(mockTransport);
 
@@ -430,23 +434,26 @@ describe('MCP Server Transport Instrumentation', () => {
 
       mockStdioTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
-        name: 'tools/call process-file',
-        forceTransaction: true,
-        attributes: {
-          'mcp.method.name': 'tools/call',
-          'mcp.tool.name': 'process-file',
-          'mcp.request.id': 'req-stdio-1',
-          'mcp.session.id': 'stdio-session-456',
-          'mcp.transport': 'StdioServerTransport',
-          'network.transport': 'pipe', // Should be pipe, not tcp
-          'network.protocol.version': '2.0',
-          'mcp.request.argument.path': '"/tmp/data.txt"',
-          'sentry.op': 'mcp.server',
-          'sentry.origin': 'auto.function.mcp_server',
-          'sentry.segment.name.source': 'route',
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
+        {
+          name: 'tools/call process-file',
+          forceTransaction: true,
+          attributes: {
+            'mcp.method.name': 'tools/call',
+            'mcp.tool.name': 'process-file',
+            'mcp.request.id': 'req-stdio-1',
+            'mcp.session.id': 'stdio-session-456',
+            'mcp.transport': 'StdioServerTransport',
+            'network.transport': 'pipe', // Should be pipe, not tcp
+            'network.protocol.version': '2.0',
+            'mcp.request.argument.path': '"/tmp/data.txt"',
+            'sentry.op': 'mcp.server',
+            'sentry.origin': 'auto.function.mcp_server',
+            'sentry.segment.name.source': 'route',
+          },
         },
-      });
+        expect.any(Function),
+      );
     });
 
     it('should handle stdio transport notifications correctly', async () => {
@@ -504,7 +511,7 @@ describe('MCP Server Transport Instrumentation', () => {
 
       mockSseTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'resources/read https://api.example.com/data',
           attributes: expect.objectContaining({
@@ -515,6 +522,7 @@ describe('MCP Server Transport Instrumentation', () => {
             'mcp.session.id': 'sse-session-789',
           }),
         }),
+        expect.any(Function),
       );
     });
   });
@@ -877,7 +885,7 @@ describe('MCP Server Transport Instrumentation', () => {
       await wrappedMcpServer.connect(transport);
 
       const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
-      startInactiveSpanSpy.mockReturnValue(mockSpan);
+      startSpanManualSpy.mockImplementation((_options, callback) => callback(mockSpan as any, () => {}));
 
       transport.onmessage?.(
         {
@@ -889,7 +897,7 @@ describe('MCP Server Transport Instrumentation', () => {
         {},
       );
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             'mcp.client.name': 'test-client',
@@ -897,6 +905,7 @@ describe('MCP Server Transport Instrumentation', () => {
             'mcp.protocol.version': '2025-06-18',
           }),
         }),
+        expect.any(Function),
       );
       expect(mockSpan.setAttributes).not.toHaveBeenCalled();
     });
@@ -909,7 +918,7 @@ describe('MCP Server Transport Instrumentation', () => {
       await wrappedMcpServer.connect(transport);
 
       const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
-      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+      startSpanManualSpy.mockImplementation((_options, callback) => callback(mockSpan as any, () => {}));
 
       transport.onmessage?.(
         {
@@ -964,7 +973,7 @@ describe('MCP Server Transport Instrumentation', () => {
         { classification: { era: 'modern', revision: '2026-07-28' } },
       );
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             'mcp.client.name': 'modern-client',
@@ -972,6 +981,7 @@ describe('MCP Server Transport Instrumentation', () => {
             'mcp.protocol.version': '2026-07-28',
           }),
         }),
+        expect.any(Function),
       );
     });
 
@@ -981,7 +991,7 @@ describe('MCP Server Transport Instrumentation', () => {
       const transport = createMockTransport();
       transport.sessionId = '';
       const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
-      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+      startSpanManualSpy.mockImplementation((_options, callback) => callback(mockSpan as any, () => {}));
 
       await wrappedMcpServer.connect(transport);
 
@@ -1063,7 +1073,7 @@ describe('MCP Server Transport Instrumentation', () => {
       const transport = createMockTransport();
       transport.sessionId = '';
       const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
-      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+      startSpanManualSpy.mockImplementation((_options, callback) => callback(mockSpan as any, () => {}));
 
       await wrappedMcpServer.connect(transport);
 
@@ -1122,12 +1132,13 @@ describe('MCP Server Transport Instrumentation', () => {
         {},
       );
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.not.objectContaining({
             'mcp.request.argument.location': expect.anything(),
           }),
         }),
+        expect.any(Function),
       );
     });
 
@@ -1150,12 +1161,13 @@ describe('MCP Server Transport Instrumentation', () => {
         {},
       );
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             'mcp.request.argument.location': '"London"',
           }),
         }),
+        expect.any(Function),
       );
     });
 
@@ -1178,12 +1190,13 @@ describe('MCP Server Transport Instrumentation', () => {
         {},
       );
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.not.objectContaining({
             'mcp.request.argument.location': expect.anything(),
           }),
         }),
+        expect.any(Function),
       );
     });
   });
@@ -1211,7 +1224,7 @@ describe('MCP Server Transport Instrumentation', () => {
       await wrappedMcpServer.connect(wrapper);
 
       const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
-      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+      startSpanManualSpy.mockImplementation((_options, callback) => callback(mockSpan as any, () => {}));
 
       // Simulate incoming request - due to getter/setter, onmessage runs on inner transport
       // but we call it via the wrapper's property access
@@ -1225,10 +1238,11 @@ describe('MCP Server Transport Instrumentation', () => {
         {},
       );
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/call test-tool',
         }),
+        expect.any(Function),
       );
 
       // Simulate outgoing response - send is called on wrapper, but the bug was that
@@ -1253,7 +1267,7 @@ describe('MCP Server Transport Instrumentation', () => {
       await wrappedMcpServer.connect(wrapper);
 
       const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
-      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+      startSpanManualSpy.mockImplementation((_options, callback) => callback(mockSpan as any, () => {}));
 
       inner.onmessage?.call(
         inner,
@@ -1319,7 +1333,7 @@ describe('MCP Server Transport Instrumentation', () => {
         {},
       );
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             'mcp.client.name': 'test-client',
@@ -1329,6 +1343,7 @@ describe('MCP Server Transport Instrumentation', () => {
             'mcp.server.version': '2.0.0',
           }),
         }),
+        expect.any(Function),
       );
     });
 
@@ -1340,7 +1355,7 @@ describe('MCP Server Transport Instrumentation', () => {
       await wrappedMcpServer.connect(wrapper);
 
       const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn() };
-      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+      startSpanManualSpy.mockImplementation((_options, callback) => callback(mockSpan as any, () => {}));
 
       // Initialize request
       wrapper.onmessage?.(
@@ -1368,13 +1383,14 @@ describe('MCP Server Transport Instrumentation', () => {
       });
 
       // Span should have client and server info attributes
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             'mcp.client.name': 'test-client',
             'mcp.client.version': '1.0.0',
           }),
         }),
+        expect.any(Function),
       );
       expect(mockSpan.setAttributes).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1393,7 +1409,7 @@ describe('MCP Server Transport Instrumentation', () => {
       await wrappedMcpServer.connect(wrapper);
 
       const mockSpan = { setAttribute: vi.fn(), setAttributes: vi.fn(), end: vi.fn(), setStatus: vi.fn() };
-      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+      startSpanManualSpy.mockImplementation((_options, callback) => callback(mockSpan as any, () => {}));
 
       // Start a request but don't complete it
       wrapper.onmessage?.(

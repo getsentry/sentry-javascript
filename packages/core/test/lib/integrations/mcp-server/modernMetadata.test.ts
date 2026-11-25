@@ -17,10 +17,10 @@ describe('MCP request metadata isolation', () => {
   beforeEach(() => {
     spans.length = 0;
     vi.spyOn(currentScopes, 'getClient').mockReturnValue(createMockClient());
-    vi.spyOn(tracing, 'startInactiveSpan').mockImplementation(options => {
+    vi.spyOn(tracing, 'startSpanManual').mockImplementation((options, callback) => {
       const span = new SentrySpan(options);
       spans.push(span);
-      return span;
+      return callback(span, () => {});
     });
   });
 

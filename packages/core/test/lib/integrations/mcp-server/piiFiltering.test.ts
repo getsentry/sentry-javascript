@@ -6,7 +6,7 @@ import * as tracingModule from '../../../../src/tracing/trace';
 import { createMockClient, createMockMcpServer, createMockTransport } from './testUtils';
 
 describe('MCP Server PII Filtering', () => {
-  const startInactiveSpanSpy = vi.spyOn(tracingModule, 'startInactiveSpan');
+  const startSpanManualSpy = vi.spyOn(tracingModule, 'startSpanManual');
   const getClientSpy = vi.spyOn(currentScopes, 'getClient');
 
   beforeEach(() => {
@@ -45,13 +45,14 @@ describe('MCP Server PII Filtering', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, extraWithClientInfo);
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             'client.address': '192.168.1.100',
             'client.port': 54321,
           }),
         }),
+        expect.any(Function),
       );
     });
 
@@ -77,22 +78,24 @@ describe('MCP Server PII Filtering', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, extraWithClientInfo);
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.not.objectContaining({
             'client.address': expect.anything(),
             'client.port': expect.anything(),
           }),
         }),
+        expect.any(Function),
       );
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             'mcp.tool.name': 'weather',
             'mcp.method.name': 'tools/call',
           }),
         }),
+        expect.any(Function),
       );
     });
   });
