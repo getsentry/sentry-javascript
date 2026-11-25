@@ -30,14 +30,14 @@ jobs:
       fail-fast: false
       matrix:
         runner: [ubuntu-24.04, ubuntu-24.04-arm]
-        app: [nextjs-16, nuxt-4, react-router-7-lazy-routes, sveltekit-2, solidstart, aws-serverless-layer, aws-serverless]
+        app: [all]
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/build-local-sdk
         with:
-          package-path: dev-packages/e2e-tests/test-applications/${{ matrix.app }}
-          targets: build:tarball
+          package-path: .
+          targets: build:tarball build:bundle
       - run: |
           until gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' | grep -qx central-manifest; do
             status=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs --jq '.jobs[] | select(.name == "central") | .conclusion')
@@ -50,35 +50,9 @@ jobs:
         with:
           name: central-manifest
           path: ${{ runner.temp }}/central
-      - run: python3 .github/verification/compare-artifacts.py compare "$RUNNER_TEMP/central/central-manifest.json"
+      - run: python3 .github/verification/compare-artifacts.py compare "$RUNNER_TEMP/central/central-manifest.json" --complete
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: comparison-${{ matrix.app }}-${{ matrix.runner }}
-          path: comparison.json
-  browser:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/build-local-sdk
-        with:
-          package-path: dev-packages/browser-integration-tests
-          targets: build:transpile build:types build:bundle
-      - run: |
-          until gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[].name' | grep -qx central-manifest; do
-            status=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs --jq '.jobs[] | select(.name == "central") | .conclusion')
-            if [ "$status" = failure ] || [ "$status" = cancelled ]; then exit 1; fi
-            sleep 5
-          done
-        env:
-          GH_TOKEN: ${{ github.token }}
-      - uses: actions/download-artifact@v8
-        with:
-          name: central-manifest
-          path: ${{ runner.temp }}/central
-      - run: python3 .github/verification/compare-artifacts.py compare "$RUNNER_TEMP/central/central-manifest.json"
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: comparison-browser
           path: comparison.json

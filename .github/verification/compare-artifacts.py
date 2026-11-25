@@ -41,6 +41,8 @@ else:
                 for f in sorted(set(entries) | set(expected[name])):
                     if entries.get(f) != expected[name].get(f):
                         failures.append(f'  {f}: {expected[name].get(f)} -> {entries.get(f)}')
+    if '--complete' in sys.argv:
+        failures.extend(f'Missing output: {name}' for name in sorted(set(expected) - set(actual)))
     report = {'outputs_compared': len(actual), 'tarballs_compared': sum(x.endswith('.tgz') for x in actual),
               'bundle_files_compared': sum('/build/bundles/' in x for x in actual), 'differences': failures}
     Path('comparison.json').write_text(json.dumps(report, indent=2))
