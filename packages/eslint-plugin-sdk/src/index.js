@@ -12,6 +12,7 @@ module.exports = {
   rules: {
     'no-eq-empty': require('./rules/no-eq-empty'),
     'no-class-field-initializers': require('./rules/no-class-field-initializers'),
+    'no-unguarded-debug-logs': require('./rules/no-unguarded-debug-logs'),
     'no-regexp-constructor': require('./rules/no-regexp-constructor'),
     'no-focused-tests': require('./rules/no-focused-tests'),
     'no-skipped-tests': require('./rules/no-skipped-tests'),

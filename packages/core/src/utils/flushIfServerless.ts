@@ -2,6 +2,7 @@ import { getIsolationScope } from '../currentScopes';
 import { getDefaultIsolationScope } from '../defaultScopes';
 import { flush } from '../exports';
 import type { Scope } from '../scope';
+import { DEBUG_BUILD } from '../debug-build';
 import { debug } from './debug-logger';
 import { vercelWaitUntil } from './vercelWaitUntil';
 import { GLOBAL_OBJ } from './worldwide';
@@ -39,11 +40,11 @@ export function setScopeFlushedByRuntime(scope: Scope): void {
 
 async function flushWithTimeout(timeout: number): Promise<void> {
   try {
-    debug.log('Flushing events...');
+    DEBUG_BUILD && debug.log('Flushing events...');
     await flush(timeout);
-    debug.log('Done flushing events');
+    DEBUG_BUILD && debug.log('Done flushing events');
   } catch (e) {
-    debug.log('Error while flushing events:\n', e);
+    DEBUG_BUILD && debug.log('Error while flushing events:\n', e);
   }
 }
 

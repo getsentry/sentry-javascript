@@ -325,7 +325,7 @@ async function forwardEnvelope(request: Request, allowedDsns: Array<string>): Pr
       } as RequestInit),
     );
   } catch (error) {
-    debug.error('Sentry tunnel: failed to forward envelope', error);
+    DEBUG_BUILD && debug.error('Sentry tunnel: failed to forward envelope', error);
     return new Response('Failed to forward envelope to Sentry', { status: 500 });
   }
 }
@@ -356,13 +356,13 @@ function resolveIngestUrl(headerLine: Uint8Array, allowedDsns: Array<string>): s
   const isAllowed = allowedDsns.some(allowed => allowed === dsn);
 
   if (!isAllowed) {
-    debug.warn(`Sentry tunnel: rejected request with unauthorized DSN (${dsn})`);
+    DEBUG_BUILD && debug.warn(`Sentry tunnel: rejected request with unauthorized DSN (${dsn})`);
     return new Response('DSN not allowed', { status: 403 });
   }
 
   const dsnComponents = makeDsn(dsn);
   if (!dsnComponents) {
-    debug.warn(`Could not extract DSN Components from: ${dsn}`);
+    DEBUG_BUILD && debug.warn(`Could not extract DSN Components from: ${dsn}`);
     return new Response('Invalid DSN', { status: 403 });
   }
 
