@@ -359,24 +359,27 @@ function deferStreamTextOperationEnd(
   const streamResult = data.result;
   void (async () => {
     try {
-      const [usage, text, objectOutcome, toolCalls, finishReason, response] = await Promise.all([
-        streamResult.totalUsage ?? streamResult.usage,
-        streamResult.text,
-        // Settle `object` into an outcome so a validation failure can't short-circuit the usage read.
-        type === 'streamObject'
-          ? Promise.resolve(streamResult.object).then(
-              value => ({ value }),
-              (error: unknown) => ({ value: undefined, error }),
-            )
-          : { value: undefined },
-        streamResult.toolCalls,
-        streamResult.finishReason,
-        streamResult.response,
-      ]);
+      const [usage, text, objectOutcome, toolCalls, finishReason, response, steps, providerMetadata] =
+        await Promise.all([
+          streamResult.totalUsage ?? streamResult.usage,
+          streamResult.text,
+          // Settle `object` into an outcome so a validation failure can't short-circuit the usage read.
+          type === 'streamObject'
+            ? Promise.resolve(streamResult.object).then(
+                value => ({ value }),
+                (error: unknown) => ({ value: undefined, error }),
+              )
+            : { value: undefined },
+          streamResult.toolCalls,
+          streamResult.finishReason,
+          streamResult.response,
+          streamResult.steps,
+          streamResult.providerMetadata,
+        ]);
       if ('error' in objectOutcome) {
         // The model call itself succeeded, so keep its usage on the span; `beforeSpanEnd` skips
         // enrichment once `end(error)` marks the payload as errored.
-        message.result = { usage, toolCalls, finishReason, response };
+        message.result = { usage, toolCalls, finishReason, response, steps, providerMetadata };
         enrichSpanOnEnd(span, message);
         end(objectOutcome.error);
         return;
@@ -389,6 +392,8 @@ function deferStreamTextOperationEnd(
         toolCalls,
         finishReason,
         response,
+        steps,
+        providerMetadata,
       };
       end();
     } catch (error) {

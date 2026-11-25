@@ -465,14 +465,14 @@ function enrichInvokeAgentFromStream(span: Span, final: StreamedModelCallResult,
   const usage = isObjectLike(final.usage) ? final.usage : undefined;
   if (usage) {
     const input = tokenCount(usage.inputTokens) ?? tokenCount(usage.promptTokens) ?? tokenCount(usage.tokens);
-    const output = tokenCount(usage.outputTokens) ?? tokenCount(usage.completionTokens);
+    const { output, reasoning } = modelCallTokens(usage, final.providerMetadata);
     addTokensToSpan(span, GEN_AI_USAGE_INPUT_TOKENS, input);
     addTokensToSpan(span, GEN_AI_USAGE_OUTPUT_TOKENS, output);
     addTokensToSpan(span, GEN_AI_USAGE_TOTAL_TOKENS, tokenCount(usage.totalTokens) ?? sum(input, output));
     const { cacheRead, cacheWrite } = cacheTokens(usage);
     addTokensToSpan(span, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheRead);
     addTokensToSpan(span, GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWrite);
-    addTokensToSpan(span, GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, reasoningTokens(usage));
+    addTokensToSpan(span, GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, reasoning);
   }
 
   if (recordOutputs) {
@@ -830,8 +830,13 @@ export function enrichSpanOnEnd(span: Span, data: VercelAiChannelMessage): void 
   const providerAttributes = getProviderMetadataAttributes(providerMetadata);
   dropLastStepOnlyUsage(providerAttributes, type);
   span.setAttributes(providerAttributes);
-  if (usage) {
-    setUsageReasoningTokens(span, type, usage, providerMetadata);
+  if (ROOT_OPERATION_TYPES.has(type)) {
+    setOperationTokens(span, result, usage, providerMetadata);
+  } else {
+    const { reasoning } = modelCallTokens(usage, providerMetadata);
+    if (reasoning !== undefined) {
+      span.setAttribute(GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, reasoning);
+    }
   }
 
   if (recordOutputs) {
@@ -914,49 +919,63 @@ function tokenCount(value: unknown): number | undefined {
 }
 
 /**
- * Reasoning tokens as the AI SDK normalizes them from v6 on, where output includes reasoning: model
- * calls report `outputTokens.reasoning`, operations `outputTokenDetails.reasoningTokens` summed across
- * steps. Zero means the model did not reason, so it is not recorded.
+ * Reasoning tokens from the SDK's usage. From v6 on, output includes reasoning: model calls report
+ * `outputTokens.reasoning`, aggregates `outputTokenDetails.reasoningTokens`. v5's flat `reasoningTokens`
+ * is read only for OpenAI, whose output includes it. Google's comes from `providerMetadata`, which also
+ * corrects its output, and other v5 providers don't say whether their output includes it.
  */
-function reasoningTokens(usage: Record<string, unknown>): number | undefined {
+function reasoningTokens(usage: Record<string, unknown>, providerMetadata: unknown): number | undefined {
   const outputTokens = isObjectLike(usage.outputTokens) ? usage.outputTokens : undefined;
   const outputTokenDetails = isObjectLike(usage.outputTokenDetails) ? usage.outputTokenDetails : undefined;
   const reasoning = asNumber(outputTokens?.reasoning) ?? asNumber(outputTokenDetails?.reasoningTokens);
-  return reasoning ? reasoning : undefined;
+  if (reasoning !== undefined) {
+    return reasoning;
+  }
+  const metadata = isObjectLike(providerMetadata) ? providerMetadata : undefined;
+  return metadata?.openai || metadata?.azure ? asNumber(usage.reasoningTokens) : undefined;
+}
+
+/** Output and reasoning tokens of one model call, as its `generate_content` span records them. */
+function modelCallTokens(
+  usage: Record<string, unknown> | undefined,
+  providerMetadata: unknown,
+): { output?: number; reasoning?: number } {
+  const derived = getProviderMetadataAttributes(providerMetadata);
+  return {
+    output:
+      asNumber(derived[GEN_AI_USAGE_OUTPUT_TOKENS]) ??
+      (usage ? (tokenCount(usage.outputTokens) ?? tokenCount(usage.completionTokens)) : undefined),
+    reasoning:
+      (usage ? reasoningTokens(usage, providerMetadata) : undefined) ??
+      asNumber(derived[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]),
+  };
 }
 
 /**
- * Write reasoning from the SDK's usage, which covers every provider and, on an operation, every step.
- *
- * v5 reports a flat `reasoningTokens` whose relation to output depends on the provider. It is read only
- * on operations, because model calls already get reasoning from `providerMetadata`, and only for the
- * providers whose model calls do: OpenAI counts reasoning in output, Google does not, so Google's
- * output gets it added.
+ * Sum an operation's output and reasoning over its steps, as their model-call spans record them.
+ * `providerMetadata` describes one step, and steps can use different providers, so each step is read
+ * on its own. An operation without `steps` is a single model call.
  */
-function setUsageReasoningTokens(
+function setOperationTokens(
   span: Span,
-  type: ChannelEventType,
-  usage: Record<string, unknown>,
+  result: Record<string, unknown>,
+  usage: Record<string, unknown> | undefined,
   providerMetadata: unknown,
 ): void {
-  const reasoning = reasoningTokens(usage);
+  const steps = Array.isArray(result.steps) ? result.steps.filter(isObjectLike) : [];
+  const calls = steps.length
+    ? steps.map(step => modelCallTokens(isObjectLike(step.usage) ? step.usage : undefined, step.providerMetadata))
+    : [modelCallTokens(usage, providerMetadata)];
+
+  if (calls.every(call => call.output !== undefined)) {
+    span.setAttribute(
+      GEN_AI_USAGE_OUTPUT_TOKENS,
+      calls.reduce((total, call) => total + (call.output ?? 0), 0),
+    );
+  }
+  const reasoning = calls.reduce<number | undefined>((total, call) => sum(total, call.reasoning), undefined);
   if (reasoning !== undefined) {
     span.setAttribute(GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, reasoning);
-    return;
-  }
-
-  const v5Reasoning = asNumber(usage.reasoningTokens);
-  if (!v5Reasoning || !ROOT_OPERATION_TYPES.has(type) || !isObjectLike(providerMetadata)) {
-    return;
-  }
-  if (providerMetadata.google || providerMetadata.vertex) {
-    const output = asNumber(usage.outputTokens);
-    if (output !== undefined) {
-      span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, output + v5Reasoning);
-    }
-    span.setAttribute(GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, v5Reasoning);
-  } else if (providerMetadata.openai || providerMetadata.azure) {
-    span.setAttribute(GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, v5Reasoning);
   }
 }
 
