@@ -54,6 +54,20 @@ export interface UnstorageTraceContext {
 
 /** Minimal shape of Nitro's `CapturedErrorContext`, passed to the `error` hook. */
 export interface NitroCapturedErrorContext {
-  event?: { req: { method: string; url: string } };
+  event?: { req: { method: string; url: string; waitUntil?: (promise: Promise<unknown>) => void } };
   tags?: string[];
+}
+
+/** Minimal shape of the app that Nitro's `useNitroApp` returns. */
+export interface NitroApp {
+  /** `undefined` when the app has no plugins and doesn't set `features.runtimeHooks`. */
+  hooks?: {
+    hook: (name: 'error', fn: (error: unknown, errorContext: NitroCapturedErrorContext) => unknown) => unknown;
+  };
+  captureError?: (error: unknown, errorContext: NitroCapturedErrorContext) => void;
+  h3?: {
+    config?: {
+      onError?: (error: unknown, event: NonNullable<NitroCapturedErrorContext['event']>) => unknown;
+    };
+  };
 }

@@ -1,9 +1,19 @@
 import type { InstrumentationConfig } from '../apmTypes';
+import { getModuleNames } from './module-names';
 import { registrationOnly } from './registration-only';
 
+// `useNitroApp` memoizes the app, but its channel fires on every call: `serverFetch` calls it once per
+// request. Its `end` event carries the app as `result`, after the app's plugins ran. The `-0` matters
+// because Nitro 3 ships as a prerelease (`3.0.*-rc`).
+const useNitroAppConfig: InstrumentationConfig = {
+  channelName: 'useNitroApp',
+  module: { name: 'nitro', versionRange: '>=3.0.0-0', filePath: 'dist/runtime/internal/app.mjs' },
+  functionQuery: { functionName: 'useNitroApp', kind: 'Sync' },
+};
+
 /**
- * Nitro's instrumentation consumes tracing channels that h3, srvx and unstorage publish natively, so
- * no channels are injected: transforming h3's entry file only registers `nitroIntegration` at
+ * Most of Nitro's instrumentation consumes tracing channels that h3, srvx and unstorage publish
+ * natively. Transforming h3's entry file injects no channels; it only registers `nitroIntegration` at
  * evaluation time, which is what installs it on a bundler-only SDK like `@sentry/cloudflare`. On
  * `@sentry/node` (and deno/bun) the integration is registered statically, so this is a no-op there.
  *
@@ -16,7 +26,17 @@ import { registrationOnly } from './registration-only';
  * and the bundler plugins), where a range carrying a prerelease tag enables prerelease matching
  * across patch tuples — so `>=2.0.0-0` matches `2.0.1-rc.*`. (Plain node-semver would not: it drops
  * prereleases of a higher patch tuple.)
+ *
+ * Nitro publishes no channel for errors, so `useNitroApp` gets an injected one, which `nitroIntegration`
+ * uses to register error capture on the app.
  */
 export const nitroConfig = [
   registrationOnly({ name: 'h3', versionRange: '>=2.0.0-0', filePath: 'dist/h3.mjs' }),
+  useNitroAppConfig,
 ] satisfies InstrumentationConfig[];
+
+export const nitroAppModuleNames = getModuleNames([useNitroAppConfig]);
+
+export const nitroChannels = {
+  NITRO_USE_NITRO_APP: 'orchestrion:nitro:useNitroApp',
+} as const;

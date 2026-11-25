@@ -1,5 +1,8 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
+import { nitroAppModuleNames } from '../../orchestrion/config/nitro';
+import { invokeOrchestrionInstrumentation } from '../../orchestrion/instrumentation';
+import { captureNitroAppErrors } from './captureAppErrors';
 import { captureStorageEvents } from './captureStorageEvents';
 import { captureTracingEvents } from './captureTracingEvents';
 import { captureServerTimingHeaders } from './setServerTimingHeaders';
@@ -39,17 +42,24 @@ const _nitroIntegration = ((options: NitroIntegrationOptions = {}) => {
         captureServerTimingHeaders();
       }
     },
+    setup(client) {
+      invokeOrchestrionInstrumentation(client, nitroAppModuleNames, captureNitroAppErrors, [], {
+        requiresTracingChannelBinding: false,
+      });
+    },
   };
 }) satisfies IntegrationFn;
 
 /**
  * Instruments a Nitro server via its `node:diagnostics_channel` tracing channels: HTTP server and
- * middleware spans (h3/srvx), cache spans (unstorage) and `Server-Timing` trace-propagation headers.
+ * middleware spans (h3/srvx), cache spans (unstorage), `Server-Timing` trace-propagation headers and
+ * error capture.
  * It subscribes to those channels, so it is inert unless a Nitro app (or a framework that enables the
  * same tracing channels) is running.
  *
  * Registered regardless of whether tracing is enabled, because trace propagation must work in
  * tracing-without-performance mode too; without tracing, the spans it starts are non-recording.
- * Error capture is handled by the `@sentry/nitro` runtime plugin's Nitro `error` hook.
+ * Error capture is set up on the Nitro app either by `@sentry/nitro`'s runtime plugin or, through the
+ * orchestrion `useNitroApp` channel, by this integration.
  */
 export const nitroIntegration = defineIntegration(_nitroIntegration);

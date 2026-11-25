@@ -1,6 +1,18 @@
-import { captureException, getClient, isAlreadyCaptured, parseUrl } from '@sentry/core';
+import {
+  addNonEnumerableProperty,
+  captureException,
+  debug,
+  getClient,
+  isAlreadyCaptured,
+  isObjectLike,
+  parseUrl,
+} from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
-import type { NitroCapturedErrorContext } from './nitroTypes';
+import { DEBUG_BUILD } from '../../debug-build';
+import type { NitroApp, NitroCapturedErrorContext } from './nitroTypes';
+
+// On the app, not in module scope: `@sentry/nitro`'s runtime plugin bundles its own copy of this module.
+const NITRO_ERROR_CAPTURE_MARKER = Symbol.for('sentry.nitro.errorCapture');
 
 interface H3HTTPError extends Error {
   status: number;
@@ -77,4 +89,47 @@ export async function captureNitroTaskError(error: unknown, taskName: string): P
   });
 
   await flushIfServerless();
+}
+
+/**
+ * Registers error capture on a Nitro app, at most once per app. Both `@sentry/nitro`'s runtime plugin
+ * and `nitroIntegration` (through the orchestrion `useNitroApp` channel) call this, so an error is
+ * captured once, whichever of the two runs first.
+ */
+export function setupNitroErrorCapture(nitroApp: unknown): void {
+  if (!isObjectLike(nitroApp) || NITRO_ERROR_CAPTURE_MARKER in nitroApp) {
+    return;
+  }
+  addNonEnumerableProperty(nitroApp, NITRO_ERROR_CAPTURE_MARKER, true);
+
+  const app = nitroApp as NitroApp;
+  if (app.hooks) {
+    app.hooks.hook('error', captureNitroRequestError);
+    return;
+  }
+
+  // Without plugins or `features.runtimeHooks`, Nitro builds the app without hooks: its `captureError`
+  // calls no `error` hook, and h3's `onError` doesn't call `captureError` at all. Wrap both instead.
+  const originalCaptureError = app.captureError;
+  app.captureError = (error, errorContext) => {
+    captureNitroErrorInBackground(error, errorContext);
+    originalCaptureError?.(error, errorContext);
+  };
+
+  const h3Config = app.h3?.config;
+  const originalOnError = h3Config?.onError;
+  if (h3Config && originalOnError) {
+    h3Config.onError = (error, event) => {
+      captureNitroErrorInBackground(error, { event });
+      return originalOnError(error, event);
+    };
+  }
+}
+
+// Mirrors what Nitro does with the `error` hook's promise when the app has hooks.
+function captureNitroErrorInBackground(error: unknown, errorContext: NitroCapturedErrorContext): void {
+  const promise = captureNitroRequestError(error, errorContext).catch(captureError => {
+    DEBUG_BUILD && debug.warn('Error while capturing a Nitro error', captureError);
+  });
+  errorContext.event?.req.waitUntil?.(promise);
 }

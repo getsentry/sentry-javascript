@@ -1,13 +1,13 @@
 import { setTunnelDefaults } from '@sentry/core/server';
+import { setupNitroErrorCapture } from '@sentry/server-utils';
 import { definePlugin } from 'nitro';
 import { useRuntimeConfig } from 'nitro/runtime-config';
 // @ts-expect-error - This is a virtual module
 import { tasks } from '#nitro/virtual/tasks';
-import { captureErrorHook } from '../hooks/captureErrorHook';
 import { instrumentTasks } from '../utils/instrumentTasks';
 
 export default definePlugin(nitroApp => {
-  nitroApp.hooks.hook('error', captureErrorHook);
+  setupNitroErrorCapture(nitroApp);
   instrumentTasks(tasks);
 
   // The runtime answers managed tunnel requests, under Nitro's `baseURL` unless a framework serves the app under
