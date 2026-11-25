@@ -239,7 +239,6 @@ export function constructWrappedFunctionExportQuery(
 
   if (debug && functionsToExport.wrap.length === 0) {
     consoleSandbox(() =>
-      // eslint-disable-next-line no-console
       console.warn(
         '[Sentry] No functions found to wrap. In case the server needs to export async functions other than `handler` or `server`, consider adding the name(s) to `entrypointWrappedFunctions`.',
       ),

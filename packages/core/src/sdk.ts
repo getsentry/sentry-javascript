@@ -25,7 +25,6 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
     } else {
       // use `console.warn` rather than `debug.warn` since by non-debug bundles have all `debug.x` statements stripped
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
       });
     }
@@ -50,7 +49,6 @@ export function warnIfClientIsActive(): void {
     consoleSandbox(() => {
       // TODO(#24883): Point apps that share a page with another app to the
       // isolated client helper, once that PR settles its name.
-      // eslint-disable-next-line no-console
       console.warn(
         '[Sentry] `Sentry.init()` was called more than once. The new client replaces the active client, but the active client is not closed, so state from both can mix. Call `Sentry.init()` only once, or call `await Sentry.close()` before you call it again.',
       );

@@ -14,7 +14,10 @@
     {
       "files": ["**/src/**"],
       "rules": {
-        "typescript/no-non-null-assertion": "off"
+        "typescript/no-non-null-assertion": "off",
+        // Test utilities are not SDK code, so `consoleSandbox()` does not apply.
+        "no-console": "error",
+        "sdk/no-unsandboxed-console": "off"
       }
     }
   ],

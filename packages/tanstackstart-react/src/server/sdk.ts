@@ -18,7 +18,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
   const activeClient = getClient<NodeClient>();
   if (activeClient) {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.log(
         '[Sentry] The Sentry server SDK is already initialized, skipping a second initialization. With Nitro, the server build loads `instrument.server` when the server starts, so a `node --import` preload of it or an import of it in the server entry is no longer needed and can be removed.',
       );

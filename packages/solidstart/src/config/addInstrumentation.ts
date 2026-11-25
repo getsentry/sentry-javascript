@@ -36,7 +36,6 @@ export async function addInstrumentationFileToBuild(nitro: Nitro): Promise<void>
       if (!fs.existsSync(assetsServerDir)) {
         await fs.promises.mkdir(assetsServerDir, { recursive: true });
         consoleSandbox(() => {
-          // eslint-disable-next-line no-console
           console.log(`[Sentry SolidStart withSentry] Successfully created directory ${assetsServerDir}.`);
         });
       }
@@ -55,13 +54,11 @@ export async function addInstrumentationFileToBuild(nitro: Nitro): Promise<void>
 
           await fs.promises.copyFile(releaseSource, releaseDestination);
           consoleSandbox(() => {
-            // eslint-disable-next-line no-console
             console.log(`[Sentry SolidStart withSentry] Successfully created ${releaseDestination}.`);
           });
         }
       } catch (err) {
         consoleSandbox(() => {
-          // eslint-disable-next-line no-console
           console.warn('[Sentry SolidStart withSentry] Failed to copy release injection file.', err);
         });
       }
@@ -72,12 +69,10 @@ export async function addInstrumentationFileToBuild(nitro: Nitro): Promise<void>
 
       await fs.promises.copyFile(instrumentSource, instrumentDestination);
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.log(`[Sentry SolidStart withSentry] Successfully created ${instrumentDestination}.`);
       });
     } catch (error) {
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.warn('[Sentry SolidStart withSentry] Failed to add instrumentation file to build.', error);
       });
     }
@@ -109,7 +104,6 @@ export async function addSentryTopImport(nitro: Nitro): Promise<void> {
       await fs.promises.access(instrumentationFile, fs.constants.F_OK);
     } catch (error) {
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.warn(
           `[Sentry SolidStart withSentry] Failed to add \`${instrumentationFile}\` as top level import to \`${serverEntryFile}\`.`,
           error,
@@ -124,13 +118,12 @@ export async function addSentryTopImport(nitro: Nitro): Promise<void> {
       await fs.promises.writeFile(serverEntryFile, updatedContent);
 
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.log(
           `[Sentry SolidStart withSentry] Added \`${instrumentationFile}\` as top level import to \`${serverEntryFile}\`.`,
         );
       });
     } catch (error) {
-      // eslint-disable-next-line no-console
+      // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time output
       console.warn(
         `[Sentry SolidStart withSentry] An error occurred when trying to add \`${instrumentationFile}\` as top level import to \`${serverEntryFile}\`.`,
         error,

@@ -86,7 +86,6 @@ export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro
 
         fs.writeFile(entryFilePath, updatedContent, 'utf8', () => {
           if (moduleOptions.debug) {
-            // eslint-disable-next-line no-console
             console.log(
               `[Sentry] Successfully added the Sentry import to the server entry file "\`${entryFilePath}\`"`,
             );
@@ -95,7 +94,6 @@ export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro
       });
     } catch (err) {
       if (moduleOptions.debug) {
-        // eslint-disable-next-line no-console
         console.warn(
           `[Sentry] An error occurred when trying to add the Sentry import to the server entry file "\`${entryFilePath}\`":`,
           err,
@@ -183,7 +181,6 @@ export function addServerConfigPlugin(
       return;
     }
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn(
         `[Sentry] Found \`${basename(configPath)}\`, but the Nitro preset targets Cloudflare, where this file is not used. Set up the SDK in \`sentry.cloudflare.config.ts\` instead: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/cloudflare-workers/`,
       );
@@ -215,7 +212,6 @@ export function addServerConfigShimWithWarning(nitro: Nitro): void {
     } catch (error) {
       // A missing shim breaks `node --import` start commands, so always warn (`debug` is off at build time).
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.warn(`[Sentry] Could not write the \`--import\` compatibility shim to ${shimPath}`, error);
       });
     }

@@ -55,7 +55,7 @@ export function handleMessage(e: MessageEvent): void {
         response: (err as Error).message,
       });
 
-      // eslint-disable-next-line no-console
+      // oxlint-disable-next-line sdk/no-unsandboxed-console -- runs in a web worker, where the SDK does not instrument the console
       console.error(err);
     }
   }

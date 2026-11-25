@@ -22,7 +22,7 @@ export function createSentryHandleError({ logErrors = false }: SentryHandleError
         },
       });
       if (logErrors) {
-        // eslint-disable-next-line no-console
+        // oxlint-disable-next-line sdk/no-unsandboxed-console -- mirrors React Router's default error logging
         console.error(error);
       }
       try {

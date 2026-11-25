@@ -101,7 +101,6 @@ function injectOnError(raw: Record<string, unknown> | undefined): void {
     // Setting `onError` replaced the listener's default handler, which logs the error. Sandboxed so
     // the SDK's console instrumentation does not report it a second time.
     consoleSandbox(() => {
-      // oxlint-disable-next-line no-console
       console.error(error);
     });
     return undefined;

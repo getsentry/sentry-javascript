@@ -332,7 +332,6 @@ const DEFAULT_FORWARDED_OPTIONS = {
 const browserTracingIntegrationFn = ((options: Partial<BrowserTracingOptions> = {}) => {
   if ('enableElementTiming' in options) {
     consoleSandbox(() => {
-      // oxlint-disable-next-line no-console
       console.warn(
         '[Sentry] `enableElementTiming` is deprecated and no longer has any effect. Use the standalone `elementTimingIntegration` instead.',
       );

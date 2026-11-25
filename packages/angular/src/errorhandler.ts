@@ -118,7 +118,6 @@ class SentryErrorHandler implements AngularErrorHandler, OnDestroy {
 
     // When in development mode, log the error to console for immediate feedback.
     if (this._options.logErrors) {
-      // eslint-disable-next-line no-console
       consoleSandbox(() => console.error(extractedError));
     }
 

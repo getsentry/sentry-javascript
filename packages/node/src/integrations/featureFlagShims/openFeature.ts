@@ -7,7 +7,6 @@ import { consoleSandbox, defineIntegration, isBrowser } from '@sentry/core';
 export const openFeatureIntegrationShim = defineIntegration((_options?: unknown) => {
   if (!isBrowser()) {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn('The openFeatureIntegration() can only be used in the browser.');
     });
   }
@@ -27,7 +26,6 @@ export class OpenFeatureIntegrationHookShim {
   public constructor() {
     if (!isBrowser()) {
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.warn('The OpenFeatureIntegrationHook can only be used in the browser.');
       });
     }

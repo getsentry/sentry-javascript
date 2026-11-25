@@ -31,7 +31,6 @@ function applyManagedTunnelRoute(options: ReactBrowserOptions): void {
     if (options.tunnel !== managedTunnelRoute && !hasWarnedAboutManagedTunnelRouteOverride) {
       hasWarnedAboutManagedTunnelRouteOverride = true;
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.warn(
           '[@sentry/tanstackstart-react] `Sentry.init({ tunnel: ... })` overrides the managed `sentryTanstackStart({ tunnelRoute: ... })` route. Remove the runtime `tunnel` option if you want the managed tunnel route to be used.',
         );

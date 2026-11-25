@@ -71,7 +71,6 @@ export function makeTunnelRoutePlugin(options: TunnelRouteOptions, debug?: boole
   const { path } = normalizeTunnelRouteOptions(options);
 
   if (debug) {
-    // eslint-disable-next-line no-console
     console.log(`[@sentry/tanstackstart-react] Tunnel route: ${path ?? 'derived from the DSN'}`);
   }
 

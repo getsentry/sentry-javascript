@@ -33,7 +33,6 @@ export function validateSourceMapsOptionsPlugin(options: {
       const viteSourceMap = viteConfig.build.sourcemap;
 
       if (isDebug) {
-        // eslint-disable-next-line no-console
         console.log(`[Sentry] Validating Vite config for the ${runtime} runtime.`);
       }
 

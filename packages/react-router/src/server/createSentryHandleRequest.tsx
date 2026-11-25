@@ -123,7 +123,7 @@ export function createSentryHandleRequest(
           // errors encountered during initial shell rendering since they'll
           // reject and get logged in handleDocumentRequest.
           if (shellRendered) {
-            // eslint-disable-next-line no-console
+            // oxlint-disable-next-line sdk/no-unsandboxed-console -- mirrors React Router's default error logging
             console.error(error);
           }
         },

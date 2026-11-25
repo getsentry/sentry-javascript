@@ -20,7 +20,6 @@ type SentryHandleServerError = (input: SentryHandleServerErrorInput) => Promise<
 function defaultErrorHandler(input: SentryHandleServerErrorInput): void {
   if (input.kind === 'validation') {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.error('Remote function schema validation failed:', input.issues);
     });
     return;
@@ -36,7 +35,6 @@ function defaultErrorHandler(input: SentryHandleServerErrorInput): void {
   consoleSandbox(() => {
     if (!kind) {
       // SvelteKit 1.x/2.x
-      // eslint-disable-next-line no-console
       console.error((error as Error | undefined)?.stack);
       return;
     }
@@ -44,7 +42,6 @@ function defaultErrorHandler(input: SentryHandleServerErrorInput): void {
     let e = error;
     while (e instanceof Error) {
       if (e.stack) {
-        // eslint-disable-next-line no-console
         console.error(e.stack);
       }
       // `Error.cause` needs a lib newer than the one we compile against
@@ -52,7 +49,6 @@ function defaultErrorHandler(input: SentryHandleServerErrorInput): void {
     }
 
     if (e) {
-      // eslint-disable-next-line no-console
       console.error(String(e));
     }
   });

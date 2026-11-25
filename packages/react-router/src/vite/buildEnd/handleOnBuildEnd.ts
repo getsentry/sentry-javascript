@@ -20,7 +20,6 @@ type SentryOptionsWithHeaders = SentryOptions & { headers?: Record<string, strin
 
 function getSentryConfig(viteConfig: unknown): SentryReactRouterBuildOptions {
   if (!viteConfig || typeof viteConfig !== 'object' || !('sentryConfig' in viteConfig)) {
-    // eslint-disable-next-line no-console
     console.error('[Sentry] sentryConfig not found - it needs to be passed to vite.config.ts');
   }
 
@@ -79,7 +78,6 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
         project: Array.isArray(project) ? project.join(',') : project,
       });
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('[Sentry] Could not create release', error);
     }
   }
@@ -91,7 +89,6 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     try {
       await sentry.sourcemap.inject({ directory: reactRouterConfig.buildDirectory });
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('[Sentry] Could not inject debug ids', error);
     }
 
@@ -109,7 +106,6 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
           });
         }
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.error('[Sentry] Could not upload sourcemaps', error);
       }
     }
@@ -136,7 +132,6 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   } else if ((viteConfig as Record<string, unknown>)[SDK_ENABLED_SOURCE_MAPS_KEY] === true) {
     updatedFilesToDeleteAfterUpload = defaultFilesToDelete;
     debug &&
-      // eslint-disable-next-line no-console
       console.info(
         `[Sentry] Automatically setting \`sourcemaps.filesToDeleteAfterUpload: ${JSON.stringify(
           updatedFilesToDeleteAfterUpload,
@@ -148,7 +143,6 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
       const filePathsToDelete = await globFiles(updatedFilesToDeleteAfterUpload);
       if (debug) {
         filePathsToDelete.forEach(filePathToDelete => {
-          // eslint-disable-next-line no-console
           console.info(`Deleting asset after upload: ${filePathToDelete}`);
         });
       }
@@ -156,14 +150,11 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
         filePathsToDelete.map(filePathToDelete =>
           rm(filePathToDelete, { force: true }).catch((e: unknown) => {
             // This is allowed to fail - we just don't do anything
-            debug &&
-              // eslint-disable-next-line no-console
-              console.debug(`An error occurred while attempting to delete asset: ${filePathToDelete}`, e);
+            debug && console.debug(`An error occurred while attempting to delete asset: ${filePathToDelete}`, e);
           }),
         ),
       );
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Error deleting files after sourcemap upload:', error);
     }
   }

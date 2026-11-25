@@ -32,7 +32,6 @@ export class SentryPropagator implements TextMapPropagator {
   public inject(ctx: Context, carrier: unknown, setter: TextMapSetter): void {
     if (ctx !== context.active()) {
       consoleSandbox(() => {
-        // oxlint-disable-next-line no-console
         console.warn(
           'SentryPropagator: Injecting trace data of a different context than the active one is not supported. Skipping injection.',
         );

@@ -31,7 +31,6 @@ export function init(userOptions: BrowserOptions): Client | undefined {
 
     if (hasBrowserTracing) {
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.warn(
           'browserTracingIntegration is not fully compatible with @sentry/react-router. Please use reactRouterTracingIntegration instead.',
         );

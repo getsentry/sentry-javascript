@@ -248,6 +248,21 @@
       }
     },
     {
+      // SDK source may only call `console.*` inside `consoleSandbox()`, see `no-unsandboxed-console.js`.
+      "files": ["**/src/**"],
+      "rules": {
+        "no-console": "off",
+        "sdk/no-unsandboxed-console": "error"
+      }
+    },
+    {
+      // Vite plugins run at build time and log to the terminal, not through an instrumented `console`.
+      "files": ["**/src/vite/**"],
+      "rules": {
+        "sdk/no-unsandboxed-console": "off"
+      }
+    },
+    {
       "files": ["**/scenarios/**", "**/rollup-utils/**"],
       "rules": {
         "no-console": "off"

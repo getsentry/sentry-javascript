@@ -8,7 +8,6 @@ import { consoleSandbox, defineIntegration } from '@sentry/core';
 function makeTracingIntegrationShim(name: string, functionName: string): ReturnType<typeof defineIntegration> {
   return defineIntegration((_options?: unknown) => {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn(`You are using ${functionName}() even though this bundle does not include tracing.`);
     });
 

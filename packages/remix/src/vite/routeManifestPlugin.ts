@@ -37,13 +37,11 @@ export function makeRouteManifestPlugin(options: Pick<SentryRemixVitePluginOptio
         routeManifestJson = JSON.stringify(manifest);
 
         if (isDevMode) {
-          // eslint-disable-next-line no-console
           console.log(
             `[Sentry Remix] Found ${manifest.staticRoutes.length} static and ${manifest.dynamicRoutes.length} dynamic routes`,
           );
         }
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.error('[Sentry Remix] Failed to generate route manifest:', error);
         routeManifestJson = JSON.stringify({ dynamicRoutes: [], staticRoutes: [] });
       }

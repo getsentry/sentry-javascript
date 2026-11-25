@@ -85,7 +85,7 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): UnknownPlu
               ? "'*' in external"
               : undefined;
         if (blanketExternal) {
-          // oxlint-disable-next-line no-console
+          // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time output
           console.warn(
             `[Sentry] This Bun build externalizes all dependencies (${blanketExternal}), so Sentry ` +
               'cannot instrument bundled libraries. Instrumentation will be missing for any of ' +

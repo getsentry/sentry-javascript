@@ -21,7 +21,6 @@ const INTEGRATION_NAME = 'Breadcrumbs' as const;
 const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
   if ('fetch' in options) {
     consoleSandbox(() => {
-      // oxlint-disable-next-line no-console
       console.warn(
         '[Sentry] `breadcrumbsIntegration({ fetch })` is deprecated and no longer has any effect. Fetch breadcrumbs are recorded by `fetchIntegration`; disable them with `fetchIntegration({ breadcrumbs: false })`.',
       );

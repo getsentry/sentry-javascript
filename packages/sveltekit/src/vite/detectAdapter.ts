@@ -37,7 +37,6 @@ export async function detectAdapter(
     const mapped = ADAPTER_NAME_MAP[adapterName];
     if (mapped) {
       if (debug) {
-        // eslint-disable-next-line no-console
         console.log(`[Sentry SvelteKit Plugin] Detected SvelteKit ${mapped} adapter from your SvelteKit config`);
       }
       return mapped;
@@ -45,7 +44,6 @@ export async function detectAdapter(
     // We found an adapter name but it's not in our supported list -> return 'other'
     // The SvelteKit config is the source of truth, so we don't need to fall back to package.json.
     if (debug) {
-      // eslint-disable-next-line no-console
       console.warn(
         `[Sentry SvelteKit Plugin] Detected unsupported adapter name ${adapterName} in your SvelteKit config. Please set the 'adapter' option manually`,
       );
@@ -61,12 +59,10 @@ export async function detectAdapter(
 
   if (debug) {
     if (adapter === 'other') {
-      // eslint-disable-next-line no-console
       console.warn(
         "[Sentry SvelteKit Plugin] Couldn't detect SvelteKit adapter. Please set the 'adapter' option manually.",
       );
     } else {
-      // eslint-disable-next-line no-console
       console.log(`[Sentry SvelteKit Plugin] Detected SvelteKit ${adapter} adapter from \`package.json\``);
     }
   }
@@ -89,7 +85,6 @@ async function loadPackageJson(): Promise<Package | undefined> {
 
     return JSON.parse(pkgJsonContent);
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.warn("[Sentry SvelteKit Plugin] Couldn't load package.json:", e);
     return undefined;
   }

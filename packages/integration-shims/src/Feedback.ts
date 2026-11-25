@@ -16,7 +16,6 @@ interface FeedbackIntegration extends Integration, FeedbackSpecificMethods {}
 export const feedbackIntegrationShim = Object.assign(
   (_options: unknown): FeedbackIntegration => {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn('You are using feedbackIntegration() even though this bundle does not include feedback.');
     });
 

@@ -45,7 +45,6 @@ export function makeBuildInstrumentationFilePlugin(options: SentrySolidStartPlug
         await fs.promises.access(instrumentationFilePath, fs.constants.F_OK);
       } catch (error) {
         consoleSandbox(() => {
-          // eslint-disable-next-line no-console
           console.warn(
             `[Sentry SolidStart Plugin] Could not access \`${instrumentationFilePath}\`, please make sure it exists.`,
             error,

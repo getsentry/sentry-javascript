@@ -16,25 +16,25 @@ export function createLogger(options: LoggerOptions): Logger {
   return {
     info(message: string, ...params: unknown[]) {
       if (!options.silent) {
-        // eslint-disable-next-line no-console
+        // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time plugin output
         console.info(`${options.prefix} Info: ${message}`, ...params);
       }
     },
     warn(message: string, ...params: unknown[]) {
       if (!options.silent) {
-        // eslint-disable-next-line no-console
+        // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time plugin output
         console.warn(`${options.prefix} Warning: ${message}`, ...params);
       }
     },
     error(message: string, ...params: unknown[]) {
       if (!options.silent) {
-        // eslint-disable-next-line no-console
+        // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time plugin output
         console.error(`${options.prefix} Error: ${message}`, ...params);
       }
     },
     debug(message: string, ...params: unknown[]) {
       if (!options.silent && options.debug) {
-        // eslint-disable-next-line no-console
+        // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time plugin output
         console.debug(`${options.prefix} Debug: ${message}`, ...params);
       }
     },

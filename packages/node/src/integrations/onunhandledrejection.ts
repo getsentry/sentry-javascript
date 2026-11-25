@@ -138,7 +138,6 @@ function handleRejection(reason: unknown, mode: UnhandledRejectionMode): void {
     'or by rejecting a promise which was not handled with .catch().' +
     ' The promise rejected with the reason:';
 
-  /* eslint-disable no-console */
   if (mode === 'warn') {
     consoleSandbox(() => {
       console.warn(rejectionWarning);
@@ -152,5 +151,4 @@ function handleRejection(reason: unknown, mode: UnhandledRejectionMode): void {
     }
     logAndExitProcess(reason);
   }
-  /* eslint-enable no-console */
 }

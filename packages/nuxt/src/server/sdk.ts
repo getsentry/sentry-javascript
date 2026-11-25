@@ -43,7 +43,6 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
   const existingClient = getClient();
   if (isNuxtServerInitialized() && existingClient && !isClientClosed(existingClient)) {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.log(
         '[Sentry] The Sentry server SDK is already initialized, skipping a second initialization. The Sentry server config is bundled into the Nitro server build, so a `node --import` preload of the config file is no longer needed and can be removed.',
       );

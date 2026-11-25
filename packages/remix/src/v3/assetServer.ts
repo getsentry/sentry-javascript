@@ -125,7 +125,6 @@ function withDebugIdOptions(options: AssetServerOptions | undefined): AssetServe
 
   if (options.sourceMaps === false) {
     consoleSandbox(() => {
-      // oxlint-disable-next-line no-console
       console.warn(
         '[Sentry] Source maps are disabled in your asset server (`sourceMaps: false`). Sentry will not override this, so client stack traces stay minified.',
       );
@@ -145,7 +144,6 @@ function withDebugIdOptions(options: AssetServerOptions | undefined): AssetServe
     : undefined;
   if (servesPackages && shimUrl === undefined) {
     consoleSandbox(() => {
-      // oxlint-disable-next-line no-console
       console.warn(
         "[Sentry] The browser channel shim is outside the asset server's node_modules mount, so browser modules are served without instrumentation. Component render errors need `captureRuntimeErrors(app)`.",
       );

@@ -15,7 +15,7 @@ try {
   instrumentRemixV3();
   instrumentAssetServer();
 } catch (error) {
-  // oxlint-disable-next-line no-console
+  // oxlint-disable-next-line sdk/no-unsandboxed-console -- runs when the SDK failed to load
   console.warn('[Sentry] Could not load @sentry/remix/v3. The app starts without Sentry instrumentation.', error);
 }
 

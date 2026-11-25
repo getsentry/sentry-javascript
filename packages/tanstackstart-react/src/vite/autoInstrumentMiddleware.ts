@@ -30,7 +30,6 @@ function wrapMiddlewareArrays(code: string, id: string, debug: boolean, regex: R
     if (objContents) {
       didWrap = true;
       if (debug) {
-        // eslint-disable-next-line no-console
         console.log(`[Sentry] Auto-wrapping ${key} in ${id}`);
       }
       // Handle method call syntax like `.middleware([...])` vs object property syntax like `middleware: [...]`
@@ -143,7 +142,6 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
 
       // Warn about middlewares that couldn't be auto-wrapped
       if (fileTransformState.skippedMiddlewares.length > 0) {
-        // eslint-disable-next-line no-console
         console.warn(
           `[Sentry] Could not auto-instrument ${fileTransformState.skippedMiddlewares.join(' and ')} in ${id}. ` +
             'To instrument these middlewares, use wrapMiddlewaresWithSentry() manually. ',

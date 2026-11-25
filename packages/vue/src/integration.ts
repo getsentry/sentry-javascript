@@ -32,7 +32,6 @@ export const vueIntegration = defineIntegration((integrationOptions: Partial<Vue
       const options: Options = { ...DEFAULT_CONFIG, ...client.getOptions(), ...integrationOptions };
       if (!options.Vue && !options.app) {
         consoleSandbox(() => {
-          // eslint-disable-next-line no-console
           console.warn(
             '[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured. Update your `Sentry.init` call with an appropriate config option: `app` (Application Instance - Vue 3) or `Vue` (Vue Constructor - Vue 2).',
           );
@@ -72,7 +71,6 @@ const vueInit = (app: Vue, options: Options): void => {
     const isMounted = appWithInstance._instance?.isMounted;
     if (isMounted === true) {
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.warn(
           '[@sentry/vue]: Misconfigured SDK. Vue app is already mounted. Make sure to call `app.mount()` after `Sentry.init()`.',
         );
@@ -126,7 +124,6 @@ function warnAboutLostComponentTracking(app: Vue, tracingOptions: Partial<Tracin
       : 'Set `__VUE_OPTIONS_API__` to `true` in the `define` config of your bundler.';
 
   consoleSandbox(() => {
-    // eslint-disable-next-line no-console
     console.warn(
       `[@sentry/vue]: The Vue Options API is disabled (\`__VUE_OPTIONS_API__: false\`). Sentry still records the \`Application Render\` and root component mount spans, but component tracking (\`trackComponents\`) needs the Options API. ${fix}`,
     );

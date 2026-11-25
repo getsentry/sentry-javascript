@@ -22,7 +22,6 @@ export function checkAndWarnIfIsEmbeddedBrowserExtension(): boolean {
   if (_isEmbeddedBrowserExtension()) {
     if (DEBUG_BUILD) {
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.error(
           '[Sentry] You cannot use Sentry.init() in a browser extension, see: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
         );

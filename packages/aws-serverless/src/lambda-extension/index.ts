@@ -37,7 +37,6 @@ async function main(): Promise<void> {
 
 main().catch(err => {
   consoleSandbox(() => {
-    // eslint-disable-next-line no-console
     console.error('Error in Lambda Extension', err);
   });
   process.exit(1);

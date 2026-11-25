@@ -39,7 +39,6 @@ export function makeReleaseInjectionPlugin(options: ReleaseInjectionOptions): Pl
       const usesSentryHandle = /\bsentryHandle\b/.test(readEntryFile(kitConfig, serverHooksFile) ?? '');
 
       if (debug && !usesSentryHandle) {
-        // eslint-disable-next-line no-console
         console.log(
           `[Sentry SvelteKit] \`sentryHandle\` not found in ${serverHooksFile}. Injecting the release into the client build.`,
         );

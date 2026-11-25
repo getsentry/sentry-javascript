@@ -301,7 +301,7 @@ function warnAboutPlaceholderCommitEnvVar(name: string): void {
   warnedPlaceholderEnvVars.add(name);
   // This runs before the plugin logger exists, so `silent: true` does not suppress it. That is
   // deliberate: a warning that is easy to miss is how this misconfiguration went unnoticed.
-  // eslint-disable-next-line no-console
+  // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time plugin output
   console.warn(
     `[@sentry/bundler-plugins] Ignoring the ${name} environment variable as a release name, because its value is its own name. Set the release explicitly, or fix the variable in your build environment.`,
   );

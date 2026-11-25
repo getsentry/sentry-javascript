@@ -191,7 +191,7 @@ function scanRoutesDirectory(
       }
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time output
     console.warn('Error building Remix route manifest:', error);
   }
 

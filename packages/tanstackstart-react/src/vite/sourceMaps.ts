@@ -187,19 +187,16 @@ export function getUpdatedSourceMapSettings(
   // Respect user source map setting if it is explicitly set
   if (viteUserSourceMapSetting === false) {
     if (debug) {
-      // eslint-disable-next-line no-console
       console.warn(
         `[Sentry] Source map generation is currently disabled in your TanStack Start configuration (\`${settingKey}: false\`). Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified.`,
       );
     } else {
-      // eslint-disable-next-line no-console
       console.warn('[Sentry] Source map generation is disabled in your TanStack Start configuration.');
     }
 
     return viteUserSourceMapSetting;
   } else if (viteUserSourceMapSetting && ['hidden', 'inline', true].includes(viteUserSourceMapSetting)) {
     if (debug) {
-      // eslint-disable-next-line no-console
       console.log(
         `[Sentry] We discovered \`${settingKey}\` is set to \`${viteUserSourceMapSetting.toString()}\`. Sentry will keep this source map setting.`,
       );
@@ -208,7 +205,6 @@ export function getUpdatedSourceMapSettings(
     return viteUserSourceMapSetting;
   } else if (hasOutputSourceMapSetting(viteConfig.build)) {
     if (debug) {
-      // eslint-disable-next-line no-console
       console.log(
         '[Sentry] We discovered `vite.build.rolldownOptions.output.sourcemap`, which overrides `vite.build.sourcemap`. Sentry will keep this source map setting.',
       );
@@ -222,7 +218,6 @@ export function getUpdatedSourceMapSettings(
   }
 
   if (debug) {
-    // eslint-disable-next-line no-console
     console.log(
       `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps will be ${
         sentryPluginOptions?.sourcemaps?.delete === false ? 'kept in' : 'removed from'

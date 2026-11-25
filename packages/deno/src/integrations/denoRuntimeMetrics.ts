@@ -52,13 +52,13 @@ export const denoRuntimeMetricsIntegration = defineIntegration((options: DenoRun
   const rawInterval = options.collectionIntervalMs ?? DEFAULT_INTERVAL_MS;
   let collectionIntervalMs: number;
   if (!Number.isFinite(rawInterval)) {
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line sdk/no-unsandboxed-console -- runs when the integration is created, usually before `init()` instruments the console
     console.warn(
       `[Sentry] denoRuntimeMetricsIntegration: collectionIntervalMs (${rawInterval}) is invalid. Using default of ${DEFAULT_INTERVAL_MS}ms.`,
     );
     collectionIntervalMs = DEFAULT_INTERVAL_MS;
   } else if (rawInterval < MIN_INTERVAL_MS) {
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line sdk/no-unsandboxed-console -- runs when the integration is created, usually before `init()` instruments the console
     console.warn(
       `[Sentry] denoRuntimeMetricsIntegration: collectionIntervalMs (${rawInterval}) is below the minimum of ${MIN_INTERVAL_MS}ms. Using minimum of ${MIN_INTERVAL_MS}ms.`,
     );

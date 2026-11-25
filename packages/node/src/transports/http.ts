@@ -53,7 +53,6 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
     urlSegments = new URL(options.url);
   } catch {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn(
         '[@sentry/node]: Invalid dsn or tunnel option, will not send any events. The tunnel option must be a full URL when used.',
       );
