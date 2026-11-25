@@ -14,6 +14,7 @@ import { instrumentEnv } from './instrumentEnv';
 
 type TailMethod = 'tail' | 'trace' | 'tailStream';
 
+// workerd calls `trace` only when the worker has no `tail`. It is not documented, but it is still in use.
 const TAIL_METHODS: TailMethod[] = ['tail', 'trace', 'tailStream'];
 
 const MECHANISM_TYPES: Record<TailMethod, string> = {
