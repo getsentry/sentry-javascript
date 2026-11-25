@@ -105,7 +105,7 @@ describe('Vercel AI extract spans', () => {
         modelId: 'cloudflare/clairic',
         state: [
           { type: 'text', text: 'Total: $1,080.' },
-          { type: 'file', mediaType: 'image/png', data: new Uint8Array([1, 2, 3]) },
+          { type: 'file', mediaType: 'image', data: new Uint8Array([1, 2, 3]) },
           { type: 'text', text: 'Ship to Oslo, Bergen.' },
           { type: 'file', mediaType: 'application/pdf', data: new Uint8Array([4, 5, 6]) },
         ],

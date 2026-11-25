@@ -33,7 +33,7 @@ export function toExtractState(state: unknown): ExtractState {
       return undefined;
     }
     if (part.type === 'file') {
-      if (String(part.mediaType).startsWith('image/')) {
+      if (String(part.mediaType).split('/')[0] === 'image') {
         images.push(BLOB_SUBSTITUTE);
         return 'image' as const;
       }
