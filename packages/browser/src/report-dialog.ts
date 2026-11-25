@@ -49,7 +49,15 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
   const script = WINDOW.document.createElement('script');
   script.async = true;
   script.crossOrigin = 'anonymous';
-  script.src = getTrustedScriptURL(getReportDialogEndpoint(dsn, mergedOptions));
+
+  // With Trusted Types enforced, the policy or the assignment itself can throw
+  try {
+    script.src = getTrustedScriptURL(getReportDialogEndpoint(dsn, mergedOptions));
+  } catch (error) {
+    DEBUG_BUILD && debug.error('[showReportDialog] Script URL was blocked', error);
+    onError?.(new Error('Failed to load the report dialog script'));
+    return;
+  }
 
   if (onLoad) {
     script.onload = onLoad;

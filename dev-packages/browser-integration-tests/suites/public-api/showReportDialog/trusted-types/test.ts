@@ -9,6 +9,13 @@ sentryTest('loads the dialog script on pages that enforce Trusted Types', async 
     route.fulfill({ contentType: 'text/javascript', body: '', headers: { 'Access-Control-Allow-Origin': '*' } }),
   );
 
+  await page.addInitScript(() => {
+    (window as any)._violations = [];
+    document.addEventListener('securitypolicyviolation', event => {
+      (window as any)._violations.push(`${event.violatedDirective}: ${event.sample}`);
+    });
+  });
+
   await page.goto(url);
 
   await page.waitForFunction(() => (window as any)._reportDialogLoaded);
