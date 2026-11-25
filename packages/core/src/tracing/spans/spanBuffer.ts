@@ -213,6 +213,9 @@ export class SpanBuffer {
  * Spans are captured when they end, but the segment span can still be renamed afterwards
  * (e.g. once the route is known). Only replace the value we set at capture time, so that
  * values set by users or `beforeSendSpan` are kept.
+ *
+ * Renames that Next.js applies only when it serializes the segment span (`processSegmentSpan`) come after
+ * this and are not refreshed.
  */
 function refreshSegmentName(
   spanJSON: SerializedStreamedSpan,

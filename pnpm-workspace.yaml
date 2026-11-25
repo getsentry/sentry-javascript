@@ -121,6 +121,8 @@ allowBuilds:
   vue-demi: true
   workerd: true
 minimumReleaseAgeExclude:
+  # Globs for the packages this repo publishes, so a new release installs at once. A pinned version stops
+  # matching at the next bump.
   - '@sentry/*'
   - sentry
   - '@apm-js-collab/code-transformer-bundler-plugins@0.7.6'

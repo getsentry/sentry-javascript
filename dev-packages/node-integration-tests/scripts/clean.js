@@ -1,6 +1,7 @@
 const { execSync } = require('child_process');
 const { globSync, rmSync } = require('fs');
 
+// `fs.globSync` needs Node 22. This is a local helper, and the repo pins Node 24 in `devEngines`.
 for (const path of globSync(['suites/**/node_modules', 'suites/**/tmp_*'])) {
   rmSync(path, { recursive: true, force: true });
 }
