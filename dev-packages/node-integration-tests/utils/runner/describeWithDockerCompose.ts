@@ -201,10 +201,12 @@ function assertServicesHaveHealthchecks(cwd: string, configArgs: string[]): void
   }
 
   const config = JSON.parse(result.stdout.toString()) as {
-    services?: Record<string, { healthcheck?: { disable?: boolean } }>;
+    services?: Record<string, { healthcheck?: { test?: string[]; disable?: boolean } }>;
   };
   const missing = Object.entries(config.services ?? {})
-    .filter(([, { healthcheck }]) => healthcheck === undefined || healthcheck.disable === true)
+    .filter(
+      ([, { healthcheck }]) => !healthcheck?.test || healthcheck.test[0] === 'NONE' || healthcheck.disable === true,
+    )
     .map(([name]) => name);
 
   if (missing.length) {
