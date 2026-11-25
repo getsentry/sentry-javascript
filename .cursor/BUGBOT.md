@@ -14,7 +14,6 @@ Keep reviews high-signal. Prefer actionable, high-confidence findings over specu
 ### Security Vulnerabilities
 
 - Exposed **real** secrets, API keys, tokens, or credentials in production code, comments, logs, or committed configs. Do **not** flag test fixtures, unit/integration/E2E helpers, or docs/examples that use obviously fake / placeholder DSNs and credentials (bogus DSNs in tests are expected).
-- Unsafe use of `eval()`, `Function()`, or `innerHTML`
 - Unsafe regular expressions that could cause ReDoS attacks
 - `JSON.stringify` output that goes into generated code (bundler plugins, loaders, virtual modules, `define` values). Use `stringifyForCodeInjection` from `@sentry/core` instead. It escapes `<`, `>`, U+2028 and U+2029, so the code stays safe when inlined in a `<script>` element. Do not flag log messages, boolean `define` values, or other output that never reaches generated code.
 - Sensitive data collection must go through the SDK's `dataCollection` options (and helpers like `filterCollectedUrl` / `filterCollectedUrlQuery`) where applicable. Flag new instrumentation that attaches request/response bodies, cookies, headers, URL query params, user info, DB query data, GraphQL variables, GenAI I/O, or similar without honoring the relevant `dataCollection.*` knobs — or that hard-codes collection on when those options would disable or filter it. Prefer linking reviewers to the existing URL-attribute filtering rules below rather than inventing parallel guidance.

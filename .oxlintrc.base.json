@@ -256,7 +256,8 @@
       "rules": {
         "no-restricted-globals": ["error", "window", "document", "location", "navigator"],
         "no-eval": "error",
-        "no-new-func": "error"
+        "no-new-func": "error",
+        "sdk/no-unsafe-html-writes": "error"
       }
     },
     {
