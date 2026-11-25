@@ -1,7 +1,7 @@
 import { parseSemver } from '@sentry/core';
+import { collectInstalledModules } from '@sentry/server-utils/no-diagnostic-channels';
 import * as fs from 'fs';
 import { createRequire } from 'module';
-import * as path from 'path';
 
 // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
 export const DEFAULT_PAGE_EXTENSIONS = ['tsx', 'ts', 'jsx', 'js'];
@@ -220,23 +220,16 @@ export function detectActiveBundler(): 'turbopack' | 'webpack' {
   }
 }
 
-/**
- * Extract modules from project directory's package.json
- */
+/** The project's dependencies, with exact installed versions where they resolve and declared ranges otherwise. */
 export function getPackageModules(projectDir: string): Record<string, string> {
-  try {
-    const packageJson = path.join(projectDir, 'package.json');
-    const packageJsonContent = fs.readFileSync(packageJson, 'utf8');
-    const packageJsonObject = JSON.parse(packageJsonContent) as {
-      dependencies?: Record<string, string>;
-      devDependencies?: Record<string, string>;
-    };
-
-    return {
-      ...packageJsonObject.dependencies,
-      ...packageJsonObject.devDependencies,
-    };
-  } catch {
-    return {};
-  }
+  return collectInstalledModules({
+    readFile: filePath => {
+      try {
+        return fs.readFileSync(filePath, 'utf8');
+      } catch {
+        return undefined;
+      }
+    },
+    cwd: projectDir,
+  });
 }
