@@ -330,7 +330,7 @@ jobs:
         uses: ./dev-packages/size-limit-gh-action
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Only run comparison against develop if this is a PR
+          # Only compare on PRs. Other runs only store their results as a baseline.
           comparison_branch: ${{ (github.event_name == 'pull_request' && github.base_ref) ||  ''}}
 
   job_lint:
@@ -369,6 +369,8 @@ jobs:
                 echo "::error::All @playwright/test dependencies must be pinned to $version (from @sentry-internal/test-utils)."
                 exit 1
               fi
+          - name: Test repo scripts
+            run: pnpm run test:scripts
 
   job_check_lockfile:
     name: Check lockfile
