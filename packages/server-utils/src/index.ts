@@ -66,6 +66,8 @@ export { createFlueInstrumentation } from './ai/flue';
 export { flueIntegration } from './integrations/flue';
 export { piAiIntegration } from './integrations/pi-ai';
 export { piDurableIntegration } from './integrations/pi-durable';
+export { tanstackAIIntegration } from './integrations/tanstack-ai';
+export type { TanstackAIOptions } from './ai/tanstack-ai';
 export type { FlueOptions } from './ai/flue';
 export { mastraIntegration } from './integrations/mastra';
 export { mcpServerIntegration } from './integrations/mcp-server';

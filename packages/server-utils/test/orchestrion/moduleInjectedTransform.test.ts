@@ -44,7 +44,8 @@ describe('channel integration definitions', () => {
 
     // `@nestjs/*` and `@remix-run/*` are covered by listeners in their own SDK packages.
     // Each cron monitor is billed, so bundler-only SDKs must not install crons integrations for every app.
-    const optIn = new Set(['cron', 'node-cron', 'node-schedule']);
+    // `@tanstack/ai` stays opt-in until the provider SDK calls of its adapters stop getting a second span.
+    const optIn = new Set(['cron', 'node-cron', 'node-schedule', '@tanstack/ai']);
     const uncovered = [...configured].filter(
       name => !defined.has(name) && !optIn.has(name) && !name.startsWith('@nestjs/') && !name.startsWith('@remix-run/'),
     );

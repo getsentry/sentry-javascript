@@ -63,6 +63,7 @@ export {
   mistralAIIntegration,
   openAIIntegration,
   groqIntegration,
+  tanstackAIIntegration,
   togetherAIIntegration,
   typesafeIntegration,
   langChainIntegration,

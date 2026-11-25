@@ -195,6 +195,7 @@ export {
   openAIIntegration,
   pinoIntegration,
   groqIntegration,
+  tanstackAIIntegration,
   togetherAIIntegration,
   typesafeIntegration,
   postgresIntegration,

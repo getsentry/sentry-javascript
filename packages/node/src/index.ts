@@ -48,6 +48,7 @@ export {
   nitroIntegration,
   openAIIntegration,
   pinoIntegration,
+  tanstackAIIntegration,
   togetherAIIntegration,
   typesafeIntegration,
   postgresIntegration,

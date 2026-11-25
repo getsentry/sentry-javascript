@@ -203,6 +203,7 @@ export {
   redisIntegration,
   SentryMastraExporter,
   tediousIntegration,
+  tanstackAIIntegration,
   togetherAIIntegration,
   typesafeIntegration,
 } from '@sentry/server-utils';

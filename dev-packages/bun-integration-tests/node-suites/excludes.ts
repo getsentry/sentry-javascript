@@ -135,6 +135,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/redis-cache/test.ts',
   'suites/tracing/redis-dc/test.ts',
   'suites/tracing/redis/test.ts',
+  'suites/tracing/tanstack-ai/test.ts',
   'suites/tracing/tedious/test.ts',
   'suites/tracing/together-ai/test.ts',
   'suites/tracing/together-ai/v1/test.ts',

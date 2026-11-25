@@ -38,6 +38,7 @@ import { postgresJsChannels } from './config/postgres';
 import { prismaChannels } from './config/prisma';
 import { redisChannels } from './config/redis';
 import { remixChannels } from './config/remix';
+import { tanstackAiChannels } from './config/tanstack-ai';
 import { tediousChannels } from './config/tedious';
 import { togetherAiChannels } from './config/together-ai';
 import { typesafeChannels } from './config/typesafe';
@@ -100,6 +101,7 @@ export const CHANNELS = {
   ...prismaChannels,
   ...redisChannels,
   ...remixChannels,
+  ...tanstackAiChannels,
   ...tediousChannels,
   ...togetherAiChannels,
   ...typesafeChannels,
