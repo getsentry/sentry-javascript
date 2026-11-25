@@ -190,3 +190,13 @@ function accumulateChunk(state: StreamedModelCallResult, chunk: unknown): string
       return undefined;
   }
 }
+
+/** Maps each object value of `record` and keeps the other values as they are. */
+export function mapObjectValues(
+  record: Record<string, unknown>,
+  fn: (value: Record<string, unknown>, key: string) => unknown,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(record).map(([key, value]) => [key, isObjectLike(value) ? fn(value, key) : value]),
+  );
+}
