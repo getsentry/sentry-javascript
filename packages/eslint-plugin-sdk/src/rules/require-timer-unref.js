@@ -26,7 +26,13 @@ const GLOBAL_OBJECTS = new Set(['global', 'globalThis', 'GLOBAL_OBJ']);
 
 const UNREF_HELPERS = ['safeUnref', '_INTERNAL_safeUnref'];
 
-const TS_WRAPPERS = new Set(['TSAsExpression', 'TSSatisfiesExpression', 'TSNonNullExpression', 'TSTypeAssertion']);
+const TS_WRAPPERS = new Set([
+  'TSAsExpression',
+  'TSSatisfiesExpression',
+  'TSNonNullExpression',
+  'TSTypeAssertion',
+  'ParenthesizedExpression',
+]);
 
 function isInScope(filename) {
   const location = splitPackagePath(filename);
