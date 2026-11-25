@@ -237,7 +237,9 @@ async function describeBaseline(octokit, { baseline, mergedBaseSha, comparisonBr
     }
     const guidance =
       comparison.behind_by > 0
-        ? `Rebase your PR onto the latest ${base} to compare against an up-to-date baseline.`
+        ? basePr
+          ? `Update this PR and ${base} with their base branches to compare against an up-to-date baseline.`
+          : `Rebase your PR onto the latest ${base} to compare against an up-to-date baseline.`
         : `Re-run once the baseline build for ${commitLink(mergedBaseSha)} finishes.`;
     parts.push(
       `⚠️ Baseline mismatch: ${differences.join('; ')}. Their size changes also affect this comparison. ` +
