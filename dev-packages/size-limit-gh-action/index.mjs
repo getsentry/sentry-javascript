@@ -212,9 +212,10 @@ async function describeBaseline(octokit, { baseline, mergedBaseSha, comparisonBr
   }
 
   const { sha, workflowRun } = baseline;
+  const base = basePr ? `base PR #${basePr.number}` : comparisonBranch;
   const parts = [
-    `Compared: ${commitLink(context.sha)} (PR test merge using ${comparisonBranch} at ${commitLink(mergedBaseSha)})`,
-    `Against: ${commitLink(sha)} (${basePr ? `base PR #${basePr.number}` : comparisonBranch}) · [base run #${workflowRun.run_number}](${workflowRun.html_url})`,
+    `Compared: ${commitLink(context.sha)} (PR test merge using ${base} at ${commitLink(mergedBaseSha)})`,
+    `Against: ${commitLink(sha)} (${base}) · [base run #${workflowRun.run_number}](${workflowRun.html_url})`,
   ];
 
   try {
@@ -236,7 +237,7 @@ async function describeBaseline(octokit, { baseline, mergedBaseSha, comparisonBr
     }
     const guidance =
       comparison.behind_by > 0
-        ? `Rebase your PR onto the latest ${comparisonBranch} to compare against an up-to-date baseline.`
+        ? `Rebase your PR onto the latest ${base} to compare against an up-to-date baseline.`
         : `Re-run once the baseline build for ${commitLink(mergedBaseSha)} finishes.`;
     parts.push(
       `⚠️ Baseline mismatch: ${differences.join('; ')}. Their size changes also affect this comparison. ` +
