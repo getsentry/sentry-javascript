@@ -1,11 +1,11 @@
 'use strict';
 
 /**
- * @fileoverview Rule to keep browser-facing code on the `@sentry/core` span-start APIs.
+ * @fileoverview Rule to keep browser-facing code on the `@sentry/core/browser` span-start APIs.
  *
  * `startSpan`, `startInactiveSpan`, `startSpanManual` and `startIdleSpan` exist in two variants
  * under the same name: the plain ones at `@sentry/core` / `@sentry/core/server`, and guarded ones at
- * `@sentry/core` that install `spanStreamingIntegration` on the client before starting the
+ * `@sentry/core/browser` that install `spanStreamingIntegration` on the client before starting the
  * span. The browser SDK's `init()` deliberately does not reference that integration - that reference
  * alone would keep the whole span streaming graph in every bundle, including error-only ones.
  *
@@ -23,7 +23,7 @@ module.exports = {
   meta: {
     type: 'problem',
     docs: {
-      description: 'Enforce importing span-start APIs from `@sentry/core` in browser-facing code',
+      description: 'Enforce importing span-start APIs from `@sentry/core/browser` in browser-facing code',
       category: 'Possible Errors',
       recommended: true,
     },
@@ -31,7 +31,7 @@ module.exports = {
     schema: [],
     messages: {
       unguardedSpanApi:
-        '`{{name}}` must be imported from `@sentry/core` (or `@sentry/browser`) in browser-facing code. The `{{source}}` variant does not install `spanStreamingIntegration`, so spans it starts are created but never sent.',
+        '`{{name}}` must be imported from `@sentry/core/browser` (or `@sentry/browser`) in browser-facing code. The `{{source}}` variant does not install `spanStreamingIntegration`, so spans it starts are created but never sent.',
     },
   },
   create: function (context) {
