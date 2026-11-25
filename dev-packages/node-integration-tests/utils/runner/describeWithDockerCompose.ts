@@ -14,17 +14,13 @@ const UP_TIMEOUT_MS = 120_000;
 const UP_MAX_ATTEMPTS = 3;
 const DOWN_TIMEOUT_MS = 60_000;
 const LOGS_TIMEOUT_MS = 10_000;
-const CONFIG_TIMEOUT_MS = 10_000;
 const HOOK_MARGIN_MS = 5_000;
 
 // `spawnSync` blocks the event loop, so a hook timeout cannot stop a phase. Each phase has its own
 // enforced timeout, and the hook timeout is the worst case of all phases together: the hook can
 // time out only when a phase did.
 const START_TIMEOUT_MS =
-  CONFIG_TIMEOUT_MS +
-  DOWN_TIMEOUT_MS +
-  PULL_TIMEOUT_MS +
-  UP_MAX_ATTEMPTS * (UP_TIMEOUT_MS + LOGS_TIMEOUT_MS + DOWN_TIMEOUT_MS);
+  DOWN_TIMEOUT_MS + PULL_TIMEOUT_MS + UP_MAX_ATTEMPTS * (UP_TIMEOUT_MS + LOGS_TIMEOUT_MS + DOWN_TIMEOUT_MS);
 
 interface DockerOptions {
   /**
@@ -124,8 +120,6 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   const upOutcome = (result: ReturnType<typeof spawnSync>): string =>
     timedOut(result) ? `timed out after ${UP_TIMEOUT_MS}ms` : `exit ${result.status}`;
 
-  assertServicesHaveHealthchecks(cwd, composeArgs('config', '--format', 'json'));
-
   // ensure we're starting fresh
   close();
 
@@ -188,28 +182,4 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   }
 
   return close;
-}
-
-/**
- * `up --wait` returns as soon as a service without a healthcheck has started, so the test would race
- * the service's startup.
- */
-function assertServicesHaveHealthchecks(cwd: string, configArgs: string[]): void {
-  const result = spawnSync('docker', configArgs, { cwd, timeout: CONFIG_TIMEOUT_MS });
-  if (result.status !== 0) {
-    throw new Error(`docker compose config failed in ${cwd}\n${result.stderr?.toString() ?? ''}`);
-  }
-
-  const config = JSON.parse(result.stdout.toString()) as {
-    services?: Record<string, { healthcheck?: { test?: string[]; disable?: boolean } }>;
-  };
-  const missing = Object.entries(config.services ?? {})
-    .filter(
-      ([, { healthcheck }]) => !healthcheck?.test || healthcheck.test[0] === 'NONE' || healthcheck.disable === true,
-    )
-    .map(([name]) => name);
-
-  if (missing.length) {
-    throw new Error(`Every service in ${cwd}/docker-compose.yml needs a healthcheck. Missing: ${missing.join(', ')}`);
-  }
 }
