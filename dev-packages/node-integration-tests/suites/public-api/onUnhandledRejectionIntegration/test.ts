@@ -90,10 +90,25 @@ test rejection`);
       });
     }));
 
-  test.runIf(supports({ runtimes: ['node', 'bun'] }))('captures exceptions for unhandled rejections', async () => {
-    await createRunner(__dirname, 'scenario-warn.ts')
-      .expect({
-        event: {
+  test('captures exceptions for unhandled rejections', async () => {
+    // Deno exits on an unhandled rejection, so `globalHandlersIntegration` captures it as `fatal`.
+    const expectedEvent = supports({ runtimes: ['deno'] })
+      ? {
+          level: 'fatal',
+          exception: {
+            values: [
+              {
+                type: 'UnhandledRejection',
+                value: 'Non-Error promise rejection captured with value: test rejection',
+                mechanism: {
+                  type: 'auto.deno.global_handlers.unhandledrejection',
+                  handled: false,
+                },
+              },
+            ],
+          },
+        }
+      : {
           level: 'error',
           exception: {
             values: [
@@ -110,34 +125,9 @@ test rejection`);
               },
             ],
           },
-        },
-      })
-      .start()
-      .completed();
-  });
+        };
 
-  // Deno exits on an unhandled rejection, so `globalHandlersIntegration` captures it as `fatal`.
-  test.runIf(supports({ runtimes: ['deno'] }))('captures exceptions for unhandled rejections on Deno', async () => {
-    await createRunner(__dirname, 'scenario-warn.ts')
-      .expect({
-        event: {
-          level: 'fatal',
-          exception: {
-            values: [
-              {
-                type: 'UnhandledRejection',
-                value: 'Non-Error promise rejection captured with value: test rejection',
-                mechanism: {
-                  type: 'auto.deno.global_handlers.unhandledrejection',
-                  handled: false,
-                },
-              },
-            ],
-          },
-        },
-      })
-      .start()
-      .completed();
+    await createRunner(__dirname, 'scenario-warn.ts').expect({ event: expectedEvent }).start().completed();
   });
 
   // `@sentry/deno` has no `onUnhandledRejectionIntegration`.
