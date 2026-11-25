@@ -72,13 +72,11 @@ describe('experimentalReportSdkConfigIntegration', () => {
     );
 
     expect(payload).toEqual({
-      version: 3,
+      version: 4,
       sdk: { name: 'sentry.javascript.node', version: '11.14.0' },
       runtime: { name: 'node', version: 'v24.22.1' },
-      environment: 'staging',
       options: {
         runtime: { name: 'node', version: 'v24.22.1' },
-        environment: 'staging',
         defaultIntegrations: false,
         integrations: [
           { name: 'ExperimentalReportSdkConfig' },
@@ -109,10 +107,24 @@ describe('experimentalReportSdkConfigIntegration', () => {
     );
 
     expect(payload).toEqual({
-      version: 3,
-      ...resolvedOptions,
+      version: 4,
+      runtime: resolvedOptions.runtime,
       options: { integrations: [{ name: 'ExperimentalReportSdkConfig' }] },
     });
+  });
+
+  it('reports the same payload for every environment, so environments share a hash', () => {
+    const payloads = ['staging', 'production'].map(environment =>
+      reportConfig(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          ...captureOptionsSetByUser({ environment, integrations: [experimentalReportSdkConfigIntegration()] }),
+        }),
+      ),
+    );
+
+    expect(payloads[1]).toEqual(payloads[0]);
+    expect(payloads[0]).toEqual({ version: 4, options: { integrations: [{ name: 'ExperimentalReportSdkConfig' }] } });
   });
 
   it('reports a browser runtime when the client sets none', () => {
@@ -217,11 +229,11 @@ describe('experimentalReportSdkConfigIntegration', () => {
     );
 
     expect(addedPayload).toEqual({
-      version: 3,
+      version: 4,
       options: { integrations: [{ name: 'Tag', options: { tag: 'user' } }] },
     });
     expect(removedPayload).toEqual({
-      version: 3,
+      version: 4,
       removed_default_integrations: ['Dropped'],
       options: { integrations: [] },
     });
@@ -248,7 +260,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
     );
 
     expect(payload).toEqual({
-      version: 3,
+      version: 4,
       removed_default_integrations: ['Dropped', 'Zeta'],
       options: {
         integrations: [{ name: 'Tag', options: { tag: 'user' } }, { name: 'ExperimentalReportSdkConfig' }],
@@ -273,7 +285,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
       ),
     );
 
-    expect(payloads[0]).toEqual({ version: 3, options: { integrations: [{ name: 'Tag', options: { tag: 'user' } }] } });
+    expect(payloads[0]).toEqual({ version: 4, options: { integrations: [{ name: 'Tag', options: { tag: 'user' } }] } });
     expect(payloads[1]).toEqual(payloads[0]);
   });
 
@@ -297,7 +309,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
     );
 
     expect(payload).toEqual({
-      version: 3,
+      version: 4,
       removed_default_integrations: ['Dropped'],
       options: { integrations: [{ name: 'Tag', options: { tag: 'only' } }] },
     });
@@ -389,6 +401,6 @@ describe('experimentalReportSdkConfigIntegration', () => {
       }),
     );
 
-    expect(payload).toEqual({ version: 3, options: {} });
+    expect(payload).toEqual({ version: 4, options: {} });
   });
 });
