@@ -167,7 +167,12 @@ function describeShape(value: unknown, ancestors = new Set<object>()): unknown {
 
   const nextAncestors = new Set(ancestors).add(value);
 
-  return Object.fromEntries(Object.keys(value).map(key => [key, describeShape(value[key], nextAncestors)]));
+  const shape: Record<string, unknown> = {};
+  for (const key of Object.keys(value)) {
+    shape[key] = describeShape(value[key], nextAncestors);
+  }
+
+  return shape;
 }
 
 function describeIntegration(name: string, options: unknown): { name: string; options?: unknown } {
