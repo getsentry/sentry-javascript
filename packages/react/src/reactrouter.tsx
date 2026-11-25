@@ -82,7 +82,7 @@ function _reactRouterV4BrowserTracingIntegration(
  */
 export const reactRouterV4BrowserTracingIntegration: typeof _reactRouterV4BrowserTracingIntegration = defineIntegration(
   _reactRouterV4BrowserTracingIntegration,
-  ['matchPath'],
+  { libraryOptions: ['matchPath'] },
 );
 
 function _reactRouterV5BrowserTracingIntegration(
@@ -120,7 +120,7 @@ function _reactRouterV5BrowserTracingIntegration(
  */
 export const reactRouterV5BrowserTracingIntegration: typeof _reactRouterV5BrowserTracingIntegration = defineIntegration(
   _reactRouterV5BrowserTracingIntegration,
-  ['matchPath'],
+  { libraryOptions: ['matchPath'] },
 );
 
 function instrumentReactRouter(

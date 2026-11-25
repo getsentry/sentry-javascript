@@ -26,7 +26,7 @@ function _reactRouterV6BrowserTracingIntegration(
  */
 export const reactRouterV6BrowserTracingIntegration: typeof _reactRouterV6BrowserTracingIntegration = defineIntegration(
   _reactRouterV6BrowserTracingIntegration,
-  REACT_ROUTER_LIBRARY_OPTIONS,
+  { libraryOptions: REACT_ROUTER_LIBRARY_OPTIONS },
 );
 
 /**

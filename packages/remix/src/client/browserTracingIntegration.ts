@@ -37,5 +37,5 @@ function _browserTracingIntegration(options: RemixBrowserTracingIntegrationOptio
  */
 export const browserTracingIntegration: typeof _browserTracingIntegration = defineIntegration(
   _browserTracingIntegration,
-  ['useEffect', 'useLocation', 'useMatches'],
+  { libraryOptions: ['useEffect', 'useLocation', 'useMatches'] },
 );

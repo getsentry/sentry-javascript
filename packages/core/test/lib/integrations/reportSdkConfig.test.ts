@@ -439,7 +439,7 @@ describe('experimentalReportSdkConfigIntegration', () => {
   it('reports library functions in integration options without a fingerprint, unlike user callbacks', () => {
     const routerIntegration = defineIntegration(
       (_options: { useLocation?: () => unknown; shouldCreateSpan?: () => boolean } = {}) => ({ name: 'Router' }),
-      ['useLocation'],
+      { libraryOptions: ['useLocation'] },
     );
     const reportRouter = (useLocation: () => unknown): Record<string, unknown> =>
       reportConfig(

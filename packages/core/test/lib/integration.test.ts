@@ -885,7 +885,7 @@ describe('defineIntegration', () => {
   it('records the options that take library functions', () => {
     const routerIntegration = defineIntegration(
       (_options: { useLocation?: () => void; shouldCreateSpan?: () => boolean } = {}) => ({ name: 'Router' }),
-      ['useLocation'],
+      { libraryOptions: ['useLocation'] },
     );
 
     expect(routerIntegration()._libraryOptions).toEqual(['useLocation']);
