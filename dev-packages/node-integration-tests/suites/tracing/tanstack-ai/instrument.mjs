@@ -6,5 +6,11 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
-  integrations: [Sentry.tanstackAIIntegration()],
+  integrations: [
+    Sentry.tanstackAIIntegration({
+      onSpanEnd: (span, _call, { error }) => {
+        span.setAttribute('test.error', error?.message);
+      },
+    }),
+  ],
 });

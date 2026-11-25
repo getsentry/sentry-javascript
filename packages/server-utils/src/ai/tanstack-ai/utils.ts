@@ -9,6 +9,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { getTokenUsageAttributes } from '../core/utils';
 import type {
+  TanstackAIChunk,
   TanstackAIMiddlewareContext,
   TanstackAIModelMessage,
   TanstackAISystemPrompt,
@@ -100,4 +101,9 @@ function toGenAiMessage(message: TanstackAIModelMessage): Record<string, unknown
     });
   }
   return { role: message.role, parts };
+}
+
+/** The error of a `RUN_ERROR` chunk. */
+export function getRunError(chunk: TanstackAIChunk): { message?: string; code?: string } {
+  return chunk.error ?? { message: chunk.message, code: chunk.code };
 }

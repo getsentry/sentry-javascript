@@ -155,10 +155,38 @@ describe('TanStack AI integration', () => {
             const modelError = runSpans(container.items, 'thread-model-error');
             expect(modelError.agent.status).toBe('error');
             expect(modelError.chats.map(span => span.status)).toEqual(['error']);
+            expect(attr(modelError.chats[0], 'test.error')).toBe('Model overloaded');
 
             // `onAbort` ends these spans. Span streaming sends the `cancelled` status as `ok`.
             const stopped = runSpans(container.items, 'thread-stopped');
             expect(stopped.chats).toHaveLength(1);
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
+    test('decides the recording per call and runs the span hooks for every span', async () => {
+      await createRunner()
+        .unordered()
+        .expect({
+          span: container => {
+            const streamed = runSpans(container.items, 'thread-stream');
+            const plain = runSpans(container.items, 'thread-plain');
+            const all = [streamed.agent, ...streamed.chats, ...streamed.tools, plain.agent, ...plain.chats];
+
+            expect(all).toHaveLength(6);
+            for (const span of all) {
+              expect(attr(span, 'test.start')).toBe(attr(span, GEN_AI_CONVERSATION_ID));
+              expect(attr(span, 'test.end')).toBe('ok');
+              expect(attr(span, GEN_AI_OUTPUT_MESSAGES)).toBeUndefined();
+            }
+            expect(attr(streamed.chats[0], GEN_AI_INPUT_MESSAGES)).toBeUndefined();
+            expect(attr(streamed.tools[0], GEN_AI_TOOL_CALL_ARGUMENTS)).toBeUndefined();
+            expect(attr(streamed.tools[0], GEN_AI_TOOL_CALL_RESULT)).toBeUndefined();
+            expect(attr(plain.chats[0], GEN_AI_INPUT_MESSAGES)).toBeDefined();
           },
         })
         .start()
