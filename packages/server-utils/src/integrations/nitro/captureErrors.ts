@@ -1,4 +1,4 @@
-import { captureException, getClient, isAlreadyCaptured, parseUrl } from '@sentry/core';
+import { captureException, isAlreadyCaptured, parseUrl } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
 import type { NitroCapturedErrorContext } from './nitroTypes';
 
@@ -38,16 +38,6 @@ export async function captureNitroRequestError(
   error: unknown,
   errorContext?: NitroCapturedErrorContext,
 ): Promise<void> {
-  const sentryClientOptions = getClient()?.getOptions();
-
-  if (
-    sentryClientOptions &&
-    'enableNitroErrorHandler' in sentryClientOptions &&
-    sentryClientOptions.enableNitroErrorHandler === false
-  ) {
-    return;
-  }
-
   // Do not report HTTPErrors with 3xx or 4xx status codes
   if (isH3HTTPError(error) && error.status >= 300 && error.status < 500) {
     return;

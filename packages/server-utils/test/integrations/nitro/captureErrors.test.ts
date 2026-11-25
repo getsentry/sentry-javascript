@@ -22,7 +22,6 @@ describe('nitro error capture', () => {
   beforeEach(() => {
     captureExceptionSpy = vi.spyOn(SentryCore, 'captureException').mockImplementation(() => 'id');
     flushSpy = vi.spyOn(SentryCoreServer, 'flushIfServerless').mockResolvedValue(undefined);
-    vi.spyOn(SentryCore, 'getClient').mockReturnValue({ getOptions: () => ({}) } as SentryCore.Client);
   });
 
   afterEach(() => {
@@ -59,17 +58,6 @@ describe('nitro error capture', () => {
       await captureNitroRequestError(new Error('Database unavailable'));
 
       expect(flushSpy).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not capture when enableNitroErrorHandler is false', async () => {
-      vi.spyOn(SentryCore, 'getClient').mockReturnValue({
-        getOptions: () => ({ enableNitroErrorHandler: false }),
-      } as unknown as SentryCore.Client);
-
-      await captureNitroRequestError(new Error('Database unavailable'));
-
-      expect(captureExceptionSpy).not.toHaveBeenCalled();
-      expect(flushSpy).not.toHaveBeenCalled();
     });
 
     it.each([300, 302, 404, 499])('does not capture an HTTPError with status %i', async status => {
