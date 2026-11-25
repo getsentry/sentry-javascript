@@ -32,7 +32,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "11.17.0",
     "@sentry/core": "11.17.0"
   },
   "devDependencies": {

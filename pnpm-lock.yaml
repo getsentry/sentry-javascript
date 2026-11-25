@@ -1514,9 +1514,6 @@ importers:
       '@sentry/server-runtime-injection':
         specifier: 11.17.0
         version: link:../server-runtime-injection
-      '@sentry/server-utils':
-        specifier: 11.17.0
-        version: link:../server-utils
     devDependencies:
       '@google-cloud/bigquery':
         specifier: ^5.3.0
@@ -1539,12 +1536,6 @@ importers:
 
   packages/hono:
     dependencies:
-      '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.10.0
-      '@sentry/conventions':
-        specifier: ^0.36.0
-        version: 0.36.0
       '@sentry/core':
         specifier: 11.17.0
         version: link:../core
@@ -1564,6 +1555,9 @@ importers:
       '@sentry/cloudflare':
         specifier: 11.17.0
         version: link:../cloudflare
+      '@sentry/conventions':
+        specifier: ^0.36.0
+        version: 0.36.0
       '@sentry/deno':
         specifier: 11.17.0
         version: link:../deno
@@ -1696,9 +1690,6 @@ importers:
       '@sentry/bundler-plugins':
         specifier: 11.17.0
         version: link:../bundler-plugins
-      '@sentry/conventions':
-        specifier: ^0.36.0
-        version: 0.36.0
       '@sentry/core':
         specifier: 11.17.0
         version: link:../core
@@ -1949,9 +1940,6 @@ importers:
 
   packages/react-router:
     dependencies:
-      '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.10.0
       '@sentry/browser':
         specifier: 11.17.0
         version: link:../browser
@@ -1970,9 +1958,6 @@ importers:
       '@sentry/react':
         specifier: 11.17.0
         version: link:../react
-      '@sentry/server-runtime-injection':
-        specifier: 11.17.0
-        version: link:../server-runtime-injection
       '@sentry/server-utils':
         specifier: 11.17.0
         version: link:../server-utils
@@ -2285,9 +2270,6 @@ importers:
       '@sentry/node':
         specifier: 11.17.0
         version: link:../node
-      '@sentry/server-runtime-injection':
-        specifier: 11.17.0
-        version: link:../server-runtime-injection
       '@sentry/server-utils':
         specifier: 11.17.0
         version: link:../server-utils
@@ -2389,9 +2371,6 @@ importers:
       '@sentry/node':
         specifier: 11.17.0
         version: link:../node
-      '@sentry/server-runtime-injection':
-        specifier: 11.17.0
-        version: link:../server-runtime-injection
       '@sentry/server-utils':
         specifier: 11.17.0
         version: link:../server-utils
@@ -2435,12 +2414,6 @@ importers:
 
   packages/tanstackstart-react:
     dependencies:
-      '@opentelemetry/api':
-        specifier: ^1.9.1
-        version: 1.10.0
-      '@sentry/browser-utils':
-        specifier: 11.17.0
-        version: link:../browser-utils
       '@sentry/bundler-plugins':
         specifier: 11.17.0
         version: link:../bundler-plugins
@@ -2531,9 +2504,6 @@ importers:
 
   packages/wasm:
     dependencies:
-      '@sentry/browser':
-        specifier: 11.17.0
-        version: link:../browser
       '@sentry/core':
         specifier: 11.17.0
         version: link:../core

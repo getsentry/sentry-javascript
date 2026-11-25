@@ -87,7 +87,6 @@
     "@sentry/core": "11.17.0",
     "@sentry/nitro": "11.17.0",
     "@sentry/node": "11.17.0",
-    "@sentry/server-runtime-injection": "11.17.0",
     "@sentry/server-utils": "11.17.0",
     "@sentry/solid": "11.17.0",
     "@sentry/bundler-plugins": "11.17.0",
