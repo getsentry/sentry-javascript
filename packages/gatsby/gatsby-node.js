@@ -2,18 +2,39 @@ const fs = require('fs');
 
 const { hasSourceMapUploadCredentials } = require('@sentry/bundler-plugins/core');
 const { sentryWebpackPlugin } = require('@sentry/bundler-plugins/webpack');
-const { consoleSandbox, resolveSourceMapsFeatures } = require('@sentry/core');
+const { consoleSandbox, resolveSourceMapsFeatures, warnOnConflictingSourceMapOptions } = require('@sentry/core');
 
 const SENTRY_USER_CONFIG = ['./sentry.config.js', './sentry.config.ts'];
 
 // Gatsby calls `onCreateWebpackConfig` once per build stage.
 let warnedAboutDeleteOptions = false;
+let warnedAboutFlatDeleteOption = false;
 
 exports.onCreateWebpackConfig = ({ getConfig, actions, stage }, options) => {
   const enableClientWebpackPlugin = options.enableClientWebpackPlugin !== false;
   if (process.env.NODE_ENV === 'production' && enableClientWebpackPlugin) {
     const prevSourceMapSetting = getConfig() && 'devtool' in getConfig() ? getConfig().devtool : undefined;
     const { injectDebugIds, upload } = resolveSourceMapsFeatures(options.sourcemaps);
+    const sourcemaps = options.sourcemaps;
+    // Gatsby reads no other `sourcemaps` options.
+    warnOnConflictingSourceMapOptions(
+      sourcemaps && {
+        disable: sourcemaps.disable,
+        upload: sourcemaps.upload,
+        injectDebugIds: sourcemaps.injectDebugIds,
+        delete: sourcemaps.delete,
+      },
+    );
+    // TODO(v12): Remove along with the flat `deleteSourcemapsAfterUpload`.
+    if (options.deleteSourcemapsAfterUpload !== undefined && !warnedAboutFlatDeleteOption) {
+      warnedAboutFlatDeleteOption = true;
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[Sentry] `deleteSourcemapsAfterUpload` is deprecated and will be removed in the next major version. Use `sourcemaps.delete` instead.',
+        );
+      });
+    }
     // `sourcemaps.delete` replaces the flat `deleteSourcemapsAfterUpload`.
     const deleteOption = options.sourcemaps?.delete ?? options.deleteSourcemapsAfterUpload;
     if (

@@ -247,6 +247,9 @@ interface SourceMapsOptions {
 
   // TODO(v12): Remove `disable`. `upload` and `injectDebugIds` replace it.
   /**
+   * @deprecated Use `sourcemaps.upload` and `sourcemaps.injectDebugIds` instead. `upload: false` replaces
+   * `"disable-upload"`, and `upload: false, injectDebugIds: false` replaces `true`.
+   *
    * If this flag is `true`, any functionality related to source maps will be disabled. This includes the automatic upload of source maps.
    *
    * By default (`false`), the plugin automatically uploads source maps during a production build if a Sentry auth token is detected.
@@ -280,31 +283,25 @@ interface SourceMapsOptions {
    */
   ignore?: string | string[];
 
+  // TODO(v12): Remove.
   /**
-   * A glob or an array of globs that specifies the build artifacts that should be deleted after the artifact
-   * upload to Sentry has been completed.
+   * @deprecated Use `sourcemaps.delete` instead. When it is unset, Sentry already removes the source maps it
+   * turned on, and `delete: true` removes all of them. To delete other files, run a script after the build.
+   *
+   * A glob or an array of globs that specifies the build artifacts to delete after the upload to Sentry.
    *
    * The globbing patterns must follow the implementation of the `glob` package: https://www.npmjs.com/package/glob#glob-primer
    */
   filesToDeleteAfterUpload?: string | Array<string>;
 
+  // TODO(v12): Remove.
   /**
-   * Whether source maps are removed from the build output after they are uploaded to Sentry.
+   * @deprecated Use `sourcemaps.delete` instead. For source maps you turned on, `delete: true` removes every
+   * source map of the build, also those of chunks that were not uploaded, and also when nothing is uploaded.
    *
-   * When unset, the plugin removes only the source maps it turned on itself, that is, when the bundler's source map
-   * setting was not set. `true` also removes source maps you enabled yourself. `false` never removes them; the plugin
-   * still turns on hidden source maps when the setting is not set, so they can be uploaded.
-   *
-   * When the plugin turned source maps on, none of them reach the build output, not even those of chunks that
-   * `sourcemaps.assets` or `sourcemaps.ignore` keep out of the upload. Source maps you enabled yourself are only
-   * removed for the JavaScript chunks that were uploaded; excluded chunks keep theirs.
-   *
-   * `true` removes source maps you enabled yourself even when no upload runs, for example without an auth token.
-   * With `sourcemaps.disable` set, the plugin keeps them for a manual upload and warns. The plugin does not turn
-   * source maps on when it cannot upload them.
-   *
-   * With webpack's array form of `devtool`, `true` replaces the array with one hidden source map setting for
-   * all asset types, because webpack hides the array from plugins.
+   * Whether source maps are removed from the build output after they are uploaded to Sentry. When unset, Sentry
+   * removes only the source maps it turned on itself. `true` also removes the source maps you turned on for the
+   * JavaScript chunks that were uploaded. `false` never removes them.
    */
   deleteSourcemapsAfterUpload?: boolean;
 

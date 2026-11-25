@@ -47,6 +47,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     project,
     release,
     sentryUrl,
+    // oxlint-disable-next-line typescript/no-deprecated
     sourcemaps = { disable: false },
     debug = false,
   }: Omit<SentryReactRouterBuildOptions, 'sourcemaps'> &
@@ -123,6 +124,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     return;
   }
 
+  // oxlint-disable-next-line typescript/no-deprecated
   const userFilesToDeleteAfterUpload = await sourcemaps?.filesToDeleteAfterUpload;
   const defaultFilesToDelete = [`${toGlobPath(reactRouterConfig.buildDirectory)}/**/*.map`];
   let updatedFilesToDeleteAfterUpload: string | string[] | undefined;

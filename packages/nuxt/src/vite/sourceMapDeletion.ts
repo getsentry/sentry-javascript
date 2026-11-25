@@ -126,9 +126,11 @@ export function withClientSourceMapDeletion(
     ...options,
     sourcemaps: {
       ...options.sourcemaps,
+      // oxlint-disable-next-line typescript/no-deprecated
       filesToDeleteAfterUpload: undefined,
       sdkFilesToDeleteAfterUpload: undefined,
       delete: undefined,
+      // oxlint-disable-next-line typescript/no-deprecated
       deleteSourcemapsAfterUpload: undefined,
       // The Vite plugin reads this in its `config` hook, after `modules:done` set the fallback.
       sdkDeleteSourceMaps: environment => {
@@ -139,6 +141,7 @@ export function withClientSourceMapDeletion(
         if (userSourcemaps?.delete !== undefined) {
           return userSourcemaps.delete;
         }
+        // oxlint-disable-next-line typescript/no-deprecated
         return fallback[side] && userSourcemaps?.filesToDeleteAfterUpload === undefined ? true : undefined;
       },
     },
@@ -158,9 +161,11 @@ export function withoutSourceMapDeletion(options: InternalOptions): InternalOpti
     ...options,
     sourcemaps: {
       ...options.sourcemaps,
+      // oxlint-disable-next-line typescript/no-deprecated
       filesToDeleteAfterUpload: undefined,
       sdkFilesToDeleteAfterUpload: undefined,
       delete: undefined,
+      // oxlint-disable-next-line typescript/no-deprecated
       deleteSourcemapsAfterUpload: undefined,
       sdkDeleteSourceMaps: false,
     },

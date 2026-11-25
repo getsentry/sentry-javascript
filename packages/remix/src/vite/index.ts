@@ -1,4 +1,4 @@
-import { resolveSourceMapsFeatures } from '@sentry/core';
+import { resolveSourceMapsFeatures, warnOnConflictingSourceMapOptions } from '@sentry/core';
 import type { Plugin } from 'vite';
 import { makeOrchestrionPlugin } from './orchestrionPlugin';
 import { makeReleasePlugin } from './releasePlugin';
@@ -45,6 +45,9 @@ export function sentryRemixVitePlugin(options: SentryRemixVitePluginOptions = {}
   if (process.env.NODE_ENV === 'development') {
     return plugins;
   }
+
+  // The bundler plugin does not get `sourcemaps.deleteSourcemapsAfterUpload`.
+  warnOnConflictingSourceMapOptions(options.sourcemaps);
 
   const sourceMapState: SourceMapState = { sdkEnabledSourceMaps: false };
 

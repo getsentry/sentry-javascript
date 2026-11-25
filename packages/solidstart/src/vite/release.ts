@@ -11,6 +11,7 @@ import type { BuildTimeOptionsBase } from '@sentry/core';
 export function getRuntimeRelease(options: Pick<BuildTimeOptionsBase, 'release' | 'sourcemaps'>): string | undefined {
   if (
     process.env.NODE_ENV === 'development' ||
+    // oxlint-disable-next-line typescript/no-deprecated
     options.sourcemaps?.disable === true ||
     options.release?.inject === false
   ) {

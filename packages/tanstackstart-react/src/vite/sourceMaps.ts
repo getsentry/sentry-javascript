@@ -98,6 +98,7 @@ export function makeAddSentryVitePlugin(
     silent,
     sourcemaps: {
       assets: sourcemaps?.assets,
+      // oxlint-disable-next-line typescript/no-deprecated
       disable: sourcemaps?.disable,
       upload: sourcemaps?.upload,
       injectDebugIds: sourcemaps?.injectDebugIds,
@@ -105,11 +106,13 @@ export function makeAddSentryVitePlugin(
       ignore: sourcemaps?.ignore,
       rewriteSources: sourcemaps?.rewriteSources ?? rewriteTanstackStartSource,
       resolveSourceMap: sourcemaps?.resolveSourceMap,
+      // oxlint-disable-next-line typescript/no-deprecated
       filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload,
       // Called when the bundler plugin decides, after the SDK's enable plugins ran.
       // The SDK never read the user's `deleteSourcemapsAfterUpload`. `delete` replaces it.
       // A user's own `filesToDeleteAfterUpload` replaces the SDK's deletion.
       sdkDeleteSourceMaps:
+        // oxlint-disable-next-line typescript/no-deprecated
         sourcemaps?.delete === undefined && sourcemaps?.filesToDeleteAfterUpload === undefined
           ? environment => hasSdkEnabledSourceMaps(state, environment) || undefined
           : undefined,

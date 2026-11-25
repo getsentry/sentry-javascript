@@ -467,33 +467,22 @@ type SentryBuildSourceMapsOptions = Omit<
    */
   ignore?: string | string[];
 
+  // TODO(v12): Remove.
   /**
-   * A glob or an array of globs that specifies which source map files should be deleted after being uploaded to Sentry.
+   * @deprecated Use `sourcemaps.delete` instead. `delete: true` removes all client source maps. To delete other
+   * files, run a script after the build.
    *
-   * When set, this overrides the default deletion behavior of `deleteSourcemapsAfterUpload`.
-   *
-   * Use this option when you need fine-grained control over which source maps are deleted.
-   *
-   * @example
-   * ```javascript
-   * withSentryConfig(nextConfig, {
-   *   sourcemaps: {
-   *     filesToDeleteAfterUpload: ['.next/static/**\/*.map'],
-   *   },
-   * });
-   * ```
+   * A glob or an array of globs that specifies the files to delete after the upload to Sentry. When set, it replaces
+   * the files that Sentry deletes by default.
    */
   filesToDeleteAfterUpload?: string | string[];
 
+  // TODO(v12): Remove.
   /**
-   * Toggle whether the client source maps within your Next.js build folder should be automatically deleted after
-   * being uploaded to Sentry. Server source maps are kept.
+   * @deprecated Use `sourcemaps.delete` instead.
    *
-   * When `true`, all client source maps are deleted, also those you turned on yourself (for example with
-   * `productionBrowserSourceMaps`) and those that were not uploaded.
-   *
-   * Defaults to `true` for webpack builds and for Turbopack builds in which the SDK turns on the client source maps.
-   * With `disable` set to `true` or `"disable-upload"`, nothing is deleted unless you set this option to `true`.
+   * Whether the client source maps within your Next.js build folder are deleted after the upload to Sentry. Server
+   * source maps are kept. `true` deletes all client source maps.
    */
   deleteSourcemapsAfterUpload?: boolean;
 

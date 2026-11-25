@@ -107,6 +107,7 @@ export function getPluginOptions(
   outputDir?: string,
 ): BundlerPluginOptions {
   const deleteOption = options?.sourcemaps?.delete;
+  // oxlint-disable-next-line typescript/no-deprecated
   const userFilesToDelete = options?.sourcemaps?.filesToDeleteAfterUpload;
   // `sourcemaps.delete` replaces the rule that only the source maps Sentry enabled are deleted.
   const defaultFilesToDelete =
@@ -135,6 +136,7 @@ export function getPluginOptions(
     silent: options?.silent ?? false,
     errorHandler: options?.errorHandler,
     sourcemaps: {
+      // oxlint-disable-next-line typescript/no-deprecated
       disable: options?.sourcemaps?.disable,
       upload: options?.sourcemaps?.upload,
       injectDebugIds: options?.sourcemaps?.injectDebugIds,

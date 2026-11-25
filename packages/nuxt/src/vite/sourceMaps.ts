@@ -239,6 +239,7 @@ export function getPluginOptions(
     },
 
     sourcemaps: {
+      // oxlint-disable-next-line typescript/no-deprecated
       disable: moduleOptions.sourcemaps?.disable,
       upload: sourcemapsOptions.upload,
       injectDebugIds: sourcemapsOptions.injectDebugIds,
@@ -275,6 +276,7 @@ function resolveFilesToDeleteAfterUpload(
   const fallbackFilesToDelete = getFallbackFilesToDelete(shouldDeleteFilesFallback, deleteOption);
   const shouldDeleteFilesAfterUpload = fallbackFilesToDelete.length > 0;
 
+  // oxlint-disable-next-line typescript/no-deprecated
   const filesToDeleteAfterUpload = moduleOptions.sourcemaps?.filesToDeleteAfterUpload;
 
   if (deleteOption === true) {

@@ -165,6 +165,7 @@ export async function makeCustomSentryVitePlugins(
       // output - see the note on the adapter output dir in `sentrySvelteKit()`.
       const adapterOutputDir = await getAdapterOutputDir();
 
+      // oxlint-disable-next-line typescript/no-deprecated
       const originalFilesToDeleteAfterUpload = options?.sourcemaps?.filesToDeleteAfterUpload;
 
       // Without `sourcemaps.delete`, the SDK only removes the source maps it turned on itself, and a

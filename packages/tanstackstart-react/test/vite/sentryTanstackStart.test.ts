@@ -379,11 +379,11 @@ describe('sentryTanstackStart()', () => {
       const { sentryTanstackStart: freshSentryTanstackStart } = await import('../../src/vite/sentryTanstackStart');
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-      freshSentryTanstackStart({ sourcemaps: { disable: true } });
+      freshSentryTanstackStart({ sourcemaps: { upload: false, injectDebugIds: false } });
       expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('`tunnelRoute` option is deprecated'));
 
-      freshSentryTanstackStart({ tunnelRoute: true, sourcemaps: { disable: true } });
-      freshSentryTanstackStart({ tunnelRoute: '/monitor', sourcemaps: { disable: true } });
+      freshSentryTanstackStart({ tunnelRoute: true, sourcemaps: { upload: false, injectDebugIds: false } });
+      freshSentryTanstackStart({ tunnelRoute: '/monitor', sourcemaps: { upload: false, injectDebugIds: false } });
 
       expect(warnSpy).toHaveBeenCalledOnce();
       expect(warnSpy).toHaveBeenCalledWith(

@@ -16,17 +16,39 @@ describe('warnOnConflictingSourceMapOptions', () => {
   });
 
   it.each([
-    [{ upload: false, disable: true }, /`sourcemaps\.disable` is ignored/],
-    [{ injectDebugIds: false, disable: 'disable-upload' }, /`sourcemaps\.disable` is ignored/],
-    [{ upload: true, injectDebugIds: false }, /`sourcemaps\.injectDebugIds` is `false`/],
-    [{ delete: true, deleteSourcemapsAfterUpload: false }, /`sourcemaps\.deleteSourcemapsAfterUpload` is ignored/],
-    [{ delete: false, filesToDeleteAfterUpload: ['dist/**/*.map'] }, /`sourcemaps\.filesToDeleteAfterUpload` still/],
-  ] as const)('warns once about %j', (sourcemaps, message) => {
+    [{ disable: true }, /^`sourcemaps\.disable` is deprecated.*`sourcemaps\.upload: false`/],
+    [{ disable: 'disable-upload' }, /^`sourcemaps\.disable` is deprecated/],
+    [{ disable: false }, /^`sourcemaps\.disable` is deprecated/],
+    [
+      { deleteSourcemapsAfterUpload: true },
+      /^`sourcemaps\.deleteSourcemapsAfterUpload` is deprecated.*`sourcemaps\.delete`/,
+    ],
+    [{ deleteSourcemapsAfterUpload: false }, /^`sourcemaps\.deleteSourcemapsAfterUpload` is deprecated/],
+    [
+      { filesToDeleteAfterUpload: ['dist/**/*.map'] },
+      /^`sourcemaps\.filesToDeleteAfterUpload` is deprecated.*`sourcemaps\.delete`/,
+    ],
+    [{ delete: true, filesToDeleteAfterUpload: [] }, /^`sourcemaps\.filesToDeleteAfterUpload` is deprecated/],
+  ] as const)('warns once that an option in %j is deprecated', (sourcemaps, message) => {
     const logWarning = vi.fn();
 
     warnOnConflictingSourceMapOptions(sourcemaps, logWarning);
 
     expect(logWarning).toHaveBeenCalledTimes(1);
+    expect(logWarning).toHaveBeenCalledWith(expect.stringMatching(message));
+  });
+
+  it.each([
+    [{ upload: false, disable: true }, /`sourcemaps\.disable` is ignored/],
+    [{ injectDebugIds: false, disable: 'disable-upload' }, /`sourcemaps\.disable` is ignored/],
+    [{ upload: true, injectDebugIds: false }, /`sourcemaps\.injectDebugIds` is `false`/],
+    [{ delete: true, deleteSourcemapsAfterUpload: false }, /`sourcemaps\.deleteSourcemapsAfterUpload` is ignored/],
+    [{ delete: false, filesToDeleteAfterUpload: ['dist/**/*.map'] }, /`sourcemaps\.filesToDeleteAfterUpload` still/],
+  ] as const)('warns about the conflict in %j', (sourcemaps, message) => {
+    const logWarning = vi.fn();
+
+    warnOnConflictingSourceMapOptions(sourcemaps, logWarning);
+
     expect(logWarning).toHaveBeenCalledWith(expect.stringMatching(message));
   });
 
@@ -37,10 +59,8 @@ describe('warnOnConflictingSourceMapOptions', () => {
     { injectDebugIds: false },
     { upload: false, injectDebugIds: false },
     { delete: false },
-    { disable: true, deleteSourcemapsAfterUpload: true },
-    { disable: true, delete: true },
-    { delete: true, filesToDeleteAfterUpload: ['extra/**'] },
-    { filesToDeleteAfterUpload: ['dist/**/*.map'] },
+    { delete: true },
+    { disable: undefined, deleteSourcemapsAfterUpload: undefined, filesToDeleteAfterUpload: undefined },
   ] as const)('does not warn about %j', sourcemaps => {
     const logWarning = vi.fn();
 
@@ -49,7 +69,20 @@ describe('warnOnConflictingSourceMapOptions', () => {
     expect(logWarning).not.toHaveBeenCalled();
   });
 
-  it('warns about each conflict', () => {
+  it.each([
+    { disable: true, deleteSourcemapsAfterUpload: true },
+    { disable: true, delete: true },
+    { delete: true, filesToDeleteAfterUpload: ['extra/**'] },
+  ] as const)('only warns about the deprecated options in %j', sourcemaps => {
+    const logWarning = vi.fn();
+
+    warnOnConflictingSourceMapOptions(sourcemaps, logWarning);
+
+    expect(logWarning).toHaveBeenCalledWith(expect.stringMatching(/ is deprecated /));
+    expect(logWarning).not.toHaveBeenCalledWith(expect.stringMatching(/ is ignored | still | is set, but /));
+  });
+
+  it('warns about each deprecated option and each conflict', () => {
     const logWarning = vi.fn();
 
     warnOnConflictingSourceMapOptions(
@@ -57,7 +90,7 @@ describe('warnOnConflictingSourceMapOptions', () => {
       logWarning,
     );
 
-    expect(logWarning).toHaveBeenCalledTimes(3);
+    expect(logWarning).toHaveBeenCalledTimes(5);
   });
 
   it('logs each warning once, also for later calls', () => {
@@ -65,10 +98,12 @@ describe('warnOnConflictingSourceMapOptions', () => {
 
     warnOnConflictingSourceMapOptions({ upload: true, injectDebugIds: false }, logWarning);
     warnOnConflictingSourceMapOptions({ upload: true, injectDebugIds: false, disable: true }, logWarning);
+    warnOnConflictingSourceMapOptions({ disable: 'disable-upload' }, logWarning);
 
-    expect(logWarning).toHaveBeenCalledTimes(2);
+    expect(logWarning).toHaveBeenCalledTimes(3);
     expect(logWarning).toHaveBeenNthCalledWith(1, expect.stringMatching(/`sourcemaps\.injectDebugIds` is `false`/));
-    expect(logWarning).toHaveBeenNthCalledWith(2, expect.stringMatching(/`sourcemaps\.disable` is ignored/));
+    expect(logWarning).toHaveBeenNthCalledWith(2, expect.stringMatching(/`sourcemaps\.disable` is deprecated/));
+    expect(logWarning).toHaveBeenNthCalledWith(3, expect.stringMatching(/`sourcemaps\.disable` is ignored/));
   });
 
   it('logs with a `[Sentry]` prefix by default', () => {
