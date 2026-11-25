@@ -13,6 +13,7 @@ import type {
 export type { Plugin as RollupPlugin } from 'rollup';
 import { instrumentedModuleNames } from '../config';
 import type { PluginOptions } from './options';
+import { enableNitroTracingChannels, getBuildingNitro } from './nitro';
 import { externalEntryMatchesModule, externalizedModulesWarning, orchestrionTransformOptions } from './options';
 import { resolveOrchestrionRuntimeRequest, SNIPPET_IMPORT_SPECIFIER } from './resolve';
 
@@ -141,6 +142,12 @@ export function sentryOrchestrionPlugin(options: PluginOptions = {}): Plugin {
       return resolveOrchestrionRuntimeRequest(source) ?? null;
     },
     buildStart(this: PluginContext, rollupOptions: NormalizedInputOptions): void {
+      // Nitro has resolved its options by now, but renders the virtual modules that read `tracingChannel` later.
+      const nitro = getBuildingNitro();
+      if (nitro) {
+        enableNitroTracingChannels(nitro);
+      }
+
       // An externalized dependency never passes through the code transform, so
       // its diagnostics_channel calls are silently never injected. Rollup has
       // normalized `external` into a single predicate by the time buildStart

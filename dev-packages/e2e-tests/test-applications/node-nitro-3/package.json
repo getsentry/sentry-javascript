@@ -55,7 +55,7 @@
       {
         "build-command": "pnpm test:build:tracing-channel",
         "assert-command": "pnpm test:prod:tracing-channel",
-        "label": "node-nitro-3 (vite, production, tracing channel)"
+        "label": "node-nitro-3 (vite, production, user-set tracingChannel)"
       }
     ]
   }

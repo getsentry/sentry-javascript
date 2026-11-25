@@ -28,7 +28,6 @@ import { mysql2Channels } from './config/mysql2';
 import { mysqlChannels } from './config/mysql';
 import { neonChannels } from './config/neon';
 import { nestjsChannels } from './config/nestjs';
-import { nitroChannels } from './config/nitro';
 import { nodeCronChannels } from './config/node-cron';
 import { nodeScheduleChannels } from './config/node-schedule';
 import { openaiChannels } from './config/openai';
@@ -91,7 +90,6 @@ export const CHANNELS = {
   ...mysqlChannels,
   ...neonChannels,
   ...nestjsChannels,
-  ...nitroChannels,
   ...nodeCronChannels,
   ...nodeScheduleChannels,
   ...openaiChannels,

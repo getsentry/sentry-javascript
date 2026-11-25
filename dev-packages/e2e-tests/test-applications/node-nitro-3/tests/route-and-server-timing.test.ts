@@ -1,5 +1,6 @@
 import type { APIResponse } from '@playwright/test';
 import { expect, test } from '@playwright/test';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { HTTP_ROUTE, SENTRY_ORIGIN, SENTRY_SEGMENT_NAME_SOURCE, URL_PATH } from '@sentry/conventions/attributes';
 import { HANDLER } from '@sentry/conventions/op';
@@ -62,27 +63,21 @@ test('sets one pair of Server-Timing entries that continue the request trace', a
   ]);
 });
 
-test.describe('with the native h3 tracing channels', () => {
-  test.skip(!process.env.E2E_NITRO_TRACING_CHANNEL, 'Needs Nitro `tracingChannel: true`');
+test('creates one h3 handler span through the tracing channels the plugin turned on', async ({ request }) => {
+  // In dev, the dev server in front of Nitro sends an unnamed segment span of its own for the request.
+  const isNitroSegment = (span: SerializedStreamedSpan): boolean =>
+    span.attributes[URL_PATH]?.value === '/api/test-param/456' && !!span.attributes[HTTP_ROUTE];
+  const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, isNitroSegment);
 
-  test('sets the route and the Server-Timing entries once when both paths run', async ({ request }) => {
-    const spansPromise = collectStreamedSpansUntilSegment(
-      APP_NAME,
-      span => span.attributes[URL_PATH]?.value === '/api/test-param/456',
-    );
+  const response = await request.get('/api/test-param/456');
 
-    const response = await request.get('/api/test-param/456');
-
-    const spans = await spansPromise;
-    const segmentSpan = spans.find(span => span.is_segment)!;
-    // The native path is active: it creates the h3 handler span.
-    const handlerSpans = spans.filter(
-      span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.http.nitro.h3' && getSpanOp(span) === HANDLER,
-    );
-    expect(handlerSpans).toHaveLength(1);
-    expect(segmentSpan.name).toBe('GET /api/test-param/:id');
-    expect(segmentSpan.attributes[HTTP_ROUTE]?.value).toBe('/api/test-param/:id');
-    expect(getServerTimingEntries(response, 'sentry-trace')).toHaveLength(1);
-    expect(getServerTimingEntries(response, 'baggage')).toHaveLength(1);
-  });
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(span => span.is_segment && isNitroSegment(span))!;
+  const handlerSpans = spans.filter(
+    span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.http.nitro.h3' && getSpanOp(span) === HANDLER,
+  );
+  expect(handlerSpans).toHaveLength(1);
+  expect(segmentSpan.name).toBe('GET /api/test-param/:id');
+  expect(getServerTimingEntries(response, 'sentry-trace')).toHaveLength(1);
+  expect(getServerTimingEntries(response, 'baggage')).toHaveLength(1);
 });
