@@ -2,12 +2,13 @@ import { fileURLToPath } from 'node:url';
 import { sentryNitro } from '@sentry/node/nitro';
 import { defineConfig } from 'nitro';
 
-// With `E2E_SERVER_DIR`, Nitro scans `server/`. Without it, Nitro 3's default, the app lists its routes, tasks and
-// plugins here.
-const withoutServerDir = {
+export default defineConfig({
+  modules: [sentryNitro()],
+  experimental: { tasks: true },
+  // Nitro's default in-memory cache does not go through unstorage, which publishes the channels for cache spans.
+  cache: { driver: 'kv' },
   routes: {
     '/api/flush': './server/api/flush.ts',
-    '/api/plugin-order': './server/api/plugin-order.ts',
     '/api/test-cache': './server/api/test-cache.ts',
     '/api/test-error': './server/api/test-error.ts',
     '/api/test-error-400': './server/api/test-error-400.ts',
@@ -17,13 +18,5 @@ const withoutServerDir = {
   },
   // Nitro resolves task handlers from where the build runs, unlike route handlers.
   tasks: { 'test-error': { handler: fileURLToPath(new URL('./server/tasks/test-error.ts', import.meta.url)) } },
-  plugins: ['./server/plugins/plugin-order.ts'],
-};
-
-export default defineConfig({
-  modules: [sentryNitro()],
-  experimental: { tasks: true },
-  // Nitro's default in-memory cache does not go through unstorage, which publishes the channels for cache spans.
-  cache: { driver: 'kv' },
-  ...(process.env.E2E_SERVER_DIR ? { serverDir: './server' } : withoutServerDir),
+  plugins: ['./server/plugins/plugin-init-error.ts'],
 });

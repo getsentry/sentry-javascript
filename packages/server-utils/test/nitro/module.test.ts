@@ -146,6 +146,16 @@ describe('createSentryNitroModule', () => {
       expect(renderRuntimePlugin()).not.toContain('sentry.server.config');
     });
 
+    it('imports `sentry.server.config` from the root directory when Nitro scans `server/`', () => {
+      const file = writeFile('sentry.server.config.ts');
+      const { nitro, renderRuntimePlugin } = createNitro({ scanDirs: [`${join(rootDir, 'server')}/`] });
+
+      setup(nitro);
+
+      expect(nitro.options.plugins[0]).toBe(RUNTIME_PLUGIN_ID);
+      expect(renderRuntimePlugin()).toContain(`import ${JSON.stringify(file)};`);
+    });
+
     it('does not import a server config that Nitro loads as a plugin from a directory it scans', () => {
       writeFile('server/plugins/sentry.ts');
       const { nitro, renderRuntimePlugin } = createNitro({ scanDirs: [`${join(rootDir, 'server')}/`] });
