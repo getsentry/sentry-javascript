@@ -123,7 +123,11 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     options.integrations = integrationsSetByUser.map(name => {
       const integration: (Integration & { isDefaultInstance?: true }) | undefined = client.getIntegrationByName(name);
       // A default instance kept by an `integrations` function got its options from the SDK, not the user.
-      return describeIntegration(name, integration?.isDefaultInstance ? undefined : integration?._options);
+      return describeIntegration(
+        name,
+        integration?.isDefaultInstance ? undefined : integration?._options,
+        integration?._libraryOptions,
+      );
     });
   }
 
@@ -134,7 +138,7 @@ function buildConfigAttributes(client: Client): Record<string, string> {
   if (Array.isArray(options.defaultIntegrations)) {
     // `getIntegrationsToSetup` flags these as default instances, but the user passed them.
     options.defaultIntegrations = options.defaultIntegrations.map((integration: Integration) =>
-      describeIntegration(integration.name, integration._options),
+      describeIntegration(integration.name, integration._options, integration._libraryOptions),
     );
   }
 
@@ -173,7 +177,11 @@ function describeShape(value: unknown, ancestors = new Set<object>()): unknown {
   return shape;
 }
 
-function describeIntegration(name: string, options: unknown): { name: string; options?: unknown } {
+function describeIntegration(
+  name: string,
+  options: unknown,
+  libraryOptions: readonly string[] = [],
+): { name: string; options?: unknown } {
   if (options === undefined) {
     return { name };
   }
@@ -190,7 +198,10 @@ function describeIntegration(name: string, options: unknown): { name: string; op
 
   const described: Record<string, unknown> = {};
   for (const key of keys) {
-    described[key] = describeOptionValue(options[key]);
+    const value = options[key];
+    // A library function's source changes with the library build and the engine, not with the config.
+    described[key] =
+      typeof value === 'function' && libraryOptions.includes(key) ? '[Function]' : describeOptionValue(value);
   }
 
   return { name, options: described };

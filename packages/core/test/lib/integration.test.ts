@@ -881,4 +881,13 @@ describe('defineIntegration', () => {
 
     expect(wrapperIntegration({ sampleRate: 0.5 })._options).toEqual({ sampleRate: 0.5 });
   });
+
+  it('records the options that take library functions', () => {
+    const routerIntegration = defineIntegration(
+      (_options: { useLocation?: () => void; shouldCreateSpan?: () => boolean } = {}) => ({ name: 'Router' }),
+      ['useLocation'],
+    );
+
+    expect(routerIntegration()._libraryOptions).toEqual(['useLocation']);
+  });
 });

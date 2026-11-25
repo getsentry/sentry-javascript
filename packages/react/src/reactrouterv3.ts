@@ -109,6 +109,7 @@ function _reactRouterV3BrowserTracingIntegration(
  */
 export const reactRouterV3BrowserTracingIntegration: typeof _reactRouterV3BrowserTracingIntegration = defineIntegration(
   _reactRouterV3BrowserTracingIntegration,
+  ['match'],
 );
 
 /**

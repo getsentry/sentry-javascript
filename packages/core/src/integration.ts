@@ -167,10 +167,13 @@ export function addIntegration(integration: Integration): void {
 /**
  * Define an integration function that can be used to create an integration instance.
  * Note that this by design hides the implementation details of the integration, as they are considered internal.
+ *
+ * `libraryOptions` names the options that take functions from a library, such as router hooks, rather than user code.
  */
 /*#__NO_SIDE_EFFECTS__*/
 export function defineIntegration<Fn extends IntegrationFn>(
   fn: Fn,
+  libraryOptions?: ReadonlyArray<keyof NonNullable<Parameters<Fn>[0]> & string>,
 ): (...args: Parameters<Fn>) => Integration & { name: ReturnType<Fn>['name'] } {
   return (...args: Parameters<Fn>) => {
     // Copied before the integration runs, so its writes into the object it was given aren't reported as the user's.
@@ -178,6 +181,7 @@ export function defineIntegration<Fn extends IntegrationFn>(
     const integration = fn(...args) as ReturnType<Fn>;
     // Always set, since a wrapper can return an inner integration that holds the options the wrapper forced.
     integration._options = options;
+    integration._libraryOptions = libraryOptions;
 
     return integration;
   };

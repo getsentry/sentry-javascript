@@ -436,6 +436,38 @@ describe('experimentalReportSdkConfigIntegration', () => {
     });
   });
 
+  it('reports library functions in integration options without a fingerprint, unlike user callbacks', () => {
+    const routerIntegration = defineIntegration(
+      (_options: { useLocation?: () => unknown; shouldCreateSpan?: () => boolean } = {}) => ({ name: 'Router' }),
+      ['useLocation'],
+    );
+    const reportRouter = (useLocation: () => unknown): Record<string, unknown> =>
+      reportConfig(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          ...captureOptionsSetByUser({
+            integrations: [
+              experimentalReportSdkConfigIntegration(),
+              routerIntegration({ useLocation, shouldCreateSpan: () => false }),
+            ],
+          }),
+        }),
+      );
+
+    const payload = reportRouter(() => 'react-router@6');
+
+    expect(payload.options).toEqual({
+      integrations: [
+        { name: 'ExperimentalReportSdkConfig' },
+        {
+          name: 'Router',
+          options: { shouldCreateSpan: expect.stringMatching(/^\[Function:\w+\]$/), useLocation: '[Function]' },
+        },
+      ],
+    });
+    expect(reportRouter(() => 'react-router@7')).toEqual(payload);
+  });
+
   it('reports integration options as passed, even when the integration writes into them', () => {
     const mutatingIntegration = defineIntegration((options: { capture?: boolean } = {}) => {
       options.capture = false;
