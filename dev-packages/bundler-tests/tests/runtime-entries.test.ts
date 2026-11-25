@@ -64,7 +64,7 @@ const ESM: Format[] = ['esm'];
 const CASES: Case[] = [
   { specifier: '@sentry/node', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/node/import', conditions: NODE, formats: ESM },
-  { specifier: '@sentry/node/nitro/runtime', conditions: NODE, formats: BOTH },
+  { specifier: '@sentry/node/nitro-runtime', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/bun', conditions: ['bun', 'node'], formats: BOTH },
   { specifier: '@sentry/bun/import', conditions: ['bun', 'node'], formats: ESM },
   { specifier: '@sentry/deno', conditions: ['deno', 'node'], formats: ESM },

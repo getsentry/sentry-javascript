@@ -7,7 +7,7 @@ import { createSentryNitroModule } from '../../src/nitro/module';
 
 const USER_PLUGIN = '/app/server/plugins/user.ts';
 const RUNTIME_PLUGIN_ID = '#sentry/nitro-plugin';
-const RUNTIME_MODULE = '@sentry/node/nitro/runtime';
+const RUNTIME_MODULE = '@sentry/node/nitro-runtime';
 
 type BuildConfig = Parameters<Parameters<NitroLike['hooks']['hook']>[1]>[1];
 

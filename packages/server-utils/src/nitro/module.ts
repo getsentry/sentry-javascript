@@ -54,7 +54,7 @@ export interface SentryNitroModule {
 interface CreateSentryNitroModuleOptions {
   /**
    * The module the runtime plugin imports `setupSentryNitroApp` from. It must resolve from the app's root directory,
-   * so it is a subpath of the SDK package the app depends on, such as `@sentry/node/nitro/runtime`.
+   * so it is a subpath of the SDK package the app depends on, such as `@sentry/node/nitro-runtime`.
    */
   runtimeModule: string;
   /**
@@ -173,7 +173,7 @@ function registerRuntimePlugin(
       importedConfigFile ? `import ${stringifyForCodeInjection(importedConfigFile)};` : '',
       'import { tasks } from "#nitro/virtual/tasks";',
       // The SDK's entry, not `@sentry/server-utils`, which pnpm apps can't resolve from their root.
-      // See `@sentry/node/nitro/runtime`.
+      // See `@sentry/node/nitro-runtime`.
       `import { setupSentryNitroApp } from ${stringifyForCodeInjection(runtimeModule)};`,
       'export default function sentryNitroPlugin(nitroApp) {',
       '  setupSentryNitroApp(nitroApp, tasks);',
