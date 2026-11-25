@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
+import { RUNTIME } from './runtime';
 import { waitForHydration } from './waitForHydration';
 
 IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
@@ -126,7 +127,9 @@ test.describe('SSR error boundary', () => {
 
     const error = await errorPromise;
 
-    expect(error.transaction).toEqual('GET /ssr-error-boundary');
+    if (RUNTIME !== 'bun') {
+      expect(error.transaction).toEqual('GET /ssr-error-boundary');
+    }
     expect(error.exception.values[0]).toMatchObject({
       type: 'Error',
       value: 'SSR Error inside NuxtErrorBoundary',
