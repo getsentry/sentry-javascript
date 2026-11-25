@@ -78,7 +78,6 @@ function _wrapCloudEventFunction(
 
         const newCallback = domainify((...args: unknown[]) => {
           if (args[0] !== null && args[0] !== undefined) {
-            // oxlint-disable-next-line sdk/require-exception-mechanism -- mechanism is set by `markEventUnhandled`
             captureException(args[0], scope => markEventUnhandled(scope, 'auto.function.serverless.gcp_cloud_event'));
           }
           span.end();
@@ -99,7 +98,6 @@ function _wrapCloudEventFunction(
           return handleCallbackErrors(
             () => (fn as CloudEventFunctionWithCallback)(context, newCallback),
             err => {
-              // oxlint-disable-next-line sdk/require-exception-mechanism -- mechanism is set by `markEventUnhandled`
               captureException(err, scope => markEventUnhandled(scope, 'auto.function.serverless.gcp_cloud_event'));
             },
           );

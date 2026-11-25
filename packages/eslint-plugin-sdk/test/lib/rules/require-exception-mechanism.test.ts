@@ -20,6 +20,10 @@ describe('require-exception-mechanism', () => {
         { code: "captureException(e, { 'mechanism': { 'handled': false, 'type': 'auto.http.express' } });" },
         { code: 'captureException(e, { mechanism: MECHANISM });' },
         { code: 'captureException(e, { mechanism: getMechanism(e) });' },
+        { code: "captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.handler'));" },
+        {
+          code: "captureException(e, function (scope) { return markEventUnhandled(scope, 'auto.function.serverless.gcp_http'); });",
+        },
         { code: 'captureMessage(message);' },
         { code: 'foo.captureExceptionLater(e);' },
       ],
@@ -34,6 +38,14 @@ describe('require-exception-mechanism', () => {
         },
         {
           code: 'captureException(e, scope => scope);',
+          errors: [{ messageId: 'missingMechanism', data: { missing: 'mechanism' } }],
+        },
+        {
+          code: 'captureException(e, scope => markEventUnhandled(scope));',
+          errors: [{ messageId: 'missingMechanism', data: { missing: 'mechanism' } }],
+        },
+        {
+          code: "captureException(e, scope => { markEventUnhandled(scope, 'auto.x.y'); return otherScope; });",
           errors: [{ messageId: 'missingMechanism', data: { missing: 'mechanism' } }],
         },
         {

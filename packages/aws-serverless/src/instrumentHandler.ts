@@ -147,7 +147,6 @@ function getPatchedHandler(original: Handler | StreamifyHandler, lambdaStartTime
 }
 
 function captureLambdaError(err: Error | string): void {
-  // oxlint-disable-next-line sdk/require-exception-mechanism -- mechanism is set by `markEventUnhandled`
   captureException(err, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.otel'));
 }
 

@@ -7,7 +7,8 @@
  *
  * Flags `captureException(...)` and `<anything>.captureException(...)` unless the hint (second
  * argument) is an object literal whose `mechanism` sets both `handled` and `type`. A `mechanism`
- * that is not an object literal (a variable or a call) is trusted. Public API wrappers that only
+ * that is not an object literal (a variable or a call) is trusted, and so is a capture context
+ * callback that returns `markEventUnhandled(scope, type)`. Public API wrappers that only
  * pass a hint through, or code that sets the mechanism another way (for example with
  * `addExceptionMechanism` in an event processor), should disable the rule on that line and say why.
  */
@@ -38,8 +39,33 @@ function isCaptureException(callee) {
   );
 }
 
+// The serverless SDKs set the mechanism with this helper, which adds `{ handled: false, type }` in an event processor.
+function isMarkEventUnhandledCallback(hint) {
+  if (hint.type !== 'ArrowFunctionExpression' && hint.type !== 'FunctionExpression') {
+    return false;
+  }
+
+  let returned = hint.body;
+  if (returned.type === 'BlockStatement') {
+    const lastStatement = returned.body[returned.body.length - 1];
+    returned = lastStatement && lastStatement.type === 'ReturnStatement' ? lastStatement.argument : undefined;
+  }
+
+  return (
+    !!returned &&
+    returned.type === 'CallExpression' &&
+    returned.callee.type === 'Identifier' &&
+    returned.callee.name === 'markEventUnhandled' &&
+    returned.arguments.length === 2
+  );
+}
+
 /** Returns the missing mechanism keys, or `undefined` when the mechanism is complete or not statically visible. */
 function getMissingKeys(hint) {
+  if (hint && isMarkEventUnhandledCallback(hint)) {
+    return undefined;
+  }
+
   if (!hint || hint.type !== 'ObjectExpression') {
     return 'mechanism';
   }

@@ -213,14 +213,12 @@ export function wrapHandler<TEvent, TResult>(
         if (options.captureAllSettledReasons && Array.isArray(rv) && isPromiseAllSettledResult(rv)) {
           const reasons = getRejectedReasons(rv);
           reasons.forEach(exception => {
-            // oxlint-disable-next-line sdk/require-exception-mechanism -- mechanism is set by `markEventUnhandled`
             captureException(exception, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.promise'));
           });
         }
       } catch (e) {
         // Errors should already be captured in the AwsLambda instrumentation's error handler,
         // we capture them here just to be safe. Double captures are deduplicated by the SDK.
-        // oxlint-disable-next-line sdk/require-exception-mechanism -- mechanism is set by `markEventUnhandled`
         captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.handler'));
         throw e;
       } finally {
@@ -263,7 +261,6 @@ function wrapStreamingHandler<TEvent, TResult>(
         enhanceScopeWithEnvironmentData(scope, context, startTime);
 
         responseStream.on('error', error => {
-          // oxlint-disable-next-line sdk/require-exception-mechanism -- mechanism is set by `markEventUnhandled`
           captureException(error, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.stream'));
         });
 
@@ -271,7 +268,6 @@ function wrapStreamingHandler<TEvent, TResult>(
       } catch (e) {
         // Errors should already be captured in the AwsLambda instrumentation's error handler,
         // we capture them here just to be safe. Double captures are deduplicated by the SDK.
-        // oxlint-disable-next-line sdk/require-exception-mechanism -- mechanism is set by `markEventUnhandled`
         captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.handler'));
         throw e;
       } finally {
