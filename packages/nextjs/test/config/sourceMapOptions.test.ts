@@ -4,6 +4,7 @@ import {
   getSourceMapFeatureOptions,
   mergeFilesToDeleteAfterUpload,
   sentryEnablesSourceMaps,
+  setSdkDeletesSourceMaps,
 } from '../../src/config/sourceMapOptions';
 import type { NextConfigObject, SentryBuildOptions } from '../../src/config/types';
 import type { BundlerInfo } from '../../src/config/withSentryConfig/getFinalConfigObjectBundlerUtils';
@@ -53,13 +54,31 @@ describe('getDeleteSourceMapsOption', () => {
     [{ delete: false, deleteSourcemapsAfterUpload: true }, false],
     [{ delete: true, deleteSourcemapsAfterUpload: false }, true],
   ] as const)('with %j it returns %s', (sourcemaps, expected) => {
-    expect(getDeleteSourceMapsOption(sourcemaps)).toBe(expected);
+    expect(getDeleteSourceMapsOption({ sourcemaps })).toBe(expected);
+  });
+
+  it.each([
+    [undefined, true],
+    [{ deleteSourcemapsAfterUpload: false }, false],
+    [{ delete: false }, false],
+  ] as const)('after `setSdkDeletesSourceMaps`, with %j it returns %s', (sourcemaps, expected) => {
+    const options: SentryBuildOptions = { sourcemaps };
+    setSdkDeletesSourceMaps(options);
+
+    expect(getDeleteSourceMapsOption(options)).toBe(expected);
+    expect(options.sourcemaps).toEqual(sourcemaps);
+  });
+
+  it('reads the SDK default only for the options object it was set on', () => {
+    setSdkDeletesSourceMaps({});
+
+    expect(getDeleteSourceMapsOption({})).toBeUndefined();
   });
 });
 
 describe('getSourceMapFeatureOptions', () => {
   it.each([
-    [undefined, { disable: false }],
+    [undefined, {}],
     [{ disable: 'disable-upload' }, { disable: 'disable-upload' }],
     [{ upload: false }, { disable: undefined, upload: false }],
     [{ injectDebugIds: false }, { disable: undefined, injectDebugIds: false }],
@@ -72,8 +91,11 @@ describe('getSourceMapFeatureOptions', () => {
     expect(getSourceMapFeatureOptions(sourcemaps, false)).toEqual(expected);
   });
 
-  it('switches the webpack plugin off when the upload runs after the compile', () => {
-    expect(getSourceMapFeatureOptions({ upload: true, injectDebugIds: true }, true)).toEqual({ disable: true });
+  it('turns the upload and debug ID injection off when the upload runs after the compile', () => {
+    expect(getSourceMapFeatureOptions({ disable: false, upload: true, injectDebugIds: true }, true)).toEqual({
+      upload: false,
+      injectDebugIds: false,
+    });
   });
 });
 
@@ -95,7 +117,11 @@ describe('maybeEnableTurbopackSourcemaps with the new source map options', () =>
   function run(sourcemaps: NonNullable<SentryBuildOptions['sourcemaps']>, nextConfig: NextConfigObject = {}) {
     const userSentryOptions: SentryBuildOptions = { ...CREDENTIALS, sourcemaps };
     maybeEnableTurbopackSourcemaps(nextConfig, userSentryOptions, TURBOPACK_SUPPORTED);
-    return { nextConfig, sourcemaps: userSentryOptions.sourcemaps };
+    return {
+      nextConfig,
+      sourcemaps: userSentryOptions.sourcemaps,
+      deleteSourceMaps: getDeleteSourceMapsOption(userSentryOptions),
+    };
   }
 
   it.each([{ upload: false }, { injectDebugIds: false }, { upload: false, delete: true }])(
@@ -122,7 +148,8 @@ describe('maybeEnableTurbopackSourcemaps with the new source map options', () =>
     const result = run({ upload: true });
 
     expect(result.nextConfig.productionBrowserSourceMaps).toBe(true);
-    expect(result.sourcemaps).toEqual({ upload: true, deleteSourcemapsAfterUpload: true });
+    expect(result.sourcemaps).toEqual({ upload: true });
+    expect(result.deleteSourceMaps).toBe(true);
   });
 
   it('turns no source maps on without upload credentials', () => {

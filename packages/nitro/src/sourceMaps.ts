@@ -1,4 +1,4 @@
-import type { Options as BundlerPluginOptions } from '@sentry/bundler-plugins/core';
+import type { InternalOptions as BundlerPluginOptions } from '@sentry/bundler-plugins/core';
 import { createSentryBuildPluginManager } from '@sentry/bundler-plugins/core';
 import { resolveSourceMapsFeatures, warnOnConflictingSourceMapOptions } from '@sentry/core';
 import type { Nitro, NitroConfig } from 'nitro/types';
@@ -120,7 +120,7 @@ export function getPluginOptions(
   if (options?.debug && defaultFilesToDelete && userFilesToDelete === undefined) {
     // eslint-disable-next-line no-console
     console.log(
-      `[@sentry/nitro] Setting \`sourcemaps.filesToDeleteAfterUpload: ["${defaultFilesToDelete[0]}"]\` to delete generated source maps after they were uploaded to Sentry.`,
+      `[@sentry/nitro] Deleting the generated source maps after the upload: ${defaultFilesToDelete.join(', ')}`,
     );
   }
 
@@ -140,7 +140,7 @@ export function getPluginOptions(
       injectDebugIds: options?.sourcemaps?.injectDebugIds,
       assets: options?.sourcemaps?.assets,
       ignore: options?.sourcemaps?.ignore,
-      filesToDeleteAfterUpload,
+      sdkFilesToDeleteAfterUpload: filesToDeleteAfterUpload,
       rewriteSources: options?.sourcemaps?.rewriteSources ?? ((source: string) => normalizePath(source)),
     },
     release: options?.release,
@@ -162,7 +162,7 @@ export function getPluginOptions(
     3. User did not set source maps (undefined)
       - We enable source maps when Sentry uploads them, or when `sourcemaps.delete: false` keeps them for a manual
         upload. Otherwise we leave the setting unset
-      - Configure `filesToDeleteAfterUpload` to clean up .map files after upload
+      - Delete the .map files after the upload
 */
 export function configureSourcemapSettings(
   config: NitroConfig,
@@ -185,7 +185,7 @@ export function configureSourcemapSettings(
     usesSourceMaps &&
       // eslint-disable-next-line no-console
       console.warn(
-        '[@sentry/nitro] You have explicitly disabled source maps (`sourcemap: false`). Sentry will not upload source maps, and errors will not be unminified. To let Sentry handle source maps, remove the `sourcemap` option from your Nitro config, or use `sourcemaps: { disable: true }` in your Sentry options to silence this warning.',
+        '[@sentry/nitro] You have explicitly disabled source maps (`sourcemap: false`). Sentry will not upload source maps, and errors will not be unminified. To let Sentry handle source maps, remove the `sourcemap` option from your Nitro config, or set `sourcemaps: { upload: false }` in your Sentry options to silence this warning.',
       );
     return { sentryEnabledSourcemaps: false };
   }

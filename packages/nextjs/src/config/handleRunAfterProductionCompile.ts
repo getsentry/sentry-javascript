@@ -72,7 +72,7 @@ export async function handleRunAfterProductionCompile(
     prepareArtifacts: false,
   });
 
-  const deleteSourcemapsAfterUpload = getDeleteSourceMapsOption(sentryBuildOptions.sourcemaps) ?? false;
+  const deleteSourcemapsAfterUpload = getDeleteSourceMapsOption(sentryBuildOptions) ?? false;
 
   // Deletion covers all of `static/`, so if Next.js emits chunks outside the upload
   // patterns, their maps would be deleted without ever having been uploaded — warn instead

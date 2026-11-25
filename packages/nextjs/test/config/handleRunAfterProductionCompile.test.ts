@@ -9,6 +9,7 @@ import {
   handleRunAfterProductionCompile,
   stripSourceMappingURLComments,
 } from '../../src/config/handleRunAfterProductionCompile';
+import { setSdkDeletesSourceMaps } from '../../src/config/sourceMapOptions';
 import type { SentryBuildOptions } from '../../src/config/types';
 
 vi.mock('@sentry/core/server', async importOriginal => ({
@@ -339,6 +340,25 @@ describe('handleRunAfterProductionCompile', () => {
           ...mockSentryBuildOptions,
           sourcemaps: { deleteSourcemapsAfterUpload: true },
         },
+      );
+
+      expect(readdirSpy).toHaveBeenCalledWith(
+        path.join('/path/to/.next', 'static'),
+        expect.objectContaining({ recursive: true }),
+      );
+    });
+
+    it('strips sourceMappingURL comments for turbopack builds when the SDK turned deletion on', async () => {
+      const sentryBuildOptions: SentryBuildOptions = { ...mockSentryBuildOptions, sourcemaps: {} };
+      setSdkDeletesSourceMaps(sentryBuildOptions);
+
+      await handleRunAfterProductionCompile(
+        {
+          releaseName: 'test-release',
+          distDir: '/path/to/.next',
+          buildTool: 'turbopack',
+        },
+        sentryBuildOptions,
       );
 
       expect(readdirSpy).toHaveBeenCalledWith(

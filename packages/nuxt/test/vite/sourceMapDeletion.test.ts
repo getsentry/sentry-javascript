@@ -45,7 +45,7 @@ describe('deletePublicSourceMaps', () => {
     await deletePublicSourceMaps(
       {
         sourcemaps: {
-          filesToDeleteAfterUpload: [toGlob('.*/**/public*/**/*.map'), toGlob('.*/**/server/**/*.map')],
+          sdkFilesToDeleteAfterUpload: [toGlob('.*/**/public*/**/*.map'), toGlob('.*/**/server/**/*.map')],
         },
       },
       publicDir,
@@ -61,7 +61,7 @@ describe('deletePublicSourceMaps', () => {
 
   it('keeps the files in the public dir that no pattern matches', async () => {
     await deletePublicSourceMaps(
-      { sourcemaps: { filesToDeleteAfterUpload: toGlob('.output/public/_nuxt/pages/*.map') } },
+      { sourcemaps: { sdkFilesToDeleteAfterUpload: toGlob('.output/public/_nuxt/pages/*.map') } },
       publicDir,
     );
 
@@ -76,7 +76,7 @@ describe('deletePublicSourceMaps', () => {
 
   it('resolves a promised list of patterns', async () => {
     await deletePublicSourceMaps(
-      { sourcemaps: { filesToDeleteAfterUpload: Promise.resolve([toGlob('.output/public/**/*.map')]) } },
+      { sourcemaps: { sdkFilesToDeleteAfterUpload: Promise.resolve([toGlob('.output/public/**/*.map')]) } },
       publicDir,
     );
 

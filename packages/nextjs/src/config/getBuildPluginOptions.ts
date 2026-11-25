@@ -302,7 +302,7 @@ export function getBuildPluginOptions({
   const loggerPrefix = LOGGER_PREFIXES[buildTool];
   const widenClientFileUpload = sentryBuildOptions.widenClientFileUpload ?? false;
   const userSourcemaps = sentryBuildOptions.sourcemaps;
-  const deleteSourcemapsAfterUpload = getDeleteSourceMapsOption(userSourcemaps) ?? false;
+  const deleteSourcemapsAfterUpload = getDeleteSourceMapsOption(sentryBuildOptions) ?? false;
   // `sourcemaps.delete: true` removes the source maps next to the user's `filesToDeleteAfterUpload`.
   const userFilesReplaceDeletion = userSourcemaps?.delete !== true;
 
@@ -368,7 +368,7 @@ export function getBuildPluginOptions({
       rewriteSources: sentryBuildOptions.sourcemaps?.rewriteSources ?? rewriteWebpackSources,
       assets: sentryBuildOptions.sourcemaps?.assets ?? sourcemapUploadAssets,
       ignore: finalIgnorePatterns,
-      filesToDeleteAfterUpload,
+      sdkFilesToDeleteAfterUpload: filesToDeleteAfterUpload,
       // Every client map goes, also those the user turned on with `productionBrowserSourceMaps` or
       // `devtool`, and those of chunks the upload leaves out.
       sdkDeleteSourceMaps: webpackPluginDeletesSourcemaps,

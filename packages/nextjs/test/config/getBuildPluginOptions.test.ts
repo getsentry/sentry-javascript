@@ -55,7 +55,7 @@ describe('getBuildPluginOptions', () => {
             '**/route_client-reference-manifest.js',
             '**/middleware-react-loadable-manifest.js',
           ],
-          filesToDeleteAfterUpload: undefined,
+          sdkFilesToDeleteAfterUpload: undefined,
           rewriteSources: expect.any(Function),
         },
         release: {
@@ -386,7 +386,7 @@ describe('getBuildPluginOptions', () => {
       project: 'test-project',
     };
 
-    it('disables sourcemaps when useRunAfterProductionCompileHook is true for webpack builds', () => {
+    it('turns the upload and debug ID injection off when useRunAfterProductionCompileHook is true for webpack builds', () => {
       const webpackBuildTools = ['webpack-client', 'webpack-nodejs', 'webpack-edge'] as const;
 
       webpackBuildTools.forEach(buildTool => {
@@ -398,11 +398,12 @@ describe('getBuildPluginOptions', () => {
           useRunAfterProductionCompileHook: true,
         });
 
-        expect(result.sourcemaps?.disable).toBe(true);
+        expect(result.sourcemaps).toMatchObject({ upload: false, injectDebugIds: false });
+        expect(result.sourcemaps?.disable).toBeUndefined();
       });
     });
 
-    it('does not disable sourcemaps when useRunAfterProductionCompileHook is true for after-production-compile builds', () => {
+    it('passes the source map features on unchanged when useRunAfterProductionCompileHook is true for after-production-compile builds', () => {
       const afterProductionCompileBuildTools = [
         'after-production-compile-webpack',
         'after-production-compile-turbopack',
@@ -417,11 +418,11 @@ describe('getBuildPluginOptions', () => {
           useRunAfterProductionCompileHook: true,
         });
 
-        expect(result.sourcemaps?.disable).toBe(false);
+        expect(result.sourcemaps).toMatchObject({ disable: undefined, upload: undefined, injectDebugIds: undefined });
       });
     });
 
-    it('does not disable sourcemaps when useRunAfterProductionCompileHook is false', () => {
+    it('passes the source map features on unchanged when useRunAfterProductionCompileHook is false', () => {
       const result = getBuildPluginOptions({
         sentryBuildOptions: baseSentryOptions,
         releaseName: mockReleaseName,
@@ -430,7 +431,7 @@ describe('getBuildPluginOptions', () => {
         useRunAfterProductionCompileHook: false,
       });
 
-      expect(result.sourcemaps?.disable).toBe(false);
+      expect(result.sourcemaps).toMatchObject({ disable: undefined, upload: undefined, injectDebugIds: undefined });
     });
   });
 
@@ -451,7 +452,7 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'after-production-compile-webpack',
       });
 
-      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([
+      expect(result.sourcemaps?.sdkFilesToDeleteAfterUpload).toEqual([
         '/path/to/.next/static/**/*.js.map',
         '/path/to/.next/static/**/*.mjs.map',
         '/path/to/.next/static/**/*.cjs.map',
@@ -475,7 +476,7 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'after-production-compile-turbopack',
       });
 
-      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([
+      expect(result.sourcemaps?.sdkFilesToDeleteAfterUpload).toEqual([
         '/path/to/.next/static/**/*.js.map',
         '/path/to/.next/static/**/*.mjs.map',
         '/path/to/.next/static/**/*.cjs.map',
@@ -497,7 +498,7 @@ describe('getBuildPluginOptions', () => {
       });
 
       expect(result.sourcemaps).toMatchObject({
-        filesToDeleteAfterUpload: undefined,
+        sdkFilesToDeleteAfterUpload: undefined,
         sdkDeleteSourceMaps: true,
       });
     });
@@ -515,7 +516,7 @@ describe('getBuildPluginOptions', () => {
       });
 
       expect(result.sourcemaps).toMatchObject({
-        filesToDeleteAfterUpload: undefined,
+        sdkFilesToDeleteAfterUpload: undefined,
         sdkDeleteSourceMaps: false,
       });
     });
@@ -535,7 +536,7 @@ describe('getBuildPluginOptions', () => {
 
       // The upload runs after the compile, and the after-production-compile options delete the maps.
       expect(result.sourcemaps).toMatchObject({
-        filesToDeleteAfterUpload: undefined,
+        sdkFilesToDeleteAfterUpload: undefined,
         sdkDeleteSourceMaps: false,
       });
     });
@@ -555,7 +556,7 @@ describe('getBuildPluginOptions', () => {
         });
 
         expect(result.sourcemaps).toMatchObject({
-          filesToDeleteAfterUpload: undefined,
+          sdkFilesToDeleteAfterUpload: undefined,
           sdkDeleteSourceMaps: false,
         });
       },
@@ -615,7 +616,7 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'webpack-client',
       });
 
-      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['.next/static/**/*.map']);
+      expect(result.sourcemaps?.sdkFilesToDeleteAfterUpload).toEqual(['.next/static/**/*.map']);
       expect(result.sourcemaps?.sdkDeleteSourceMaps).toBe(false);
     });
 
@@ -635,7 +636,10 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'webpack-client',
       });
 
-      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['.next/static/**/*.map', '.next/server/**/*.map']);
+      expect(result.sourcemaps?.sdkFilesToDeleteAfterUpload).toEqual([
+        '.next/static/**/*.map',
+        '.next/server/**/*.map',
+      ]);
     });
 
     it('filesToDeleteAfterUpload overrides deleteSourcemapsAfterUpload default pattern', () => {
@@ -655,7 +659,7 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'webpack-client',
       });
 
-      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['custom/**/*.map']);
+      expect(result.sourcemaps?.sdkFilesToDeleteAfterUpload).toEqual(['custom/**/*.map']);
       expect(result.sourcemaps?.sdkDeleteSourceMaps).toBe(false);
     });
 
@@ -675,7 +679,7 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'webpack-nodejs',
       });
 
-      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['.next/server/**/*.map']);
+      expect(result.sourcemaps?.sdkFilesToDeleteAfterUpload).toEqual(['.next/server/**/*.map']);
     });
 
     it('uses custom sourcemap assets when provided', () => {
@@ -782,7 +786,7 @@ describe('getBuildPluginOptions', () => {
           buildTool,
         });
 
-        expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([
+        expect(result.sourcemaps?.sdkFilesToDeleteAfterUpload).toEqual([
           '/path/to/.next/static/**/*.js.map',
           '/path/to/.next/static/**/*.mjs.map',
           '/path/to/.next/static/**/*.cjs.map',
@@ -802,7 +806,7 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'after-production-compile-turbopack',
       });
 
-      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['custom/**/*.map']);
+      expect(result.sourcemaps?.sdkFilesToDeleteAfterUpload).toEqual(['custom/**/*.map']);
     });
 
     // The plugin would also remove the server source maps, which broke deployments on Vercel.
@@ -1183,7 +1187,7 @@ describe('getBuildPluginOptions', () => {
       });
 
       expect(result.sourcemaps).toMatchObject({
-        disable: false,
+        disable: undefined,
         assets: ['/path/to/.next/server', '/path/to/.next/static/chunks/pages', '/path/to/.next/static/chunks/app'],
         ignore: [
           '/path/to/.next/static/chunks/main-*',
@@ -1199,7 +1203,7 @@ describe('getBuildPluginOptions', () => {
           '**/route_client-reference-manifest.js',
           '**/middleware-react-loadable-manifest.js',
         ],
-        filesToDeleteAfterUpload: undefined,
+        sdkFilesToDeleteAfterUpload: undefined,
         rewriteSources: expect.any(Function),
       });
     });
@@ -1223,7 +1227,7 @@ describe('getBuildPluginOptions', () => {
       });
 
       expect(result.sourcemaps?.assets).toEqual([`${complexPath}/server`, `${complexPath}/static/chunks`]);
-      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([
+      expect(result.sourcemaps?.sdkFilesToDeleteAfterUpload).toEqual([
         `${complexPath}/static/**/*.js.map`,
         `${complexPath}/static/**/*.mjs.map`,
         `${complexPath}/static/**/*.cjs.map`,

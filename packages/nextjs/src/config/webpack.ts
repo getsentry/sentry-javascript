@@ -10,7 +10,12 @@ import type { VercelCronsConfig } from '../common/types';
 import { getBuildLogger } from './buildLogger';
 import { externalizeOrchestrionRuntimePackages } from './diagnosticsChannelInjection';
 import { getBuildPluginOptions, normalizePathForGlob } from './getBuildPluginOptions';
-import { getDeleteSourceMapsOption, sentryEnablesSourceMaps } from './sourceMapOptions';
+import {
+  getDeleteSourceMapsOption,
+  SDK_DELETES_SOURCE_MAPS_MESSAGE,
+  sentryEnablesSourceMaps,
+  setSdkDeletesSourceMaps,
+} from './sourceMapOptions';
 import type { RouteManifest } from './manifest/types';
 import type {
   BuildContext,
@@ -385,14 +390,9 @@ export function constructWebpackConfigFunction({
           }
 
           // enable source map deletion if not explicitly disabled
-          if (!isServer && getDeleteSourceMapsOption(userSentryOptions.sourcemaps) === undefined) {
-            debug.warn(
-              '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
-            );
-            userSentryOptions.sourcemaps = {
-              ...userSentryOptions.sourcemaps,
-              deleteSourcemapsAfterUpload: true,
-            };
+          if (!isServer && getDeleteSourceMapsOption(userSentryOptions) === undefined) {
+            debug.warn(SDK_DELETES_SOURCE_MAPS_MESSAGE);
+            setSdkDeletesSourceMaps(userSentryOptions);
           }
         }
 

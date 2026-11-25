@@ -6,7 +6,12 @@ import {
 import { getBuildLogger } from '../buildLogger';
 import { handleRunAfterProductionCompile } from '../handleRunAfterProductionCompile';
 import type { RouteManifest } from '../manifest/types';
-import { getDeleteSourceMapsOption, sentryEnablesSourceMaps } from '../sourceMapOptions';
+import {
+  getDeleteSourceMapsOption,
+  SDK_DELETES_SOURCE_MAPS_MESSAGE,
+  sentryEnablesSourceMaps,
+  setSdkDeletesSourceMaps,
+} from '../sourceMapOptions';
 import { constructTurbopackConfig } from '../turbopack';
 import type { NextConfigObject, SentryBuildOptions, TurbopackOptions } from '../types';
 import { detectActiveBundler, supportsProductionCompileHook, supportsTurbopackRuleCondition } from '../util';
@@ -240,7 +245,7 @@ export function maybeSetUpRunAfterProductionCompileHook({
 /**
  * For supported turbopack builds, auto-enables browser sourcemaps and defaults to deleting them after upload.
  *
- * Note: this mutates both `incomingUserNextConfigObject` and `userSentryOptions`.
+ * Note: this mutates `incomingUserNextConfigObject`.
  */
 export function maybeEnableTurbopackSourcemaps(
   incomingUserNextConfigObject: NextConfigObject,
@@ -266,20 +271,15 @@ export function maybeEnableTurbopackSourcemaps(
   incomingUserNextConfigObject.productionBrowserSourceMaps = true;
 
   // Enable source map deletion if not explicitly disabled
-  if (getDeleteSourceMapsOption(userSentryOptions.sourcemaps) !== undefined) {
+  if (getDeleteSourceMapsOption(userSentryOptions) !== undefined) {
     return;
   }
 
   if (userSentryOptions.debug) {
-    logger.warn(
-      '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
-    );
+    logger.warn(SDK_DELETES_SOURCE_MAPS_MESSAGE);
   }
 
-  userSentryOptions.sourcemaps = {
-    ...userSentryOptions.sourcemaps,
-    deleteSourcemapsAfterUpload: true,
-  };
+  setSdkDeletesSourceMaps(userSentryOptions);
 }
 
 /**

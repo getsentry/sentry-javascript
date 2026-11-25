@@ -83,13 +83,13 @@ export function logSentryEnabledSourceMaps(fallback: DeletionFallback, deleteOpt
     } else if (fallback[side]) {
       // eslint-disable-next-line no-console
       console.log(
-        `[Sentry] We enabled \`'hidden'\` source maps for your ${side}-side build. Sentry deletes them after the upload, unless you set \`sourcemaps.filesToDeleteAfterUpload\`.`,
+        `[Sentry] We enabled \`'hidden'\` source maps for your ${side}-side build. Sentry deletes them after the upload. Set \`sourcemaps.delete: false\` to keep them.`,
       );
     }
   }
 }
 
-/** `filesToDeleteAfterUpload` is matched from the working directory and needs forward slashes, also on Windows. */
+/** The deletion globs are matched from the working directory and need forward slashes, also on Windows. */
 function toGlobPath(directory: string): string {
   return path.relative(process.cwd(), directory).split(path.sep).join('/') || '.';
 }
@@ -107,7 +107,7 @@ function toGlobPath(directory: string): string {
  * the same rules to the server maps there.
  */
 export function withClientSourceMapDeletion(
-  options: Options,
+  options: InternalOptions,
   userSourcemaps: Pick<NonNullable<Options['sourcemaps']>, 'delete' | 'filesToDeleteAfterUpload'> | undefined,
   fallback: DeletionFallback,
   viteServer = false,
@@ -127,6 +127,7 @@ export function withClientSourceMapDeletion(
     sourcemaps: {
       ...options.sourcemaps,
       filesToDeleteAfterUpload: undefined,
+      sdkFilesToDeleteAfterUpload: undefined,
       delete: undefined,
       deleteSourcemapsAfterUpload: undefined,
       // The Vite plugin reads this in its `config` hook, after `modules:done` set the fallback.
@@ -152,12 +153,13 @@ function isClientEnvironment(environment: string | undefined): boolean {
   return environment === undefined || environment === 'client';
 }
 
-export function withoutSourceMapDeletion(options: Options): InternalOptions {
+export function withoutSourceMapDeletion(options: InternalOptions): InternalOptions {
   return {
     ...options,
     sourcemaps: {
       ...options.sourcemaps,
       filesToDeleteAfterUpload: undefined,
+      sdkFilesToDeleteAfterUpload: undefined,
       delete: undefined,
       deleteSourcemapsAfterUpload: undefined,
       sdkDeleteSourceMaps: false,
@@ -165,18 +167,18 @@ export function withoutSourceMapDeletion(options: Options): InternalOptions {
   };
 }
 
-export async function deleteSourceMapsAfterBuild(options: Options): Promise<void> {
-  const filesToDeleteAfterUpload = await options.sourcemaps?.filesToDeleteAfterUpload;
+export async function deleteSourceMapsAfterBuild(options: InternalOptions): Promise<void> {
+  const sdkFilesToDeleteAfterUpload = await options.sourcemaps?.sdkFilesToDeleteAfterUpload;
 
-  if (filesToDeleteAfterUpload === undefined) {
+  if (sdkFilesToDeleteAfterUpload === undefined) {
     return;
   }
 
-  const deletionOptions: Options = {
+  const deletionOptions: InternalOptions = {
     ...options,
     sourcemaps: {
       ...options.sourcemaps,
-      filesToDeleteAfterUpload,
+      sdkFilesToDeleteAfterUpload,
     },
   };
 
@@ -189,17 +191,17 @@ export async function deleteSourceMapsAfterBuild(options: Options): Promise<void
 }
 
 /**
- * Deletes the files in `publicDir` that match `filesToDeleteAfterUpload`. Nitro answers a request for a file it
- * listed at build time but cannot read with a 500. Files outside `publicDir` are deleted in `close`.
+ * Deletes the files in `publicDir` that match `sdkFilesToDeleteAfterUpload`. Nitro answers a request for a file
+ * it listed at build time but cannot read with a 500. Files outside `publicDir` are deleted in `close`.
  */
-export async function deletePublicSourceMaps(options: Options, publicDir: string): Promise<void> {
-  const filesToDeleteAfterUpload = await options.sourcemaps?.filesToDeleteAfterUpload;
+export async function deletePublicSourceMaps(options: InternalOptions, publicDir: string): Promise<void> {
+  const sdkFilesToDeleteAfterUpload = await options.sourcemaps?.sdkFilesToDeleteAfterUpload;
 
-  if (filesToDeleteAfterUpload === undefined) {
+  if (sdkFilesToDeleteAfterUpload === undefined) {
     return;
   }
 
-  const files = await globFiles(filesToDeleteAfterUpload);
+  const files = await globFiles(sdkFilesToDeleteAfterUpload);
   const publicFiles = files.filter(file => isInDirectory(file, publicDir));
 
   await Promise.all(
