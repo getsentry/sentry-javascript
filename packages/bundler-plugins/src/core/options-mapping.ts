@@ -221,6 +221,14 @@ export function validateOptions(options: NormalizedOptions, logger: Logger): boo
 
   warnOnConflictingSourceMapOptions(options.sourcemaps, message => logger.warn(message));
 
+  if (options.release?.uploadLegacySourcemaps) {
+    logger.warn(
+      'The `release.uploadLegacySourcemaps` option is deprecated and will be removed in v12.',
+      'Upload with the Sentry CLI after the build instead:',
+      '`sentry sourcemap upload <directory> --release <name> --url-prefix <prefix> --no-rewrite`',
+    );
+  }
+
   if (options.release?.deploy && typeof options.release.deploy === 'object' && !options.release.deploy.env) {
     logger.error(
       'The `deploy` option was specified but is missing the required `env` property.',
