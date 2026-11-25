@@ -975,7 +975,7 @@ export function createSentryBuildPluginManager(
 
     sourceMaps: {
       uploadPossible: sourceMapUploadPossible,
-      decide(kind, { log = true, environment } = {}) {
+      decide(kind, { log = true, environment }: { log?: boolean; environment?: string } = {}) {
         // Watch builds in development keep their source maps.
         const decision = isDevMode
           ? { enableHidden: false, deleteAfterUpload: false }

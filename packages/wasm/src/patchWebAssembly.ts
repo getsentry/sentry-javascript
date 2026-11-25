@@ -107,7 +107,10 @@ function patchNonStreamingWebAssembly(registerModule: RegisterModuleCallback): v
   } as typeof WebAssembly.instantiate;
 
   const origCompile = WebAssembly.compile as (source: unknown, ...rest: unknown[]) => Promise<WebAssembly.Module>;
-  WebAssembly.compile = function compile(source: BufferSource, ...rest: unknown[]): Promise<WebAssembly.Module> {
+  WebAssembly.compile = function compile(
+    source: Parameters<typeof WebAssembly.compile>[0],
+    ...rest: unknown[]
+  ): Promise<WebAssembly.Module> {
     return origCompile(source, ...rest).then(module => {
       registerFromBufferSource(registerModule, module, source);
       return module;

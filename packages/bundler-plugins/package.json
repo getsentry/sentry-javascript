@@ -76,7 +76,7 @@
     "build:dev": "pnpm run build",
     "build:version": "node -p \"'export const LIB_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/core/version.ts",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsrs --fast -p tsconfig.types.json",
     "build:tarball": "pnpm pack",
     "prebuild": "pnpm run build:version",
     "prelint:types": "pnpm run build:version",

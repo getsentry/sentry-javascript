@@ -334,6 +334,9 @@ jobs:
             run: pnpm run lint:es-compatibility
           - name: Lint types
             run: pnpm run lint:types
+            env:
+              TSRS_FAST: 1
+              OXLINT_TSGOLINT_PATH: ${{ github.workspace }}/node_modules/.bin/tsrs-lint
           - name: Check for dts files that reference stuff in the temporary build folder
             run: |
               if grep -r --include "*.d.ts" --exclude-dir ".nx" 'import("@sentry(-internal)?/[^/]*/build' .; then
