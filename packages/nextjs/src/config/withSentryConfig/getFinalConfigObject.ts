@@ -36,7 +36,7 @@ import { maybeAddReleaseServerTimingHeader } from './release';
 /**
  * Materializes the final Next.js config object with Sentry's build-time integrations applied.
  *
- * Note: this mutates both `incomingUserNextConfigObject` and `userSentryOptions` (to apply defaults).
+ * Note: this mutates `incomingUserNextConfigObject` (to apply defaults).
  */
 export function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,

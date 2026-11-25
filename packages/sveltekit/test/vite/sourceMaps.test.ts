@@ -487,8 +487,9 @@ describe('source map deletion with `sourcemaps.delete`', () => {
       deleteSourcemapsAfterUpload: undefined,
       sdkDeleteSourceMaps: false,
       delete: undefined,
+      filesToDeleteAfterUpload: undefined,
     });
-    return mergedOptions.sourcemaps?.filesToDeleteAfterUpload;
+    return mergedOptions.sourcemaps?.sdkFilesToDeleteAfterUpload;
   }
 
   beforeEach(() => {
@@ -623,7 +624,7 @@ describe('deleteFilesAfterUpload', () => {
         inject: false,
       },
       sourcemaps: {
-        filesToDeleteAfterUpload: expect.any(Promise),
+        sdkFilesToDeleteAfterUpload: expect.any(Promise),
         sdkDeleteSourceMaps: false,
       },
     });
@@ -643,7 +644,7 @@ describe('deleteFilesAfterUpload', () => {
     // @ts-expect-error this function exists!
     await filesToDeleteAfterUploadSettingPlugin.configResolved();
 
-    await expect(mergedOptions.sourcemaps.filesToDeleteAfterUpload).resolves.toEqual([
+    await expect(mergedOptions.sourcemaps.sdkFilesToDeleteAfterUpload).resolves.toEqual([
       './.*/**/*.map',
       './.svelte-kit/output/**/*.map',
     ]);
@@ -703,7 +704,7 @@ describe('deleteFilesAfterUpload', () => {
           inject: false,
         },
         sourcemaps: {
-          filesToDeleteAfterUpload: expect.any(Promise),
+          sdkFilesToDeleteAfterUpload: expect.any(Promise),
           sdkDeleteSourceMaps: false,
         },
       });
@@ -723,7 +724,7 @@ describe('deleteFilesAfterUpload', () => {
       // @ts-expect-error this function exists!
       await filesToDeleteAfterUploadSettingPlugin.configResolved();
 
-      await expect(mergedOptions.sourcemaps.filesToDeleteAfterUpload).resolves.toEqual(
+      await expect(mergedOptions.sourcemaps.sdkFilesToDeleteAfterUpload).resolves.toEqual(
         filesToDeleteAfterUploadExpected,
       );
     },

@@ -737,10 +737,11 @@ export type HandleRecoverableErrorFn = (error: unknown, throwByDefault: boolean)
  * @internal For Sentry SDK packages only. It can change in any release.
  *
  * Like `Options`, but with the SDK's own source map deletion decision in
- * `sourcemaps.sdkDeleteSourceMaps`. The plugin calls its function form when it decides how to treat
- * the bundler's source map setting, so an SDK can give a value that it only knows after it created
- * the plugin. Vite passes the name of an environment with its own `build.sourcemap`, and `undefined`
- * for the top-level `build.sourcemap`.
+ * `sourcemaps.sdkDeleteSourceMaps` and the SDK's own files to delete in
+ * `sourcemaps.sdkFilesToDeleteAfterUpload`. The plugin calls the function form of `sdkDeleteSourceMaps`
+ * when it decides how to treat the bundler's source map setting, so an SDK can give a value that it
+ * only knows after it created the plugin. Vite passes the name of an environment with its own
+ * `build.sourcemap`, and `undefined` for the top-level `build.sourcemap`.
  */
 export type InternalOptions = Omit<Options, 'sourcemaps'> & {
   sourcemaps?: NonNullable<Options['sourcemaps']> & {
@@ -754,5 +755,10 @@ export type InternalOptions = Omit<Options, 'sourcemaps'> & {
      * decides whether source maps are removed, and `true` here still makes that all of them.
      */
     sdkDeleteSourceMaps?: boolean | ((environment?: string) => boolean | undefined);
+    /**
+     * The SDK's own files to delete after the upload. The plugin deletes them next to the files of
+     * the user's `sourcemaps.filesToDeleteAfterUpload`.
+     */
+    sdkFilesToDeleteAfterUpload?: string | string[] | Promise<string | string[] | undefined>;
   };
 };

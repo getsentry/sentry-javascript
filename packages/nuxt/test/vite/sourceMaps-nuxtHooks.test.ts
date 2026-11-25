@@ -370,6 +370,7 @@ describe('setupSourceMaps hooks', () => {
           assets: undefined,
           ignore: undefined,
           filesToDeleteAfterUpload: undefined,
+          sdkFilesToDeleteAfterUpload: undefined,
           deleteSourcemapsAfterUpload: undefined,
           sdkDeleteSourceMaps: expect.any(Function),
           rewriteSources: expect.any(Function),
@@ -377,7 +378,7 @@ describe('setupSourceMaps hooks', () => {
       });
     });
 
-    it('sentryRollupPlugin is called without filesToDeleteAfterUpload when source maps are explicitly enabled', async () => {
+    it('sentryRollupPlugin is called without deletion globs when source maps are explicitly enabled', async () => {
       const mockNuxt = createMockNuxt({
         _prepare: false,
         dev: false,
@@ -393,7 +394,10 @@ describe('setupSourceMaps hooks', () => {
 
       expect(mockSentryRollupPlugin).toHaveBeenCalledWith(
         expect.objectContaining({
-          sourcemaps: expect.objectContaining({ filesToDeleteAfterUpload: undefined }),
+          sourcemaps: expect.objectContaining({
+            filesToDeleteAfterUpload: undefined,
+            sdkFilesToDeleteAfterUpload: undefined,
+          }),
         }),
       );
     });
@@ -415,6 +419,7 @@ describe('setupSourceMaps hooks', () => {
       expect(mockNuxt.options.sourcemap).toEqual({ client: 'hidden', server: true });
       expect(getDeleteOption()).toBe(true);
       expect(capturedViteOptions.options?.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
+      expect(capturedViteOptions.options?.sourcemaps?.sdkFilesToDeleteAfterUpload).toBeUndefined();
     });
 
     // The plugin then also removes the maps of chunks that the user's `assets` or `ignore` leave out.
@@ -529,9 +534,9 @@ describe('setupSourceMaps hooks', () => {
         return mockNuxt;
       }
 
-      function expectFilesDeletedAfterBuild(filesToDeleteAfterUpload: string[]): void {
+      function expectFilesDeletedAfterBuild(sdkFilesToDeleteAfterUpload: string[]): void {
         expect(mockCreateSentryBuildPluginManager).toHaveBeenCalledWith(
-          expect.objectContaining({ sourcemaps: expect.objectContaining({ filesToDeleteAfterUpload }) }),
+          expect.objectContaining({ sourcemaps: expect.objectContaining({ sdkFilesToDeleteAfterUpload }) }),
           { buildTool: 'nuxt', loggerPrefix: '[Sentry Nuxt]' },
         );
       }
@@ -610,9 +615,12 @@ describe('setupSourceMaps hooks', () => {
       await mockNuxt.triggerHook('close');
 
       expect(capturedViteOptions.options?.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
+      expect(capturedViteOptions.options?.sourcemaps?.sdkFilesToDeleteAfterUpload).toBeUndefined();
       expect(getDeleteOption()).toBeUndefined();
       expect(mockCreateSentryBuildPluginManager).toHaveBeenCalledWith(
-        expect.objectContaining({ sourcemaps: expect.objectContaining({ filesToDeleteAfterUpload }) }),
+        expect.objectContaining({
+          sourcemaps: expect.objectContaining({ sdkFilesToDeleteAfterUpload: filesToDeleteAfterUpload }),
+        }),
         { buildTool: 'nuxt', loggerPrefix: '[Sentry Nuxt]' },
       );
     });
@@ -634,7 +642,7 @@ describe('setupSourceMaps hooks', () => {
 
       expect(mockCreateSentryBuildPluginManager).toHaveBeenCalledWith(
         expect.objectContaining({
-          sourcemaps: expect.objectContaining({ filesToDeleteAfterUpload: defaultFilesToDeleteAfterUpload }),
+          sourcemaps: expect.objectContaining({ sdkFilesToDeleteAfterUpload: defaultFilesToDeleteAfterUpload }),
         }),
         { buildTool: 'nuxt', loggerPrefix: '[Sentry Nuxt]' },
       );
@@ -669,7 +677,7 @@ describe('setupSourceMaps hooks', () => {
 
       expect(mockCreateSentryBuildPluginManager).toHaveBeenCalledWith(
         expect.objectContaining({
-          sourcemaps: expect.objectContaining({ filesToDeleteAfterUpload }),
+          sourcemaps: expect.objectContaining({ sdkFilesToDeleteAfterUpload: filesToDeleteAfterUpload }),
         }),
         { buildTool: 'nuxt', loggerPrefix: '[Sentry Nuxt]' },
       );
@@ -895,7 +903,7 @@ describe('setupSourceMaps hooks', () => {
 
         for (const side of ['client', 'server']) {
           expect(consoleLogSpy).toHaveBeenCalledWith(
-            `[Sentry] We enabled \`'hidden'\` source maps for your ${side}-side build. Sentry deletes them after the upload, unless you set \`sourcemaps.filesToDeleteAfterUpload\`.`,
+            `[Sentry] We enabled \`'hidden'\` source maps for your ${side}-side build. Sentry deletes them after the upload. Set \`sourcemaps.delete: false\` to keep them.`,
           );
         }
       },

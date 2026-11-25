@@ -170,7 +170,8 @@ export type SentryBuildPluginManager = {
   };
 
   /**
-   * Will delete artifacts based on the passed `sourcemaps.filesToDeleteAfterUpload` option.
+   * Deletes the files that match the user's `sourcemaps.filesToDeleteAfterUpload` and the SDK's
+   * `sourcemaps.sdkFilesToDeleteAfterUpload`.
    */
   deleteArtifacts(): Promise<void>;
 
@@ -1001,13 +1002,20 @@ export function createSentryBuildPluginManager(
     },
 
     /**
-     * Will delete artifacts based on the passed `sourcemaps.filesToDeleteAfterUpload` option.
+     * Deletes the files that match the user's `sourcemaps.filesToDeleteAfterUpload` and the SDK's
+     * `sourcemaps.sdkFilesToDeleteAfterUpload`.
      */
     async deleteArtifacts() {
       try {
-        const filesToDelete = await options.sourcemaps?.filesToDeleteAfterUpload;
-        if (filesToDelete !== undefined) {
-          const filePathsToDelete = await globFiles(filesToDelete);
+        const patterns = (
+          await Promise.all([
+            options.sourcemaps?.filesToDeleteAfterUpload,
+            options.sourcemaps?.sdkFilesToDeleteAfterUpload,
+          ])
+        ).filter(pattern => pattern !== undefined);
+        if (patterns.length > 0) {
+          const globbedPaths = await Promise.all(patterns.map(pattern => globFiles(pattern)));
+          const filePathsToDelete = [...new Set(globbedPaths.flat())];
 
           logger.debug('Waiting for dependencies on generated files to be freed before deleting...');
 

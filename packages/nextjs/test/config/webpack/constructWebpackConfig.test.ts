@@ -6,6 +6,8 @@ import type * as os from 'os';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as getBuildPluginOptionsModule from '../../../src/config/getBuildPluginOptions';
+import { getDeleteSourceMapsOption } from '../../../src/config/sourceMapOptions';
+import type { SentryBuildOptions } from '../../../src/config/types';
 import {
   CLIENT_SDK_CONFIG_FILE,
   clientBuildContext,
@@ -76,35 +78,32 @@ describe('constructWebpackConfigFunction()', () => {
     expect(finalWebpackConfig.devtool).toEqual(customDevtool);
   });
 
-  it('automatically enables deleteSourcemapsAfterUpload for client builds when not explicitly set', async () => {
+  it('turns source map deletion on for client builds when not explicitly set', async () => {
     const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
     vi.spyOn(coreServer, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
       }),
     }));
+    const sentryBuildTimeOptions: SentryBuildOptions = { sourcemaps: {} };
 
     await materializeFinalWebpackConfig({
       exportedNextConfig,
       incomingWebpackConfig: clientWebpackConfig,
       incomingWebpackBuildContext: clientBuildContext,
-      sentryBuildTimeOptions: {
-        sourcemaps: {},
-      },
+      sentryBuildTimeOptions,
     });
 
     expect(getBuildPluginOptionsSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        sentryBuildOptions: expect.objectContaining({
-          sourcemaps: {
-            deleteSourcemapsAfterUpload: true,
-          },
-        }),
+        sentryBuildOptions: sentryBuildTimeOptions,
         buildTool: 'webpack-client',
         distDirAbsPath: expect.any(String),
         releaseName: undefined,
       }),
     );
+    expect(sentryBuildTimeOptions.sourcemaps).toEqual({});
+    expect(getDeleteSourceMapsOption(sentryBuildTimeOptions)).toBe(true);
 
     getBuildPluginOptionsSpy.mockRestore();
   });

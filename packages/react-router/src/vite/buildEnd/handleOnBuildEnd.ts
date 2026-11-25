@@ -137,11 +137,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     updatedFilesToDeleteAfterUpload = defaultFilesToDelete;
     debug &&
       // eslint-disable-next-line no-console
-      console.info(
-        `[Sentry] Automatically setting \`sourcemaps.filesToDeleteAfterUpload: ${JSON.stringify(
-          updatedFilesToDeleteAfterUpload,
-        )}\` to delete generated source maps after they were uploaded to Sentry.`,
-      );
+      console.info(`[Sentry] Deleting the generated source maps after the upload: ${defaultFilesToDelete.join(', ')}`);
   }
   if (updatedFilesToDeleteAfterUpload) {
     try {
