@@ -1,3 +1,4 @@
+# Benchmark the existing separate metadata and planning jobs.
 name: 'CI: Build & Test'
 on:
   push:
