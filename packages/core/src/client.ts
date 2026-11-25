@@ -49,7 +49,7 @@ import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from 
 import { safeMathRandom } from './utils/randomSafeContext';
 import { safeCallback } from './utils/safeCallback';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
-import { rejectedSyncPromise } from './utils/syncpromise';
+import { resolvedSyncPromise } from './utils/syncpromise';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 import { maybeWarnAboutIgnoredTransactionOptions } from './utils/warnAboutIgnoredTransactionOptions';
 import { resolveDataCollectionOptions } from './utils/data-collection/resolveDataCollectionOptions';
@@ -1297,6 +1297,52 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     afterSetupIntegrations(this, integrations);
   }
 
+  /**
+   * Updates the sessions that an error counts towards. Runs after event processors and `beforeSend` kept the error,
+   * also when sampling drops it: sampling only saves quota, so the error must still count.
+   */
+  protected _updateSessions(event: Event, currentScope: Scope, isolationScope: Scope): void {
+    const session = currentScope.getSession() || isolationScope.getSession();
+    if (session) {
+      this._updateSessionFromEvent(session, event);
+    }
+  }
+
+  /**
+   * Whether an error can still change a session that {@link Client._updateSessions} updates.
+   *
+   * Event processing can still make the error fatal (e.g. the scope level), so any error can change an `ok` session.
+   */
+  protected _canErrorChangeSessions(
+    _event: Event,
+    _hint: EventHint,
+    currentScope: Scope,
+    isolationScope: Scope,
+  ): boolean {
+    return (currentScope.getSession() || isolationScope.getSession())?.status === 'ok';
+  }
+
+  /**
+   * Counts a sampled-out error in sessions if the filters keep it, because sampling only saves quota.
+   * Records the outcome of the error.
+   */
+  protected _countSampledOutError(
+    event: Event,
+    hint: EventHint,
+    currentScope: Scope,
+    isolationScope: Scope,
+  ): PromiseLike<void> {
+    if (!this._canErrorChangeSessions(event, hint, currentScope, isolationScope)) {
+      this.recordDroppedEvent('sample_rate', 'error');
+      return resolvedSyncPromise();
+    }
+
+    return this._applyFilters(event, hint, currentScope, isolationScope).then(processedEvent => {
+      this._updateSessions(processedEvent, currentScope, isolationScope);
+      this.recordDroppedEvent('sample_rate', 'error');
+    });
+  }
+
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
     // initially, set `unhandled` based on the event level and update from exceptions if there are any later on
@@ -1471,33 +1517,63 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     currentScope: Scope,
     isolationScope: Scope,
   ): PromiseLike<Event> {
-    const options = this.getOptions();
-    const { sampleRate } = options;
+    const { sampleRate } = this.getOptions();
 
+    const processed: PromiseLike<Event> = rollSampleRate(event, sampleRate)
+      ? this._countSampledOutError(event, hint, currentScope, isolationScope).then(() => {
+          throw _makeSampledOutError(sampleRate);
+        })
+      : this._applyFilters(event, hint, currentScope, isolationScope).then(processedEvent => {
+          if (isErrorEvent(event)) {
+            this._updateSessions(processedEvent, currentScope, isolationScope);
+          }
+
+          this.sendEvent(processedEvent, hint);
+          return processedEvent;
+        });
+
+    return processed.then(null, reason => {
+      if (_isDoNotSendEventError(reason) || _isInternalError(reason)) {
+        throw reason;
+      }
+
+      this.captureException(reason, {
+        mechanism: {
+          handled: false,
+          type: 'internal',
+        },
+        data: {
+          __sentry__: true,
+        },
+        originalException: reason,
+      });
+      throw _makeInternalError(
+        `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${reason}`,
+      );
+    });
+  }
+
+  /**
+   * Runs the event processors and the matching `beforeSend*` callback, and records an outcome when one of them drops
+   * the event.
+   *
+   * @returns A SyncPromise that resolves with the processed event, or rejects when the event is dropped.
+   */
+  protected _applyFilters(
+    event: Event,
+    hint: EventHint,
+    currentScope: Scope,
+    isolationScope: Scope,
+  ): PromiseLike<Event> {
+    const options = this.getOptions();
     const isTransaction = isTransactionEvent(event);
-    const isError = isErrorEvent(event);
-    const eventType = event.type || 'error';
-    const beforeSendLabel = `before send for type \`${eventType}\``;
+    const beforeSendLabel = `before send for type \`${event.type || 'error'}\``;
+    const dataCategory = getDataCategoryByType(event.type);
     let beforeSendDropReason: BeforeSendDropReason = 'before_send';
     let ignoredSpanCount = 0;
-
-    // 1.0 === 100% events are sent
-    // 0.0 === 0% events are sent
-    // Sampling for transaction happens somewhere else
-    const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
-    const isSampledOut = isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate;
-    const dataCategory = getDataCategoryByType(event.type);
     // Spans that event processors removed are already recorded in `prepareEvent`, so all later
     // span outcomes are relative to the span count of the prepared event.
     let preparedSpanCount = 0;
-
-    const session = currentScope.getSession() || isolationScope.getSession();
-    // A sampled-out error only runs the pipeline to update the session. Without a session it could update,
-    // drop it right away so it doesn't hold a promise buffer slot while event processors run.
-    if (isSampledOut && session?.status !== 'ok') {
-      this.recordDroppedEvent('sample_rate', 'error');
-      return rejectedSyncPromise(_makeSampledOutError(sampleRate));
-    }
 
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
@@ -1546,15 +1622,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError(`${dropMessage}, will not send event.`);
         }
 
-        if (isError && session) {
-          this._updateSessionFromEvent(session, processedEvent);
-        }
-
-        if (isSampledOut) {
-          this.recordDroppedEvent('sample_rate', 'error');
-          throw _makeSampledOutError(sampleRate);
-        }
-
         if (isTransaction) {
           const droppedSpanCount = preparedSpanCount - ignoredSpanCount - (processedEvent.spans?.length || 0);
           if (droppedSpanCount > 0) {
@@ -1574,27 +1641,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           };
         }
 
-        this.sendEvent(processedEvent, hint);
         return processedEvent;
-      })
-      .then(null, reason => {
-        if (_isDoNotSendEventError(reason) || _isInternalError(reason)) {
-          throw reason;
-        }
-
-        this.captureException(reason, {
-          mechanism: {
-            handled: false,
-            type: 'internal',
-          },
-          data: {
-            __sentry__: true,
-          },
-          originalException: reason,
-        });
-        throw _makeInternalError(
-          `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${reason}`,
-        );
       });
   }
 
@@ -1781,6 +1828,14 @@ function processBeforeSend(
   }
 
   return processedEvent;
+}
+
+/**
+ * Rolls the dice for `sampleRate`. Only errors are sampled here, transactions are sampled when they start.
+ */
+function rollSampleRate(event: Event, sampleRate: ClientOptions['sampleRate']): boolean {
+  const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
+  return isErrorEvent(event) && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate;
 }
 
 function isErrorEvent(event: Event): event is ErrorEvent {
