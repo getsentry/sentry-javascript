@@ -2,7 +2,11 @@ import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
 
 async function collectStorageSpans(route: string) {
-  const spans = await collectStreamedSpansUntilSegment('nuxt-5', span => span.attributes['url.path']?.value === route);
+  const spans = await collectStreamedSpansUntilSegment(
+    'nuxt-5',
+    span => span.attributes['url.path']?.value === route,
+    span => span.attributes['sentry.origin']?.value === 'auto.cache.nuxt',
+  );
   const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === route);
 
   return spans.filter(

@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 import { isDevMode } from './isDevMode';
+import { RUNTIME } from './runtime';
 
 // Nitro v3 bundles every dependency, including the SDK's copy of `@sentry/server-runtime-injection`.
 // On Node versions without `Module.registerHooks` (< 24.13), that bundled copy registers its ESM
@@ -9,6 +10,7 @@ import { isDevMode } from './isDevMode';
 // resolution directly instead of the missing warning.
 test('keeps the runtime injection loader hook resolvable from the server output', () => {
   test.skip(isDevMode, 'nuxt dev has no server output');
+  test.skip(RUNTIME === 'cloudflare', 'Cloudflare: the Worker bundle has no `node_modules` and no loader hook');
 
   const resolved = execFileSync(
     'node',
