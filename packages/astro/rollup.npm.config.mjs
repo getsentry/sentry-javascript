@@ -4,6 +4,8 @@ const variants = makeNPMConfigVariants(
   makeBaseNPMConfig({
     entrypoints: [
       'src/index.server.ts',
+      'src/index.bun.ts',
+      'src/index.deno.ts',
       'src/index.client.ts',
       'src/index.worker.ts',
       'src/index.workerd.ts',

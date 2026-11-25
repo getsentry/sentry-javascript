@@ -1049,6 +1049,12 @@ importers:
       '@sentry-internal/rollup-utils':
         specifier: 11.17.0
         version: link:../../dev-packages/rollup-utils
+      '@sentry/bun':
+        specifier: 11.17.0
+        version: link:../bun
+      '@sentry/deno':
+        specifier: 11.17.0
+        version: link:../deno
       astro:
         specifier: ^4.16.19
         version: 4.16.19(@types/node@20.19.43)(less@4.2.0(supports-color@10.0.0))(lightningcss@1.33.0)(rollup@4.68.3)(sass@1.72.0)(stylus@0.59.0(supports-color@10.0.0))(supports-color@10.0.0)(terser@5.51.2)(typescript@7.0.2)
