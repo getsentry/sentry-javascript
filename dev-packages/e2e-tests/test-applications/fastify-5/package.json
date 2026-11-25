@@ -26,7 +26,7 @@
     "@sentry/core": "file:../../packed/sentry-core-packed.tgz"
   },
   "sentryTest": {
-    "optionalVariants": [
+    "variants": [
       {
         "runtime": "bun",
         "bun-version": "1.4.5",
