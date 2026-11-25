@@ -152,6 +152,34 @@ describe('Vercel AI extract spans', () => {
     );
   });
 
+  it('records non-string field instructions as a string', () => {
+    const json = runExtract(
+      {
+        provider: 'gateway',
+        modelId: 'cloudflare/clairic',
+        state: 'Invoice INV-2291',
+        fields: {
+          invoiceNumber: { type: 'text', instructions: { hint: 'starts with INV' } },
+          total: { type: 'number', instructions: null },
+        },
+        recordInputs: true,
+      },
+      undefined,
+    );
+
+    expect(json.data?.[GEN_AI_INPUT_MESSAGES]).toBe(
+      JSON.stringify([
+        {
+          state: 'Invoice INV-2291',
+          fields: {
+            invoiceNumber: { type: 'text', instructions: '{"hint":"starts with INV"}' },
+            total: { type: 'number' },
+          },
+        },
+      ]),
+    );
+  });
+
   it('does not record inputs or outputs when recording is off', () => {
     const json = runExtract(
       {

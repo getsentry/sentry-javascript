@@ -617,7 +617,7 @@ function startSpanFromEvent(
               [GEN_AI_INPUT_MESSAGES]: stringify([
                 {
                   ...toExtractState(event.state).request,
-                  fields: event.fields,
+                  fields: toExtractFields(event.fields),
                   reference_date: event.referenceDate,
                 },
               ]),
@@ -916,6 +916,24 @@ function toExtractState(state: unknown): ExtractState {
     },
     parts: offsets,
   };
+}
+
+/**
+ * The AI SDK also takes JSON or `null` as field `instructions`, but the schema allows only a string.
+ */
+function toExtractFields(fields: unknown): unknown {
+  if (!isObjectLike(fields)) {
+    return fields;
+  }
+  return Object.fromEntries(
+    Object.entries(fields).map(([id, field]) => {
+      if (!isObjectLike(field) || typeof field.instructions === 'string' || field.instructions === undefined) {
+        return [id, field];
+      }
+      const { instructions, ...rest } = field;
+      return [id, instructions === null ? rest : { ...rest, instructions: stringify(instructions) }];
+    }),
+  );
 }
 
 /**
