@@ -105,11 +105,14 @@ export type { InternalOptions, Options, SentrySDKBuildFlags } from './types';
 export {
   CodeInjection,
   replaceBooleanFlagsInCode,
+  replaceInCode,
+  getBooleanFlagReplacements,
   stringToUUID,
   generateReleaseInjectorCode,
   generateModuleMetadataInjectorCode,
   resolveReleaseName,
   getServerModulesDefinition,
+  getServerModulesReplacement,
   SERVER_MODULES_PLACEHOLDER,
 } from './utils';
 export { createSentryBuildPluginManager } from './build-plugin-manager';

@@ -2,26 +2,16 @@ import * as fs from 'fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createSentryBuildPluginManager } from '../../src/core/build-plugin-manager';
 import { getInstalledModules } from '../../src/core/installed-modules';
-import { replaceBooleanFlagsInCode } from '../../src/core/utils';
+import { getServerModulesReplacement, replaceInCode } from '../../src/core/utils';
 import type { Options } from '../../src/core';
 import { createModuleVersionsProject, INJECTED_MODULES } from '../utils/module-versions-project';
 
-describe('replaceBooleanFlagsInCode with server modules', () => {
-  const modules = { installed: '1.2.3' };
+describe('getServerModulesReplacement', () => {
+  it('replaces the `__SENTRY_SERVER_MODULES__` placeholder with the versions in parentheses', () => {
+    const code = 'const modules = __SENTRY_SERVER_MODULES__;';
 
-  it('replaces the `__SENTRY_SERVER_MODULES__` placeholder', () => {
-    const code = "if (typeof __SENTRY_SERVER_MODULES__ !== 'undefined') return __SENTRY_SERVER_MODULES__;";
-
-    expect(replaceBooleanFlagsInCode(code, {}, modules)?.code).toBe(
-      'if (typeof ({"installed":"1.2.3"}) !== \'undefined\') return ({"installed":"1.2.3"});',
-    );
-  });
-
-  it('replaces flags and the placeholder in one pass', () => {
-    const code = 'if (__SENTRY_DEBUG__) console.log(__SENTRY_SERVER_MODULES__);';
-
-    expect(replaceBooleanFlagsInCode(code, { __SENTRY_DEBUG__: false }, modules)?.code).toBe(
-      'if (false) console.log(({"installed":"1.2.3"}));',
+    expect(replaceInCode(code, getServerModulesReplacement({ installed: '1.2.3' }))?.code).toBe(
+      'const modules = ({"installed":"1.2.3"});',
     );
   });
 });

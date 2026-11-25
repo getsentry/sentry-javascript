@@ -12,7 +12,9 @@ import {
   createDebugIdUploadFunction,
   globFiles,
   createComponentNameAnnotateHooks,
-  replaceBooleanFlagsInCode,
+  getBooleanFlagReplacements,
+  getServerModulesReplacement,
+  replaceInCode,
   CodeInjection,
   getCodeInjectionPosition,
   getSourceMapFeatures,
@@ -184,7 +186,8 @@ export function _createRollupPluginInternals(
       )
     : undefined;
 
-  const transformReplace = Object.keys(replacementValues).length > 0;
+  const flagReplacements = getBooleanFlagReplacements(replacementValues);
+  const transformReplace = Object.keys(flagReplacements).length > 0;
   const transformServerModules = mayInjectModuleVersions(options.injectModuleVersions, buildTool);
   const shouldTransform = transformAnnotations || transformReplace || transformServerModules;
 
@@ -229,7 +232,10 @@ export function _createRollupPluginInternals(
 
     const serverModules = getServerModules(this, code);
     if (transformReplace || serverModules) {
-      return replaceBooleanFlagsInCode(code, replacementValues, serverModules);
+      return replaceInCode(
+        code,
+        serverModules ? { ...flagReplacements, ...getServerModulesReplacement(serverModules) } : flagReplacements,
+      );
     }
 
     return null;

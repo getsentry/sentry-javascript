@@ -13,15 +13,20 @@ declare const __SENTRY_SERVER_MODULES__: Record<string, string> | string;
 
 /** Reads the module versions that a bundler injected at build time. */
 function getServerModules(): Record<string, string> {
-  if (typeof __SENTRY_SERVER_MODULES__ === 'undefined') {
+  let serverModules: Record<string, string> | string | undefined;
+  try {
+    // The only reference to the placeholder, so a bundler that replaces it inlines the versions once.
+    serverModules = __SENTRY_SERVER_MODULES__;
+  } catch {
+    // Not replaced at build time
     return {};
   }
-  if (typeof __SENTRY_SERVER_MODULES__ !== 'string') {
-    return __SENTRY_SERVER_MODULES__;
+  if (typeof serverModules !== 'string') {
+    return serverModules || {};
   }
   // Next.js Turbopack builds pass JSON, because `compiler.defineServer` only accepts strings.
   try {
-    return JSON.parse(__SENTRY_SERVER_MODULES__) as Record<string, string>;
+    return JSON.parse(serverModules) as Record<string, string>;
   } catch {
     return {};
   }

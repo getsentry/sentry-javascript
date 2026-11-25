@@ -18,24 +18,17 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 // monorepo build). Then `build:tarball` (npm pack) produces `sentry-bundler-plugins-<version>.tgz`
 // so the fixture installs below resolve the local build rather than a published version.
 const repoRoot = join(__dirname, '..', '..');
-const bundlerPluginsDir = join(repoRoot, 'packages', 'bundler-plugins');
 
-const coreDir = join(repoRoot, 'packages', 'core');
-console.log('Building @sentry/core and its workspace dependencies...');
-execSync('pnpm run build:dev:filter @sentry/core', { cwd: repoRoot, stdio: 'inherit' });
-console.log('Packing @sentry/core...');
-execSync('pnpm run build:tarball', { cwd: coreDir, stdio: 'inherit' });
+console.log('Building @sentry/core, @sentry/server-utils, @sentry/bundler-plugins and their workspace dependencies...');
+execSync('pnpm run build:dev:filter @sentry/core @sentry/server-utils @sentry/bundler-plugins', {
+  cwd: repoRoot,
+  stdio: 'inherit',
+});
 
-const serverUtilsDir = join(repoRoot, 'packages', 'server-utils');
-console.log('Building @sentry/server-utils and its workspace dependencies...');
-execSync('pnpm run build:dev:filter @sentry/server-utils', { cwd: repoRoot, stdio: 'inherit' });
-console.log('Packing @sentry/server-utils...');
-execSync('pnpm run build:tarball', { cwd: serverUtilsDir, stdio: 'inherit' });
-
-console.log('Building @sentry/bundler-plugins and its workspace dependencies...');
-execSync('pnpm run build:dev:filter @sentry/bundler-plugins', { cwd: repoRoot, stdio: 'inherit' });
-console.log('Packing @sentry/bundler-plugins...');
-execSync('pnpm run build:tarball', { cwd: bundlerPluginsDir, stdio: 'inherit' });
+for (const name of ['core', 'server-utils', 'bundler-plugins']) {
+  console.log(`Packing @sentry/${name}...`);
+  execSync('pnpm run build:tarball', { cwd: join(repoRoot, 'packages', name), stdio: 'inherit' });
+}
 
 const fixturesDir = join(__dirname, 'fixtures');
 const entries = await fs.readdir(fixturesDir, { withFileTypes: true });
