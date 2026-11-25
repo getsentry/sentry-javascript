@@ -1,5 +1,5 @@
 import type { SentrySpan, Span, SpanTimeInput, StartSpanOptions } from '@sentry/core';
-import { spanToStaticSpanJSON } from '@sentry/core';
+import { spanToStaticSpanJSON, withActiveSpan } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/core/browser';
 import { WINDOW } from '../types';
 
@@ -30,17 +30,19 @@ export function startAndEndSpan(
   }
 
   // The return value only exists for tests
-  const span = startInactiveSpan({
-    startTime: startTimeInSeconds,
-    parentSpan,
-    ...ctx,
+  // Not `parentSpan`: that skips `parentSpanIsAlwaysRootSpan`, which keeps these spans under the root span.
+  return withActiveSpan(parentSpan, () => {
+    const span = startInactiveSpan({
+      startTime: startTimeInSeconds,
+      ...ctx,
+    });
+
+    if (span) {
+      span.end(endTime);
+    }
+
+    return span;
   });
-
-  if (span) {
-    span.end(endTime);
-  }
-
-  return span;
 }
 
 /** Get the browser performance API. */

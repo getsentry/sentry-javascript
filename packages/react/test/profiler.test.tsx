@@ -96,7 +96,6 @@ describe('withProfiler', () => {
       expect(mockStartInactiveSpan).toHaveBeenCalledTimes(2);
       expect(mockStartInactiveSpan).toHaveBeenLastCalledWith({
         name: `<${UNKNOWN_COMPONENT}>`,
-        parentSpan: expect.any(MockSpan),
         onlyIfParent: true,
         startTime: undefined,
         attributes: {
@@ -136,7 +135,6 @@ describe('withProfiler', () => {
           'ui.react.changed_props': ['num'],
         },
         name: `<${UNKNOWN_COMPONENT}>`,
-        parentSpan: expect.any(MockSpan),
         onlyIfParent: true,
         startTime: expect.any(Number),
       });
@@ -151,7 +149,6 @@ describe('withProfiler', () => {
           'ui.react.changed_props': ['num'],
         },
         name: `<${UNKNOWN_COMPONENT}>`,
-        parentSpan: expect.any(MockSpan),
         onlyIfParent: true,
         startTime: expect.any(Number),
       });

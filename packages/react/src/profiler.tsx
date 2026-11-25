@@ -7,6 +7,7 @@ import {
   UI_MOUNT_SPAN_NAME_FALLBACK,
   UI_RENDER_SPAN_NAME_FALLBACK,
   UI_UPDATE_SPAN_NAME_FALLBACK,
+  withActiveSpan,
 } from '@sentry/core';
 import { SENTRY_DESCRIPTION, SENTRY_OP, UI_COMPONENT_NAME, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { UI_MOUNT, UI_RENDER, UI_UPDATE } from '@sentry/conventions/op';
@@ -88,23 +89,26 @@ class Profiler extends React.Component<ProfilerProps> {
       const changedProps = Object.keys(updateProps).filter(k => updateProps[k] !== this.props.updateProps[k]);
       if (changedProps.length > 0) {
         const now = timestampInSeconds();
-        const client = getClient();
-        const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
-        const description = `<${this.props.name}>`;
-        const componentName = this.props.name === UNKNOWN_COMPONENT ? undefined : this.props.name;
+        // Not `parentSpan: this._mountSpan`: that skips `parentSpanIsAlwaysRootSpan` and would nest these
+        // spans under the already-ended mount span instead of the pageload/navigation root span.
+        this._updateSpan = withActiveSpan(this._mountSpan, () => {
+          const client = getClient();
+          const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+          const description = `<${this.props.name}>`;
+          const componentName = this.props.name === UNKNOWN_COMPONENT ? undefined : this.props.name;
 
-        this._updateSpan = startInactiveSpan({
-          name: hasSpanStreaming ? componentName || UI_UPDATE_SPAN_NAME_FALLBACK : description,
-          parentSpan: this._mountSpan,
-          onlyIfParent: true,
-          startTime: now,
-          attributes: {
-            [SENTRY_OP]: UI_UPDATE,
-            [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-            [UI_COMPONENT_NAME]: componentName || undefined,
-            'ui.react.changed_props': changedProps,
-            ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
-          },
+          return startInactiveSpan({
+            name: hasSpanStreaming ? componentName || UI_UPDATE_SPAN_NAME_FALLBACK : description,
+            onlyIfParent: true,
+            startTime: now,
+            attributes: {
+              [SENTRY_OP]: UI_UPDATE,
+              [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+              [UI_COMPONENT_NAME]: componentName || undefined,
+              'ui.react.changed_props': changedProps,
+              ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
+            },
+          });
         });
       }
     }
@@ -127,28 +131,29 @@ class Profiler extends React.Component<ProfilerProps> {
 
     if (this._mountSpan && includeRender) {
       const startTime = spanToJSON(this._mountSpan).end_timestamp;
-      const client = getClient();
-      const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
-      const description = `<${name}>`;
-      const componentName = name === UNKNOWN_COMPONENT ? undefined : name;
+      withActiveSpan(this._mountSpan, () => {
+        const client = getClient();
+        const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
+        const description = `<${name}>`;
+        const componentName = name === UNKNOWN_COMPONENT ? undefined : name;
 
-      const renderSpan = startInactiveSpan({
-        parentSpan: this._mountSpan,
-        onlyIfParent: true,
-        name: hasSpanStreaming ? componentName || UI_RENDER_SPAN_NAME_FALLBACK : description,
-        startTime,
-        attributes: {
-          [SENTRY_OP]: UI_RENDER,
-          [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
-          [UI_COMPONENT_NAME]: componentName || undefined,
-          ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
-        },
+        const renderSpan = startInactiveSpan({
+          onlyIfParent: true,
+          name: hasSpanStreaming ? componentName || UI_RENDER_SPAN_NAME_FALLBACK : description,
+          startTime,
+          attributes: {
+            [SENTRY_OP]: UI_RENDER,
+            [SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+            [UI_COMPONENT_NAME]: componentName || undefined,
+            ...(hasSpanStreaming && { [SENTRY_DESCRIPTION]: description }),
+          },
+        });
+        if (renderSpan) {
+          // Have to cast to Span because the type of _mountSpan is Span | undefined
+          // and not getting narrowed properly
+          renderSpan.end(endTimestamp);
+        }
       });
-      if (renderSpan) {
-        // Have to cast to Span because the type of _mountSpan is Span | undefined
-        // and not getting narrowed properly
-        renderSpan.end(endTimestamp);
-      }
     }
   }
 
