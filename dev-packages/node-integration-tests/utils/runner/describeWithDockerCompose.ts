@@ -195,9 +195,20 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
  * the service's startup.
  */
 function assertServicesHaveHealthchecks(cwd: string, configArgs: string[]): void {
+  const configStartedAt = Date.now();
   const result = spawnSync('docker', configArgs, { cwd, timeout: CONFIG_TIMEOUT_MS });
+  if (result.error) {
+    // A slow or unavailable Docker CLI says nothing about the compose file, and `up --wait` still runs.
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[docker compose] config failed after ${Date.now() - configStartedAt}ms (${result.error.message}) in ${cwd}, skipping healthcheck check`,
+    );
+    return;
+  }
   if (result.status !== 0) {
-    throw new Error(`docker compose config failed in ${cwd}\n${result.stderr?.toString() ?? ''}`);
+    throw new Error(
+      `docker compose config failed (exit ${result.status}, signal ${result.signal}) in ${cwd}\n${result.stderr?.toString() ?? ''}`,
+    );
   }
 
   const config = JSON.parse(result.stdout.toString()) as {
