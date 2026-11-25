@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
-import { join, resolve, sep } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { BuildTimeOptionsBase } from '@sentry/core';
 import { stringifyForCodeInjection } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '../orchestrion/bundler/rollup';
@@ -53,11 +54,6 @@ export interface SentryNitroModule {
 
 interface CreateSentryNitroModuleOptions {
   /**
-   * The module the runtime plugin imports `setupSentryNitroApp` from. It must resolve from the app's root directory,
-   * so it is a subpath of the SDK package the app depends on, such as `@sentry/node/nitro-runtime`.
-   */
-  runtimeModule: string;
-  /**
    * Set by `sentryVitePlugin`, whose instance wins over the ones in `modules`, and which adds the transform itself.
    */
   installedBy?: 'module' | 'vite';
@@ -83,7 +79,7 @@ const ORCHESTRION_PLUGIN_NAMES = ['code-transformer', 'sentry-orchestrion-disabl
  */
 export function createSentryNitroModule(
   options: SentryNitroOptions,
-  { runtimeModule, installedBy = 'module' }: CreateSentryNitroModuleOptions,
+  { installedBy = 'module' }: CreateSentryNitroModuleOptions = {},
 ): SentryNitroModule {
   const instance: SentryNitroInstance = { id: Symbol('sentry.nitro.instance'), installedBy };
 
@@ -98,7 +94,7 @@ export function createSentryNitroModule(
       }
 
       enableNitroTracingChannels(nitro);
-      registerRuntimePlugin(nitro, runtimeModule, options.serverConfigFile);
+      registerRuntimePlugin(nitro, options.serverConfigFile);
 
       if (installedBy === 'module' && options.buildTimeInstrumentation !== false) {
         addOrchestrionTransform(nitro);
@@ -160,11 +156,7 @@ function enableNitroTracingChannels(nitro: NitroLike): void {
  * The plugin is a virtual module, so it is always bundled and can import Nitro's virtual modules. The server config
  * needs no `definePlugin` and Nitro needs no `serverDir` to find it.
  */
-function registerRuntimePlugin(
-  nitro: NitroLike,
-  runtimeModule: string,
-  serverConfigFile: string | false | undefined,
-): void {
+function registerRuntimePlugin(nitro: NitroLike, serverConfigFile: string | false | undefined): void {
   const configFile = serverConfigFile === false ? undefined : findServerConfigFile(nitro, serverConfigFile);
   const importedConfigFile = configFile && !isNitroPlugin(nitro, configFile) ? configFile : undefined;
 
@@ -172,15 +164,19 @@ function registerRuntimePlugin(
     [
       importedConfigFile ? `import ${stringifyForCodeInjection(importedConfigFile)};` : '',
       'import { tasks } from "#nitro/virtual/tasks";',
-      // The SDK's entry, not `@sentry/server-utils`, which pnpm apps can't resolve from their root.
-      // See `@sentry/node/nitro-runtime`.
-      `import { setupSentryNitroApp } from ${stringifyForCodeInjection(runtimeModule)};`,
+      `import { setupSentryNitroApp } from ${stringifyForCodeInjection(getRuntimePluginPath())};`,
       'export default function sentryNitroPlugin(nitroApp) {',
       '  setupSentryNitroApp(nitroApp, tasks);',
       '}',
       '',
     ].join('\n');
   nitro.options.plugins.unshift(RUNTIME_PLUGIN_ID);
+}
+
+// An absolute path, because the app depends on an SDK package, and under pnpm it can't resolve the transitive
+// `@sentry/server-utils` from its root.
+function getRuntimePluginPath(): string {
+  return resolve(dirname(fileURLToPath(import.meta.url)), '../integrations/nitro/runtimePlugin.js').replace(/\\/g, '/');
 }
 
 function findServerConfigFile(nitro: NitroLike, serverConfigFile: string | undefined): string | undefined {

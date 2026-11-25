@@ -20,5 +20,5 @@ export type { SentryNitroModule, SentryNitroOptions };
  * ```
  */
 export function sentryNitro(options: SentryNitroOptions = {}): SentryNitroModule {
-  return createSentryNitroModule(options, { runtimeModule: '@sentry/node/nitro-runtime' });
+  return createSentryNitroModule(options);
 }

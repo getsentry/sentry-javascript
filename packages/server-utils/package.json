@@ -73,8 +73,7 @@
     },
     "./nitro": {
       "types": "./build/types/nitro/module.d.ts",
-      "import": "./build/esm/nitro/module.js",
-      "require": "./build/cjs/nitro/module.js"
+      "import": "./build/esm/nitro/module.js"
     }
   },
   "typesVersions": {

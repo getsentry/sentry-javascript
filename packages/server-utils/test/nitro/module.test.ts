@@ -1,13 +1,13 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NitroLike, SentryNitroOptions } from '../../src/nitro/module';
 import { createSentryNitroModule } from '../../src/nitro/module';
 
 const USER_PLUGIN = '/app/server/plugins/user.ts';
 const RUNTIME_PLUGIN_ID = '#sentry/nitro-plugin';
-const RUNTIME_MODULE = '@sentry/node/nitro-runtime';
+const RUNTIME_PLUGIN_FILE = resolve(__dirname, '../../src/integrations/nitro/runtimePlugin.js');
 
 type BuildConfig = Parameters<Parameters<NitroLike['hooks']['hook']>[1]>[1];
 
@@ -33,7 +33,7 @@ function createNitro(options: Partial<NitroLike['options']> = {}) {
 }
 
 function setup(nitro: NitroLike, options: SentryNitroOptions = {}): void {
-  createSentryNitroModule(options, { runtimeModule: RUNTIME_MODULE }).setup(nitro);
+  createSentryNitroModule(options).setup(nitro);
 }
 
 function writeFile(relativePath: string): string {
@@ -98,7 +98,7 @@ describe('createSentryNitroModule', () => {
         [
           `import ${JSON.stringify(file)};`,
           'import { tasks } from "#nitro/virtual/tasks";',
-          `import { setupSentryNitroApp } from "${RUNTIME_MODULE}";`,
+          `import { setupSentryNitroApp } from ${JSON.stringify(RUNTIME_PLUGIN_FILE)};`,
           'export default function sentryNitroPlugin(nitroApp) {',
           '  setupSentryNitroApp(nitroApp, tasks);',
           '}',
@@ -210,7 +210,7 @@ describe('createSentryNitroModule', () => {
     it('adds no transform when a Vite plugin installed the module', () => {
       const { nitro } = createNitro();
 
-      createSentryNitroModule({}, { runtimeModule: RUNTIME_MODULE, installedBy: 'vite' }).setup(nitro);
+      createSentryNitroModule({}, { installedBy: 'vite' }).setup(nitro);
 
       expect(nitro.hooks.hook).not.toHaveBeenCalled();
       expect(nitro.options.plugins[0]).toBe(RUNTIME_PLUGIN_ID);
@@ -219,8 +219,8 @@ describe('createSentryNitroModule', () => {
 
   describe('more than one instance', () => {
     it('sets Sentry up only from the first instance in `modules`, and the others warn', () => {
-      const first = createSentryNitroModule({}, { runtimeModule: RUNTIME_MODULE });
-      const second = createSentryNitroModule({}, { runtimeModule: RUNTIME_MODULE });
+      const first = createSentryNitroModule({});
+      const second = createSentryNitroModule({});
       const { nitro } = createNitro({ modules: ['some-module', cloneModule(first), cloneModule(second)] });
 
       first.setup(nitro);
@@ -235,8 +235,8 @@ describe('createSentryNitroModule', () => {
     });
 
     it('prefers the instance a Vite plugin installed, and tells to remove the module', () => {
-      const module = createSentryNitroModule({}, { runtimeModule: RUNTIME_MODULE });
-      const vitePluginModule = createSentryNitroModule({}, { runtimeModule: RUNTIME_MODULE, installedBy: 'vite' });
+      const module = createSentryNitroModule({});
+      const vitePluginModule = createSentryNitroModule({}, { installedBy: 'vite' });
       const { nitro } = createNitro({
         // Nitro's Vite plugin appends the `nitro` module of each Vite plugin to `modules`.
         modules: [cloneModule(module), cloneModule(vitePluginModule)],
