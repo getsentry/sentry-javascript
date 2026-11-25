@@ -5,7 +5,7 @@ import {
   warnOnConflictingSourceMapOptions,
 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
-import { addDebugIdToEmittedArtifacts } from '@sentry/bundler-plugins/core';
+import { addDebugIdToEmittedArtifacts, hasSourceMapUploadCredentials } from '@sentry/bundler-plugins/core';
 import type { SentryVitePluginOptions } from '@sentry/bundler-plugins/vite';
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import * as child_process from 'child_process';
@@ -405,7 +405,7 @@ export function _getUpdatedSourceMapSettings(
   } else if (
     // TODO(v12): Remove the `disable-upload` case along with `sourcemaps.disable`.
     legacyDisable === 'disable-upload' ||
-    upload ||
+    (upload && hasSourceMapUploadCredentials(sentryPluginOptions)) ||
     (deleteOption === false && injectDebugIds)
   ) {
     updatedSourceMapSetting = 'hidden';

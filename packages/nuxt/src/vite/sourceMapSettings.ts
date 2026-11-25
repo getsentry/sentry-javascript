@@ -1,3 +1,4 @@
+import { hasSourceMapUploadCredentials } from '@sentry/bundler-plugins/core';
 import { resolveSourceMapsFeatures } from '@sentry/core';
 import type { SentryNuxtModuleOptions } from '../common/types';
 
@@ -51,21 +52,8 @@ export function sentryEnablesSourceMaps(moduleOptions: SentryNuxtModuleOptions):
   // TODO(v12): Remove the `disable-upload` case along with `sourcemaps.disable`.
   return (
     legacyDisable === 'disable-upload' ||
-    (upload && hasUploadCredentials(moduleOptions)) ||
+    (upload && hasSourceMapUploadCredentials(moduleOptions)) ||
     (sourcemaps?.delete === false && injectDebugIds)
-  );
-}
-
-/**
- * The credentials checks of the Sentry plugin, which uploads nothing without them. The plugins are created
- * before this runs, so `process.env` also holds the values of `.env.sentry-build-plugin`.
- */
-function hasUploadCredentials(moduleOptions: SentryNuxtModuleOptions): boolean {
-  const authToken = moduleOptions.authToken ?? process.env.SENTRY_AUTH_TOKEN;
-  const org = moduleOptions.org ?? process.env.SENTRY_ORG;
-  const project = moduleOptions.project ?? process.env.SENTRY_PROJECT;
-  return (
-    !!authToken && (!!org || authToken.startsWith('sntrys_')) && (Array.isArray(project) ? !!project[0] : !!project)
   );
 }
 

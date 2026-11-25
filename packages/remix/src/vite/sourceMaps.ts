@@ -1,3 +1,4 @@
+import { hasSourceMapUploadCredentials } from '@sentry/bundler-plugins/core';
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import { resolveSourceMapsFeatures } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
@@ -151,7 +152,13 @@ export function getUpdatedSourceMapSettings(
 
   // Without an upload, Sentry only turns source maps on when `sourcemaps.delete: false` keeps them.
   // TODO(v12): Remove the `disable-upload` case along with `sourcemaps.disable`.
-  if (!(upload || legacyDisable === 'disable-upload' || (sourcemaps?.delete === false && injectDebugIds))) {
+  if (
+    !(
+      (upload && hasSourceMapUploadCredentials(sentryPluginOptions)) ||
+      legacyDisable === 'disable-upload' ||
+      (sourcemaps?.delete === false && injectDebugIds)
+    )
+  ) {
     return undefined;
   }
 

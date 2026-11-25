@@ -4,7 +4,7 @@ import * as coreServer from '@sentry/core/server';
 import * as fs from 'fs';
 import type * as os from 'os';
 import * as path from 'path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as getBuildPluginOptionsModule from '../../../src/config/getBuildPluginOptions';
 import {
   CLIENT_SDK_CONFIG_FILE,
@@ -27,6 +27,16 @@ vi.mock('@sentry/server-utils/orchestrion/webpack', async importOriginal => ({
   ...(await importOriginal<Record<string, unknown>>()),
   sentryOrchestrionWebpackPlugin: () => ({ _name: 'sentry-orchestrion-webpack-plugin' }),
 }));
+
+beforeEach(() => {
+  vi.stubEnv('SENTRY_AUTH_TOKEN', 'token');
+  vi.stubEnv('SENTRY_ORG', 'org');
+  vi.stubEnv('SENTRY_PROJECT', 'project');
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe('constructWebpackConfigFunction()', () => {
   it('includes expected properties', async () => {

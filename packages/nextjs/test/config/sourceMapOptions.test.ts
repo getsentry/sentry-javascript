@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getDeleteSourceMapsOption,
   getSourceMapFeatureOptions,
@@ -10,6 +10,17 @@ import type { BundlerInfo } from '../../src/config/withSentryConfig/getFinalConf
 import { maybeEnableTurbopackSourcemaps } from '../../src/config/withSentryConfig/getFinalConfigObjectBundlerUtils';
 
 const TURBOPACK_SUPPORTED: BundlerInfo = { isTurbopack: true, isWebpack: false, isTurbopackSupported: true };
+const CREDENTIALS = { authToken: 'token', org: 'org', project: 'project' };
+
+beforeEach(() => {
+  vi.stubEnv('SENTRY_AUTH_TOKEN', '');
+  vi.stubEnv('SENTRY_ORG', '');
+  vi.stubEnv('SENTRY_PROJECT', '');
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe('sentryEnablesSourceMaps', () => {
   it.each([
@@ -24,7 +35,14 @@ describe('sentryEnablesSourceMaps', () => {
     [{ disable: 'disable-upload', delete: false }, true],
     [{ disable: true, upload: true }, true],
   ] as const)('with %j it returns %s', (sourcemaps, expected) => {
-    expect(sentryEnablesSourceMaps(sourcemaps)).toBe(expected);
+    expect(sentryEnablesSourceMaps({ ...CREDENTIALS, sourcemaps })).toBe(expected);
+  });
+
+  it.each([
+    [undefined, false],
+    [{ delete: false }, true],
+  ] as const)('without upload credentials, with %j it returns %s', (sourcemaps, expected) => {
+    expect(sentryEnablesSourceMaps({ sourcemaps })).toBe(expected);
   });
 });
 
@@ -75,7 +93,7 @@ describe('mergeFilesToDeleteAfterUpload', () => {
 
 describe('maybeEnableTurbopackSourcemaps with the new source map options', () => {
   function run(sourcemaps: NonNullable<SentryBuildOptions['sourcemaps']>, nextConfig: NextConfigObject = {}) {
-    const userSentryOptions: SentryBuildOptions = { sourcemaps };
+    const userSentryOptions: SentryBuildOptions = { ...CREDENTIALS, sourcemaps };
     maybeEnableTurbopackSourcemaps(nextConfig, userSentryOptions, TURBOPACK_SUPPORTED);
     return { nextConfig, sourcemaps: userSentryOptions.sourcemaps };
   }
@@ -105,5 +123,12 @@ describe('maybeEnableTurbopackSourcemaps with the new source map options', () =>
 
     expect(result.nextConfig.productionBrowserSourceMaps).toBe(true);
     expect(result.sourcemaps).toEqual({ upload: true, deleteSourcemapsAfterUpload: true });
+  });
+
+  it('turns no source maps on without upload credentials', () => {
+    const nextConfig: NextConfigObject = {};
+    maybeEnableTurbopackSourcemaps(nextConfig, { sourcemaps: {} }, TURBOPACK_SUPPORTED);
+
+    expect(nextConfig.productionBrowserSourceMaps).toBeUndefined();
   });
 });
