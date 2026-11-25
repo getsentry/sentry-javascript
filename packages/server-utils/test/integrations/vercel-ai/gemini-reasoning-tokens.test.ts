@@ -103,8 +103,7 @@ describe('Vercel AI Gemini reasoning tokens', () => {
   });
 
   // A top-level operation's span reports usage summed across every step, while `providerMetadata`
-  // describes the last step alone. Reasoning is gated with output and total: it is a subset of an
-  // output this span never recomputes, and nothing sums it across steps.
+  // describes the last step alone.
   it('does not write last-step usage onto an invoke_agent span', () => {
     const data = runSpan('generateText', {
       usage: { inputTokens: 900, outputTokens: 350, totalTokens: 1250 },
@@ -116,15 +115,101 @@ describe('Vercel AI Gemini reasoning tokens', () => {
     expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBeUndefined();
   });
 
-  // OpenAI reports reasoning against an `outputTokens` that already includes it, so there is no
-  // recomputed output to suppress and the subset relationship still holds on the aggregate span.
-  it('keeps OpenAI reasoning tokens on an invoke_agent span', () => {
+  it('does not write last-step OpenAI reasoning onto an invoke_agent span', () => {
     const data = runSpan('generateText', {
       usage: { inputTokens: 900, outputTokens: 350, totalTokens: 1250 },
       providerMetadata: { openai: { reasoningTokens: 120 } },
     });
 
     expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(350);
-    expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(120);
+    expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBeUndefined();
+  });
+
+  describe('reasoning from the SDK usage', () => {
+    it('reads v7 model-call reasoning for any provider', () => {
+      const data = runSpan('languageModelCall', {
+        usage: { inputTokens: { total: 14 }, outputTokens: { total: 90, text: 30, reasoning: 60 } },
+        providerMetadata: { xai: {} },
+      });
+
+      expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(90);
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(60);
+    });
+
+    it('writes the summed reasoning onto an invoke_agent span (v6+)', () => {
+      const data = runSpan('generateText', {
+        usage: {
+          inputTokens: 20,
+          outputTokens: 220,
+          outputTokenDetails: { textTokens: 40, reasoningTokens: 180 },
+          totalTokens: 240,
+        },
+        providerMetadata: REASONING_METADATA,
+      });
+
+      expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(220);
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(180);
+    });
+
+    // v5/v6 `generateText` results expose the last step's usage as `usage` and the sum as `totalUsage`.
+    it('reads totalUsage over the last step usage', () => {
+      const data = runSpan('generateText', {
+        usage: { inputTokens: 10, outputTokens: 120, outputTokenDetails: { reasoningTokens: 100 } },
+        totalUsage: { inputTokens: 20, outputTokens: 220, outputTokenDetails: { reasoningTokens: 180 } },
+      });
+
+      expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(220);
+      expect(data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(240);
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(180);
+    });
+
+    it('prefers the summed reasoning over last-step OpenAI metadata (v6+)', () => {
+      const data = runSpan('generateText', {
+        usage: { inputTokens: 900, outputTokens: 350, outputTokenDetails: { reasoningTokens: 200 } },
+        providerMetadata: { openai: { reasoningTokens: 120 } },
+      });
+
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(200);
+    });
+
+    it('does not record zero reasoning', () => {
+      const data = runSpan('languageModelCall', {
+        usage: { inputTokens: { total: 14 }, outputTokens: { total: 12, text: 12, reasoning: 0 } },
+      });
+
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBeUndefined();
+    });
+
+    // `@ai-sdk/google` 2.x reports candidate-only `outputTokens` next to a separate `reasoningTokens`.
+    it('adds v5 Google reasoning into the invoke_agent output', () => {
+      const data = runSpan('generateText', {
+        usage: { inputTokens: 900, outputTokens: 21, reasoningTokens: 180, totalTokens: 1101 },
+        providerMetadata: REASONING_METADATA,
+      });
+
+      expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(201);
+      expect(data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(1101);
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(180);
+    });
+
+    it('keeps v5 OpenAI output, which already includes reasoning', () => {
+      const data = runSpan('generateText', {
+        usage: { inputTokens: 900, outputTokens: 350, reasoningTokens: 200, totalTokens: 1250 },
+        providerMetadata: { openai: { reasoningTokens: 120 } },
+      });
+
+      expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(350);
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(200);
+    });
+
+    it('ignores v5 reasoning from a provider whose output it may not be part of', () => {
+      const data = runSpan('generateText', {
+        usage: { inputTokens: 900, outputTokens: 350, reasoningTokens: 200, totalTokens: 1250 },
+        providerMetadata: { xai: {} },
+      });
+
+      expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(350);
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBeUndefined();
+    });
   });
 });

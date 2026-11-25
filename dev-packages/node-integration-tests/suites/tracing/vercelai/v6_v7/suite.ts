@@ -940,6 +940,45 @@ export function registerVercelAiGenerationTests(version: '6' | '7', vercelAiVers
   );
   createEsmTests(
     __dirname,
+    'scenario-reasoning-tokens.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('sums reasoning tokens across steps onto invoke_agent spans', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
+              );
+              const generateContent = spans.filter(
+                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
+              );
+              const stepReasoning = generateContent.map(
+                span => span.attributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]?.value as number,
+              );
+              expect(stepReasoning.sort((a, b) => a - b)).toEqual([80, 80, 100, 100]);
+
+              // One generateText and one streamText operation, each over the same two steps.
+              const invokeAgents = spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent');
+              expect(invokeAgents).toHaveLength(2);
+              for (const invokeAgent of invokeAgents) {
+                expect(invokeAgent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(220);
+                expect(invokeAgent.attributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]?.value).toBe(180);
+              }
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+  createEsmTests(
+    __dirname,
     'scenario-embeddings.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {

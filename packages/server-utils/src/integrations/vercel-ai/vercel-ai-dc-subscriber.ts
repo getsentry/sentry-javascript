@@ -215,24 +215,15 @@ function getActiveSpanConversationId(): string | undefined {
 
 /**
  * `providerMetadata` is last-step only; drop derived usage on spans that report an aggregate.
- *
- * Reasoning goes only when it accompanies a recomputed output (Google), because dropping that
- * output leaves the span's own count reasoning-exclusive and the documented subset relationship
- * would not hold. A provider that reports reasoning against an already-inclusive output (OpenAI)
- * keeps it.
+ * `setUsageReasoningTokens` writes the aggregate reasoning count instead.
  */
 function dropLastStepOnlyUsage(providerAttributes: Record<string, number | string>, type: ChannelEventType): void {
   if (!ROOT_OPERATION_TYPES.has(type)) {
     return;
   }
-  const hasRecomputedOutput = GEN_AI_USAGE_OUTPUT_TOKENS in providerAttributes;
   for (const key of LAST_STEP_ONLY_USAGE_KEYS) {
     // oxlint-disable-next-line typescript/no-dynamic-delete
     delete providerAttributes[key];
-  }
-  if (hasRecomputedOutput) {
-    // oxlint-disable-next-line typescript/no-dynamic-delete
-    delete providerAttributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS];
   }
   if (PARTIAL_COST_OPERATION_TYPES.has(type)) {
     // oxlint-disable-next-line typescript/no-dynamic-delete
@@ -481,6 +472,7 @@ function enrichInvokeAgentFromStream(span: Span, final: StreamedModelCallResult,
     const { cacheRead, cacheWrite } = cacheTokens(usage);
     addTokensToSpan(span, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheRead);
     addTokensToSpan(span, GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWrite);
+    addTokensToSpan(span, GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, reasoningTokens(usage));
   }
 
   if (recordOutputs) {
@@ -792,7 +784,12 @@ export function enrichSpanOnEnd(span: Span, data: VercelAiChannelMessage): void 
   // `languageModelCall` results report usage as `{ total }` objects; top-level/step results report
   // flat numbers. `tokenCount` handles both. v4 names tokens `promptTokens`/`completionTokens`
   // (v5+ uses `inputTokens`/`outputTokens`); the fallbacks are `undefined`-inert on v5+.
-  const usage = isObjectLike(result.usage) ? result.usage : undefined;
+  // A v5/v6 `generateText` result's `usage` is its last step's; `totalUsage` sums every step.
+  const usage = isObjectLike(result.totalUsage)
+    ? result.totalUsage
+    : isObjectLike(result.usage)
+      ? result.usage
+      : undefined;
   if (usage) {
     const inputTokens = tokenCount(usage.inputTokens) ?? tokenCount(usage.promptTokens) ?? tokenCount(usage.tokens);
     const outputTokens = tokenCount(usage.outputTokens) ?? tokenCount(usage.completionTokens);
@@ -833,6 +830,9 @@ export function enrichSpanOnEnd(span: Span, data: VercelAiChannelMessage): void 
   const providerAttributes = getProviderMetadataAttributes(providerMetadata);
   dropLastStepOnlyUsage(providerAttributes, type);
   span.setAttributes(providerAttributes);
+  if (usage) {
+    setUsageReasoningTokens(span, type, usage, providerMetadata);
+  }
 
   if (recordOutputs) {
     const outputMessages = getOutputMessages(type, result, finishReason, data.event);
@@ -911,6 +911,53 @@ function getFinishReason(result: Record<string, unknown>): string | undefined {
 /** Reads a token count that may be a plain number or a `{ total }` object (model-call usage). */
 function tokenCount(value: unknown): number | undefined {
   return asNumber(value) ?? (isObjectLike(value) ? asNumber(value.total) : undefined);
+}
+
+/**
+ * Reasoning tokens as the AI SDK normalizes them from v6 on, where output includes reasoning: model
+ * calls report `outputTokens.reasoning`, operations `outputTokenDetails.reasoningTokens` summed across
+ * steps. Zero means the model did not reason, so it is not recorded.
+ */
+function reasoningTokens(usage: Record<string, unknown>): number | undefined {
+  const outputTokens = isObjectLike(usage.outputTokens) ? usage.outputTokens : undefined;
+  const outputTokenDetails = isObjectLike(usage.outputTokenDetails) ? usage.outputTokenDetails : undefined;
+  const reasoning = asNumber(outputTokens?.reasoning) ?? asNumber(outputTokenDetails?.reasoningTokens);
+  return reasoning ? reasoning : undefined;
+}
+
+/**
+ * Write reasoning from the SDK's usage, which covers every provider and, on an operation, every step.
+ *
+ * v5 reports a flat `reasoningTokens` whose relation to output depends on the provider. It is read only
+ * on operations, because model calls already get reasoning from `providerMetadata`, and only for the
+ * providers whose model calls do: OpenAI counts reasoning in output, Google does not, so Google's
+ * output gets it added.
+ */
+function setUsageReasoningTokens(
+  span: Span,
+  type: ChannelEventType,
+  usage: Record<string, unknown>,
+  providerMetadata: unknown,
+): void {
+  const reasoning = reasoningTokens(usage);
+  if (reasoning !== undefined) {
+    span.setAttribute(GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, reasoning);
+    return;
+  }
+
+  const v5Reasoning = asNumber(usage.reasoningTokens);
+  if (!v5Reasoning || !ROOT_OPERATION_TYPES.has(type) || !isObjectLike(providerMetadata)) {
+    return;
+  }
+  if (providerMetadata.google || providerMetadata.vertex) {
+    const output = asNumber(usage.outputTokens);
+    if (output !== undefined) {
+      span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, output + v5Reasoning);
+    }
+    span.setAttribute(GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, v5Reasoning);
+  } else if (providerMetadata.openai || providerMetadata.azure) {
+    span.setAttribute(GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, v5Reasoning);
+  }
 }
 
 /**
