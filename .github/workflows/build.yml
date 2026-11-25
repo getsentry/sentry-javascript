@@ -1,5 +1,4 @@
 name: 'CI: Build & Test'
-# Full-CI baseline for the Nuxt production/development split benchmark.
 on:
   push:
     branches:
@@ -52,15 +51,13 @@ env:
   BUNDLE_ARTIFACT_GLOB: packages/*/build/bundles
   BUNDLE_ARTIFACT_DOWNLOAD_PATH: ${{ github.workspace }}/packages
 
-  NX_CACHE_KEY: nx-Linux-${{ github.head_ref || github.ref }}-${{ github.run_id }}
-
   # https://bsky.app/profile/joyeecheung.bsky.social/post/3lhy6o54fo22h
   # Apparently some of our CI failures are attributable to a corrupt v8 cache, causing v8 failures with: "Check failed: current == end_slot_index.".
   # This option both controls the `v8-compile-cache-lib` and `v8-compile-cache` packages.
   DISABLE_V8_COMPILE_CACHE: '1'
 
-# Jobs that need the monorepo dependencies restore them from the GitHub Actions cache (see `restore-cache`),
-# keyed by the lockfile hash. E2E jobs install their test application separately and do not use that cache.
+# Test jobs restore workspace dependencies and build their SDK outputs locally.
+# The central build still produces the shared release artifacts.
 jobs:
   job_get_metadata:
     uses: ./.github/workflows/ci-metadata.yml
@@ -70,11 +67,11 @@ jobs:
     permissions:
       pull-requests: read
 
-  job_build:
-    name: Build
+  job_get_test_matrix:
+    name: Plan test jobs
     needs: job_get_metadata
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 15
+    timeout-minutes: 10
     if: |
       needs.job_get_metadata.outputs.changed_any_code == 'true' ||
       needs.job_get_metadata.outputs.is_base_branch == 'true' ||
@@ -95,101 +92,35 @@ jobs:
       - name: Set up Node
         uses: ./.github/actions/setup-node
 
-      - name: Install Dependencies
-        uses: ./.github/actions/install-dependencies
-        id: install_dependencies
+      - name: Set up affected-project planner
+        if: github.event_name == 'pull_request' && needs.job_get_metadata.outputs.changed_ci != 'true'
+        uses: ./.github/actions/setup-nx-planner
 
       - name: Check for Affected Nx Projects
         uses: ./.github/actions/nx-affected-list
         id: checkForAffected
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && needs.job_get_metadata.outputs.changed_ci != 'true'
         with:
           base: ${{ github.event.pull_request.base.sha }}
           head: ${{ env.HEAD_COMMIT }}
 
-      - name: Build packages
-        run: pnpm run build:ci
-
-      - name: Compute build artifact paths from Nx
-        id: nx_build_paths
-        run: |
-          {
-            echo 'paths<<EOF'
-            pnpm --silent run ci:print-build-artifact-paths
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Store NX cache
-        uses: actions/cache/save@v6.1.0
-        # Only cache this per-PR to speed up CI.
-        if: github.event_name == 'pull_request'
-        with:
-          path: |
-            .nx/cache
-            .nx/workspace-data
-          key: ${{ env.NX_CACHE_KEY }}-${{ runner.arch }}
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: build-output
-          path: ${{ steps.nx_build_paths.outputs.paths }}
-          retention-days: 4
-          compression-level: 6
-          overwrite: true
-
       - name: Determine which test applications should be run
         id: matrix
         run:
-          pnpm --silent run ci:build-matrix --shards=2 --separate-aws-layer --base=${{ (github.event_name ==
-          'pull_request' && needs.job_get_metadata.outputs.changed_ci != 'true' && github.event.pull_request.base.sha)
-          || '' }} >> $GITHUB_OUTPUT
+          node ./lib/getTestMatrix.mjs --shards=2 --separate-aws-layer --base=${{ (github.event_name == 'pull_request'
+          && needs.job_get_metadata.outputs.changed_ci != 'true' && github.event.pull_request.base.sha) || '' }} >>
+          $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
       - name: Determine which optional E2E test applications should be run
         id: matrix-optional
         run:
-          pnpm --silent run ci:build-matrix-optional --base=${{ (github.event_name == 'pull_request' &&
+          node ./lib/getTestMatrix.mjs --variant=optional --base=${{ (github.event_name == 'pull_request' &&
           needs.job_get_metadata.outputs.changed_ci != 'true' && github.event.pull_request.base.sha) || '' }} >>
           $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
-      - name: Build tarballs and bundles
-        run: |
-          pnpm run clean:tarballs
-          pnpm exec nx run-many -t build:tarball build:bundle --parallel=4
-
-      - name: Upload tarball artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: build-tarball-output
-          path: ${{ env.TARBALL_ARTIFACT_GLOB }}
-          if-no-files-found: error
-          retention-days: 4
-          compression-level: 6
-          overwrite: true
-
-      - name: Upload test-utils tarball artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: build-test-utils-tarball-output
-          path: dev-packages/test-utils/*.tgz
-          if-no-files-found: error
-          retention-days: 4
-          compression-level: 6
-          overwrite: true
-
-      - name: Upload bundle artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: build-bundle-output
-          path: ${{ env.BUNDLE_ARTIFACT_GLOB }}
-          retention-days: 4
-          compression-level: 6
-          overwrite: true
-
     outputs:
-      dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
       changed_node_integration:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry-internal/node-integration-tests') }}
@@ -226,6 +157,105 @@ jobs:
       e2e-matrix-with-secrets: ${{ steps.matrix.outputs.matrix-with-secrets }}
       e2e-matrix-optional: ${{ steps.matrix-optional.outputs.matrix }}
       e2e-matrix-optional-without-secrets: ${{ steps.matrix-optional.outputs.matrix-without-secrets }}
+
+  job_build:
+    name: Build
+    needs: job_get_metadata
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    if: |
+      needs.job_get_metadata.outputs.changed_any_code == 'true' ||
+      needs.job_get_metadata.outputs.is_base_branch == 'true' ||
+      needs.job_get_metadata.outputs.is_release == 'true' ||
+      (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false' && needs.job_get_metadata.outputs.changed_any_code == 'true')
+    steps:
+      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
+        uses: actions/checkout@v7
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+
+      - name: Set up Node
+        uses: ./.github/actions/setup-node
+
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+        id: install_dependencies
+
+      - name: Seed planner cache
+        if: github.ref == 'refs/heads/develop'
+        uses: ./.github/actions/setup-nx-planner
+
+      - name: Build packages
+        uses: ./.github/actions/build-local-sdk
+        with:
+          setup: 'false'
+          package-path: .
+
+      - name: Compute build artifact paths from Nx
+        id: nx_build_paths
+        run: |
+          {
+            echo 'paths<<EOF'
+            pnpm --silent run ci:print-build-artifact-paths
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-output
+          path: ${{ steps.nx_build_paths.outputs.paths }}
+          retention-days: 4
+          compression-level: 6
+          overwrite: true
+
+      - name: Clean tarballs
+        run: pnpm run clean:tarballs
+
+      - name: Build tarballs and bundles
+        uses: ./.github/actions/build-local-sdk
+        with:
+          setup: 'false'
+          package-path: .
+          targets: build:tarball build:bundle
+
+      - name: Upload tarball artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-tarball-output
+          path: ${{ env.TARBALL_ARTIFACT_GLOB }}
+          if-no-files-found: error
+          retention-days: 4
+          compression-level: 6
+          overwrite: true
+
+      - name: Upload test-utils tarball artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-test-utils-tarball-output
+          path: dev-packages/test-utils/*.tgz
+          if-no-files-found: error
+          retention-days: 4
+          compression-level: 6
+          overwrite: true
+
+      - name: Upload bundle artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-bundle-output
+          path: ${{ env.BUNDLE_ARTIFACT_GLOB }}
+          retention-days: 4
+          compression-level: 6
+          overwrite: true
+
+    outputs:
+      dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
 
   job_build_layer:
     name: Build Lambda layer
@@ -282,7 +312,7 @@ jobs:
 
   job_size_check:
     name: Size Check
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_get_test_matrix]
     timeout-minutes: 15
     runs-on: ubuntu-24.04-arm
     if:
@@ -293,17 +323,11 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: ./.github/actions/setup-node
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
         with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Restore build bundle artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: build-bundle-output
-          path: ${{ env.BUNDLE_ARTIFACT_DOWNLOAD_PATH }}
+          package-path: .
+          targets: build:transpile build:types build:bundle
       - name: Check bundle sizes
         uses: ./dev-packages/size-limit-gh-action
         with:
@@ -315,7 +339,7 @@ jobs:
     name: Lint
     # Even though the linter only checks source code, not built code, it needs the built code in order check that all
     # inter-package dependencies resolve cleanly.
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_get_test_matrix]
     timeout-minutes: 10
     runs-on: ubuntu-24.04-arm
     steps:
@@ -323,12 +347,10 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: ./.github/actions/setup-node
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
         with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          package-path: .
       - parallel:
           - name: Lint source files
             run: pnpm run lint
@@ -462,7 +484,7 @@ jobs:
 
   job_browser_unit_tests:
     name: Browser Unit Tests
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_get_test_matrix]
     timeout-minutes: 10
     runs-on: ubuntu-24.04
     steps:
@@ -476,13 +498,16 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
+      - name: Set up repository-pinned Node.js for building
         uses: ./.github/actions/setup-node
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
+      - name: Restore workspace dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build selected unit-test dependencies
+        env:
+          UNIT_TEST_ENV: browser
+        run: >-
+          pnpm exec tsx scripts/ci-unit-tests.ts --build-only ${{ github.event_name == 'pull_request' &&
+          format('--affected --base={0}', github.event.pull_request.base.sha) || '' }}
       - name: Run affected tests
         run: pnpm run test:pr:browser --base=${{ github.event.pull_request.base.sha }}
         if: github.event_name == 'pull_request'
@@ -493,8 +518,8 @@ jobs:
 
   job_bun_unit_tests:
     name: Bun (${{ matrix.bun }}) Unit Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_get_test_matrix]
+    if: needs.job_get_test_matrix.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-24.04-arm
     strategy:
@@ -507,24 +532,22 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: ./.github/actions/setup-node
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ matrix.bun }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
         with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          package-path: packages/bun
       - name: Run tests
         run: |
           pnpm run test:ci:bun
 
   job_deno_unit_tests:
     name: Deno Unit Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_get_test_matrix]
+    if: needs.job_get_test_matrix.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-24.04-arm
     steps:
@@ -532,25 +555,21 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: ./.github/actions/setup-node
       - name: Set up Deno
         uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: 'v2.8.3'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
         with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          package-path: packages/deno
       - name: Run tests
-        run: |
-          cd packages/deno
-          pnpm run build
-          pnpm run test
+        working-directory: packages/deno
+        run: pnpm run test
 
   job_node_unit_tests:
     name: Node (${{ matrix.node }}) Unit Tests (${{ matrix.shard }}/2)
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_get_test_matrix]
     timeout-minutes: 10
     runs-on: ubuntu-24.04-arm
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
@@ -570,14 +589,21 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up repository-pinned Node.js for building
+        uses: ./.github/actions/setup-node
+      - name: Restore workspace dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build selected unit-test dependencies
+        env:
+          UNIT_TEST_ENV: node
+          UNIT_TEST_SHARD: ${{ matrix.shard }}
+        run: >-
+          pnpm exec tsx scripts/ci-unit-tests.ts --build-only ${{ github.event_name == 'pull_request' &&
+          format('--affected --base={0}', github.event.pull_request.base.sha) || '' }}
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       # The native modules have no prebuilt binaries for the Node 27 alpha, so compile them like an install on a
       # user's machine does.
       - name: Compile native modules
@@ -602,8 +628,8 @@ jobs:
     name:
       Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}',
       matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_get_test_matrix]
+    if: needs.job_get_test_matrix.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-large-js
     timeout-minutes: 25
     strategy:
@@ -693,18 +719,11 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: ./.github/actions/setup-node
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
         with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Restore build bundle artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: build-bundle-output
-          path: ${{ env.BUNDLE_ARTIFACT_DOWNLOAD_PATH }}
+          package-path: dev-packages/browser-integration-tests
+          targets: build:transpile build:types build:bundle
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -733,8 +752,8 @@ jobs:
 
   job_browser_loader_tests:
     name: PW ${{ matrix.bundle }} Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_get_test_matrix]
+    if: needs.job_get_test_matrix.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
@@ -754,18 +773,11 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: ./.github/actions/setup-node
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
         with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Restore build bundle artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: build-bundle-output
-          path: ${{ env.BUNDLE_ARTIFACT_DOWNLOAD_PATH }}
+          package-path: packages/browser
+          targets: build:transpile build:types build:bundle
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -792,8 +804,8 @@ jobs:
   # Runs the CDN bundles in the oldest Chromium we support. Chromium snapshots only exist for x64.
   job_browser_min_version_tests:
     name: Minimum Chromium Version Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_get_test_matrix]
+    if: needs.job_get_test_matrix.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -801,18 +813,11 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: ./.github/actions/setup-node
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
         with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Restore build bundle artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: build-bundle-output
-          path: ${{ env.BUNDLE_ARTIFACT_DOWNLOAD_PATH }}
+          package-path: dev-packages/browser-min-version-tests,packages/browser
+          targets: build:transpile build:types build:bundle
 
       # Chromium itself isn't cached: `run.mjs` downloads the 127 MB zip on each run, which is about as quick as a
       # cache restore.
@@ -824,8 +829,8 @@ jobs:
 
   job_node_integration_tests:
     name: Node (${{ matrix.node }}) Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_get_test_matrix]
+    if: needs.job_get_test_matrix.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
@@ -854,14 +859,14 @@ jobs:
           else
             echo "Sufficient disk space — skipping cleanup"
           fi
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: dev-packages/node-integration-tests
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       # The native modules have no prebuilt binaries for the Node 27 alpha, so compile them like an install on a
       # user's machine does.
       - name: Compile native modules
@@ -875,10 +880,11 @@ jobs:
 
   job_sql_server_integration_tests:
     name: SQL Server Integration Tests (Node 24)
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_get_test_matrix]
     if: >-
-      needs.job_build.outputs.changed_node_integration == 'true' || needs.job_build.outputs.changed_bun_integration ==
-      'true' || needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
+      needs.job_get_test_matrix.outputs.changed_node_integration == 'true' ||
+      needs.job_get_test_matrix.outputs.changed_bun_integration == 'true' ||
+      needs.job_get_test_matrix.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -886,14 +892,14 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: dev-packages/node-integration-tests
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
           node-version: '24'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run SQL Server integration tests
         working-directory: dev-packages/node-integration-tests
         run: pnpm run test suites/tracing/tedious/test.ts
@@ -901,8 +907,9 @@ jobs:
   # Runs on the wrangler pinned in the package, so the required run stays on a fixed, older runtime.
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_get_test_matrix]
+    if:
+      needs.job_get_test_matrix.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
@@ -915,12 +922,10 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: ./.github/actions/setup-node
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
         with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          package-path: dev-packages/cloudflare-integration-tests
 
       # The Vite plugin depends on wrangler and writes config for it, so both move together. In the hoisted layout,
       # pnpm keeps the nested `node_modules` folders of the old versions (for example an old workerd under
@@ -940,10 +945,11 @@ jobs:
   # block a PR, and like the optional E2E tests it does not run on release branches.
   job_optional_cloudflare_integration_tests:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/2, latest wrangler) (optional)
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_get_test_matrix]
     if:
-      needs.job_get_metadata.outputs.is_release != 'true' && (needs.job_build.outputs.changed_cloudflare_integration ==
-      'true' || github.event_name != 'pull_request')
+      needs.job_get_metadata.outputs.is_release != 'true' &&
+      (needs.job_get_test_matrix.outputs.changed_cloudflare_integration == 'true' || github.event_name !=
+      'pull_request')
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
@@ -956,8 +962,10 @@ jobs:
 
   job_bundler_plugin_integration_tests:
     name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_bundler_plugin_integration == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_get_test_matrix]
+    if:
+      needs.job_get_test_matrix.outputs.changed_bundler_plugin_integration == 'true' || github.event_name !=
+      'pull_request'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
@@ -971,14 +979,14 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: dev-packages/bundler-plugin-integration-tests
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run integration tests
         working-directory: dev-packages/bundler-plugin-integration-tests
@@ -986,8 +994,8 @@ jobs:
 
   job_bun_integration_tests:
     name: Bun (${{ matrix.bun }}) Integration Tests (${{ matrix.shard }}/6)
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_bun_integration == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_get_test_matrix]
+    if: needs.job_get_test_matrix.outputs.changed_bun_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
@@ -1001,16 +1009,14 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: ./.github/actions/setup-node
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ matrix.bun }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
         with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          package-path: dev-packages/bun-integration-tests
 
       - name: Run integration tests
         working-directory: dev-packages/bun-integration-tests
@@ -1018,8 +1024,8 @@ jobs:
 
   job_deno_integration_tests:
     name: Deno Integration Tests (${{ matrix.shard }}/6)
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_get_test_matrix]
+    if: needs.job_get_test_matrix.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
@@ -1031,19 +1037,14 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: ./.github/actions/setup-node
       - name: Set up Deno
         uses: denoland/setup-deno@v2.0.5
         with:
           deno-version: 'v2.8.3'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
         with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Build @sentry/deno
-        working-directory: packages/deno
-        run: pnpm run build
+          package-path: dev-packages/deno-integration-tests
       - name: Run native Deno integration tests
         if: matrix.shard == 1
         working-directory: dev-packages/deno-integration-tests
@@ -1060,8 +1061,10 @@ jobs:
   # and `steps`.
   job_e2e_tests_1:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
-    if: always() && needs.job_build.result == 'success' && needs.job_build.outputs.e2e-matrix-1 != '{"include":[]}'
-    needs: [job_get_metadata, job_build]
+    if:
+      always() && needs.job_get_test_matrix.result == 'success' && needs.job_get_test_matrix.outputs.e2e-matrix-1 !=
+      '{"include":[]}'
+    needs: [job_get_metadata, job_get_test_matrix]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -1080,21 +1083,26 @@ jobs:
       pnpm_config_verify_deps_before_run: 'false'
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-1) }}
+      matrix: ${{ fromJson(needs.job_get_test_matrix.outputs.e2e-matrix-1) }}
     steps: &e2e-steps
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+          targets: build:tarball
       - name: Prepare E2E test application
         uses: ./.github/actions/prepare-e2e-test
         with:
           test-application: ${{ matrix.test-application }}
           build-lambda-layer: ${{ matrix.test-application == 'aws-serverless-layer' }}
-          dependency-cache-key: ${{ needs.job_build.outputs.dependency_cache_key }}
           runtime: ${{ matrix.runtime }}
           bun-version: ${{ matrix.bun-version }}
           deno-version: ${{ matrix.deno-version }}
+          download-artifacts: 'false'
 
       - name: Start E2E databases
         background: true
@@ -1142,28 +1150,30 @@ jobs:
 
   job_e2e_tests_2:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
-    if: always() && needs.job_build.result == 'success' && needs.job_build.outputs.e2e-matrix-2 != '{"include":[]}'
-    needs: [job_get_metadata, job_build]
+    if:
+      always() && needs.job_get_test_matrix.result == 'success' && needs.job_get_test_matrix.outputs.e2e-matrix-2 !=
+      '{"include":[]}'
+    needs: [job_get_metadata, job_get_test_matrix]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env: *e2e-env
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-2) }}
+      matrix: ${{ fromJson(needs.job_get_test_matrix.outputs.e2e-matrix-2) }}
     steps: *e2e-steps
 
   job_e2e_aws_layer_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_get_test_matrix]
     if: >-
-      always() && needs.job_build.result == 'success' && needs.job_build.outputs.e2e-matrix-aws-layer !=
-      '{"include":[]}'
+      always() && needs.job_get_test_matrix.result == 'success' &&
+      needs.job_get_test_matrix.outputs.e2e-matrix-aws-layer != '{"include":[]}'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env: *e2e-env
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-aws-layer) }}
+      matrix: ${{ fromJson(needs.job_get_test_matrix.outputs.e2e-matrix-aws-layer) }}
     steps: *e2e-steps
 
   # PRs from forks and Dependabot get no secrets, so they skip these jobs. Release branches skip them too, so that an
@@ -1208,10 +1218,11 @@ jobs:
     name: E2E Tests (optional)
     # A PR from a fork cannot dispatch optional-e2e.yml, see job_optional_e2e_tests_without_secrets.
     if:
-      always() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_build.result == 'success' &&
-      needs.job_build.outputs.e2e-matrix-optional != '{"include":[]}' && (github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
-    needs: [job_get_metadata, job_build]
+      always() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_get_test_matrix.result == 'success'
+      && needs.job_get_test_matrix.outputs.e2e-matrix-optional != '{"include":[]}' && (github.event_name !=
+      'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.actor !=
+      'dependabot[bot]'
+    needs: [job_get_metadata, job_get_test_matrix]
     # This job only waits for optional-e2e.yml, which can take most of an hour.
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -1235,7 +1246,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           commit: ${{ env.HEAD_COMMIT }}
-          matrix: ${{ needs.job_build.outputs.e2e-matrix-optional }}
+          matrix: ${{ needs.job_get_test_matrix.outputs.e2e-matrix-optional }}
 
   job_optional_e2e_tests_without_secrets:
     name: E2E ${{ matrix.label || matrix.test-application }} Test (optional)
@@ -1259,6 +1270,7 @@ jobs:
     needs:
       [
         job_build,
+        job_get_test_matrix,
         job_build_layer,
         job_browser_unit_tests,
         job_bun_unit_tests,

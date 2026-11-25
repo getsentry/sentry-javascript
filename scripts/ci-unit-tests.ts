@@ -4,6 +4,7 @@ import * as path from 'path';
 
 const UNIT_TEST_ENV = process.env.UNIT_TEST_ENV as 'node' | 'browser' | undefined;
 const RUN_AFFECTED = process.argv.includes('--affected');
+const BUILD_ONLY = process.argv.includes('--build-only');
 const UNIT_TEST_SHARD = process.env.UNIT_TEST_SHARD;
 
 // These packages are tested separately in CI, so no need to run them here
@@ -97,7 +98,11 @@ function runAllTests(ignorePackages: Set<string>): void {
     .map(dep => `--exclude="${dep}"`)
     .join(' ');
 
-  run(`pnpm run test ${excludeFlags}`);
+  run(
+    BUILD_ONLY
+      ? `pnpm exec nx run-many -t build:transpile build:types ${excludeFlags}`
+      : `pnpm run test ${excludeFlags}`,
+  );
 }
 
 /**
@@ -106,14 +111,18 @@ function runAllTests(ignorePackages: Set<string>): void {
 function runAffectedTests(ignorePackages: Set<string>): void {
   const additionalArgs = process.argv
     .slice(2)
-    .filter(arg => arg !== '--affected')
+    .filter(arg => arg !== '--affected' && arg !== '--build-only')
     .join(' ');
 
   const excludeFlags = Array.from(ignorePackages)
     .map(dep => `--exclude="${dep}"`)
     .join(' ');
 
-  run(`pnpm run test:pr ${excludeFlags} ${additionalArgs}`);
+  run(
+    BUILD_ONLY
+      ? `pnpm exec nx affected -t build:transpile build:types ${excludeFlags} ${additionalArgs}`
+      : `pnpm run test:pr ${excludeFlags} ${additionalArgs}`,
+  );
 }
 
 runTests();

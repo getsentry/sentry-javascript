@@ -35,7 +35,6 @@ async function run() {
     ref: process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME,
     inputs: {
       commit: core.getInput('commit'),
-      build_run_id: String(context.runId),
       matrix: core.getInput('matrix'),
       pr_number: pr ? String(pr.number) : '',
       correlation_id: correlationId,
