@@ -10,6 +10,7 @@ import type { TANSTACK_AI_MIDDLEWARE_BRAND } from './constants';
 export interface TanstackAICallInfo {
   threadId?: string;
   stream?: boolean;
+  outputSchema?: unknown;
   middleware?: unknown;
   [key: string]: unknown;
 }
@@ -73,6 +74,10 @@ export interface TanstackAIChunk {
   input?: unknown;
   /** `{ type: 'interrupt' }` on the `RUN_FINISHED` chunk of a run that stops at an interrupt. */
   outcome?: { type: string };
+  /** The error of a `RUN_ERROR` chunk. */
+  error?: { message: string; code?: string };
+  message?: string;
+  code?: string;
 }
 
 export interface TanstackAIToolCallHookContext {

@@ -17,6 +17,9 @@ streamed.setResponses([
 const plain = fakeText({ model: 'fake-model' });
 plain.setResponses([{ text: 'Hello!' }]);
 
+const structured = fakeText({ model: 'fake-model' });
+structured.setResponses([{ text: '{"city":"Vienna"}' }]);
+
 await Sentry.startSpan({ name: 'main' }, async () => {
   // The run starts only when the stream is read, here outside of the span that `chat()` was called in.
   const stream = Sentry.startSpan({ name: 'create-stream' }, () =>
@@ -38,5 +41,12 @@ await Sentry.startSpan({ name: 'main' }, async () => {
     threadId: 'thread-plain',
     messages: [{ role: 'user', content: 'Hi' }],
     stream: false,
+  });
+
+  await chat({
+    adapter: structured,
+    threadId: 'thread-structured',
+    messages: [{ role: 'user', content: 'Which city?' }],
+    outputSchema: { type: 'object', properties: { city: { type: 'string' } } },
   });
 });

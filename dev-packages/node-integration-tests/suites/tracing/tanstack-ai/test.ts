@@ -117,6 +117,11 @@ describe('TanStack AI integration', () => {
             expect(attr(plain.agent, GEN_AI_RESPONSE_STREAMING)).toBe(false);
             expect(attr(plain.chats[0], GEN_AI_RESPONSE_STREAMING)).toBe(false);
             expect(attr(plain.chats[0], GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK)).toBeUndefined();
+
+            const structured = runSpans(spans, 'thread-structured');
+            expect(structured.chats).toHaveLength(1);
+            expect(attr(structured.chats[0], GEN_AI_RESPONSE_STREAMING)).toBe(false);
+            expect(attr(structured.chats[0], GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK)).toBeUndefined();
           },
         })
         .start()
@@ -150,6 +155,7 @@ describe('TanStack AI integration', () => {
             const modelError = runSpans(container.items, 'thread-model-error');
             expect(modelError.agent.status).toBe('error');
             expect(modelError.chats.map(span => span.status)).toEqual(['error']);
+            expect(attr(modelError.chats[0], 'test.error')).toBe('Model overloaded');
           },
         })
         .start()

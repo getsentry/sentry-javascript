@@ -37,7 +37,7 @@ import type {
   TanstackAIMiddlewareConfig,
   TanstackAIMiddlewareContext,
 } from './types';
-import { getInputAttributes, getProviderName, getRequestAttributes, getUsageAttributes } from './utils';
+import { getInputAttributes, getProviderName, getRequestAttributes, getRunError, getUsageAttributes } from './utils';
 
 /**
  * `call` is the options object of the `chat()` call. The recording options run when `chat()` is
@@ -62,8 +62,9 @@ export function createTanstackAIMiddleware(
 ): TanstackAIChatMiddleware {
   const parentSpan = getActiveSpan() ?? null;
   const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
-  // `ctx.streaming` is also true for `stream: false`, which reads the same stream inside `chat()`.
-  const streaming = call.stream !== false;
+  // `ctx.streaming` is also true when `chat()` returns a promise, because `chat()` reads the same stream
+  // inside. With `outputSchema`, `chat()` streams only with `stream: true`.
+  const streaming = call.outputSchema ? call.stream === true : call.stream !== false;
 
   let agentSpan: Span | undefined;
   let chatSpan: Span | undefined;
@@ -187,7 +188,7 @@ export function createTanstackAIMiddleware(
       // A provider error ends the run with this chunk. `chat({ stream: false })` then throws and
       // stops reading, so TanStack calls no terminal hook.
       if (chunk.type === 'RUN_ERROR') {
-        endRun(getErrorStatus(ctx.signal));
+        endRun(getErrorStatus(ctx.signal), getRunError(chunk));
         return;
       }
       // A run that stops at an interrupt ends with this chunk. For an interrupt at `beforeModel` or
