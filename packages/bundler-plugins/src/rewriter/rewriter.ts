@@ -136,7 +136,7 @@ function matches(include: RuleInclude, code: string, id: string): boolean {
 /** Applies the rules in order, staying synchronous until a rule returns a promise. */
 function applyRules(rules: RewriteRule[], ctx: RuleContext, from: number): Promise<void> | undefined {
   for (let index = from; index < rules.length; index++) {
-    const pending = rules[index]!.apply(ctx);
+    const pending = rules[index]?.apply(ctx);
     if (pending instanceof Promise) {
       return pending.then(() => applyRules(rules, ctx, index + 1));
     }

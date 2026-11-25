@@ -79,5 +79,5 @@ export function parseModule(code: string, id: string, lang: ModuleLang = langFro
  */
 export function bundlerParser(context: ParserContext | undefined): ModuleParser | undefined {
   if (!context?.meta?.rolldownVersion || typeof context.parse !== 'function') return undefined;
-  return (code, id) => context.parse!(code, { lang: langFromId(id), preserveParens: false }) as ProgramBody;
+  return (code, id) => context.parse?.(code, { lang: langFromId(id), preserveParens: false }) as ProgramBody;
 }
