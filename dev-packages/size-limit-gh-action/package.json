@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/size-limit-gh-action",
-  "description": "An internal Github Action to compare the current size of a PR against the one on develop.",
+  "description": "An internal Github Action to compare the bundle sizes of a PR against its base.",
   "version": "11.17.0",
   "license": "MIT",
   "engines": {
