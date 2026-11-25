@@ -1,7 +1,7 @@
 import type { Client } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
-import { _INTERNAL_flushMetricsBuffer } from '../metrics/internal';
+import { flushMetricsBuffer } from '../metrics/internal';
 import { count } from '../metrics/public-api';
 import { Scope } from '../scope';
 import type { Integration, IntegrationFn } from '../types/integration';
@@ -39,7 +39,7 @@ const _experimentalReportSdkConfigIntegration = (() => ({
     client.on('flush', () => {
       report();
       // Capturing can register the metrics flusher too late for this flush, or after an existing flusher.
-      _INTERNAL_flushMetricsBuffer(client);
+      flushMetricsBuffer(client);
     });
   },
 })) satisfies IntegrationFn;

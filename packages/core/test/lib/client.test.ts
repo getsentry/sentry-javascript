@@ -18,8 +18,8 @@ import {
 } from '../../src';
 import * as integrationModule from '../../src/integration';
 import * as logsInternalModule from '../../src/logs/internal';
-import { _INTERNAL_captureLog } from '../../src/logs/internal';
-import { _INTERNAL_captureMetric } from '../../src/metrics/internal';
+import { captureLogEvent } from '../../src/logs/internal';
+import { captureMetricEvent } from '../../src/metrics/internal';
 import * as traceModule from '../../src/tracing/trace';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from '../../src/transports/base';
 import type { Envelope } from '../../src/types/envelope';
@@ -3152,12 +3152,12 @@ describe('Client', () => {
       const flushLogsHandler = vi.fn();
       client.on('flushLogs', flushLogsHandler);
 
-      _INTERNAL_captureLog({ message: 'test log', level: 'info' }, scope);
+      captureLogEvent({ message: 'test log', level: 'info' }, scope);
 
       await client.close();
 
       expect(flushLogsHandler).toHaveBeenCalledTimes(1);
-      expect(logsInternalModule._INTERNAL_getLogBuffer(client)).toEqual([]);
+      expect(logsInternalModule.getLogBuffer(client)).toEqual([]);
     });
 
     test('multiple concurrent flush calls should just work', async () => {
@@ -4224,11 +4224,11 @@ describe('Client', () => {
 
       expect(onSpy).not.toHaveBeenCalledWith('afterCaptureLog', expect.any(Function));
 
-      _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, scope);
+      captureLogEvent({ message: 'test log 1', level: 'info' }, scope);
       expect(onSpy).toHaveBeenCalledWith('afterCaptureLog', expect.any(Function));
 
       onSpy.mockClear();
-      _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, scope);
+      captureLogEvent({ message: 'test log 2', level: 'info' }, scope);
       expect(onSpy).not.toHaveBeenCalledWith('afterCaptureLog', expect.any(Function));
 
       onSpy.mockRestore();
@@ -4246,7 +4246,7 @@ describe('Client', () => {
 
       // Create a large log message that will exceed the 800KB threshold
       const largeMessage = 'x'.repeat(400_000); // 400KB string
-      _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, scope);
+      captureLogEvent({ message: largeMessage, level: 'info' }, scope);
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
     });
@@ -4263,7 +4263,7 @@ describe('Client', () => {
 
       // Create a log message that won't exceed the threshold
       const message = 'x'.repeat(100_000); // 100KB string
-      _INTERNAL_captureLog({ message, level: 'info' }, scope);
+      captureLogEvent({ message, level: 'info' }, scope);
 
       expect(sendEnvelopeSpy).not.toHaveBeenCalled();
     });
@@ -4279,7 +4279,7 @@ describe('Client', () => {
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       // Add a log which will trigger afterCaptureLog event
-      _INTERNAL_captureLog({ message: 'test log', level: 'info' }, scope);
+      captureLogEvent({ message: 'test log', level: 'info' }, scope);
 
       expect(sendEnvelopeSpy).not.toHaveBeenCalled();
 
@@ -4300,13 +4300,13 @@ describe('Client', () => {
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       // Add initial log (starts the timer)
-      _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, scope);
+      captureLogEvent({ message: 'test log 1', level: 'info' }, scope);
 
       // Fast forward part of the idle timeout
       vi.advanceTimersByTime(2500);
 
       // Add another log which should NOT reset the timeout
-      _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, scope);
+      captureLogEvent({ message: 'test log 2', level: 'info' }, scope);
 
       // Fast forward the remaining time to reach the full timeout from the first log
       vi.advanceTimersByTime(2500);
@@ -4326,7 +4326,7 @@ describe('Client', () => {
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       // First batch: Add a log and let it flush
-      _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, scope);
+      captureLogEvent({ message: 'test log 1', level: 'info' }, scope);
 
       // Fast forward to trigger the first flush
       vi.advanceTimersByTime(5000);
@@ -4334,7 +4334,7 @@ describe('Client', () => {
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
 
       // Second batch: Add another log after the first flush completed
-      _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, scope);
+      captureLogEvent({ message: 'test log 2', level: 'info' }, scope);
 
       // Should not have flushed yet
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
@@ -4357,8 +4357,8 @@ describe('Client', () => {
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       // Add some logs
-      _INTERNAL_captureLog({ message: 'test1', level: 'info' }, scope);
-      _INTERNAL_captureLog({ message: 'test2', level: 'info' }, scope);
+      captureLogEvent({ message: 'test1', level: 'info' }, scope);
+      captureLogEvent({ message: 'test2', level: 'info' }, scope);
 
       // Trigger flush event
       client.emit('flush');
@@ -4377,7 +4377,7 @@ describe('Client', () => {
       scope.setClient(client);
 
       // Capture a log which will start the flush timer
-      _INTERNAL_captureLog({ message: 'test log', level: 'info' }, scope);
+      captureLogEvent({ message: 'test log', level: 'info' }, scope);
 
       // Verify safeUnref was called on the timer
       expect(safeUnrefSpy).toHaveBeenCalledTimes(1);
@@ -4397,7 +4397,7 @@ describe('Client', () => {
       client.on('flushLogs', flushLogsHandler);
 
       // Capture a log which starts the weight-based flush timer
-      _INTERNAL_captureLog({ message: 'test log', level: 'info' }, scope);
+      captureLogEvent({ message: 'test log', level: 'info' }, scope);
 
       expect(flushLogsHandler).not.toHaveBeenCalled();
 
@@ -4425,11 +4425,11 @@ describe('Client', () => {
 
       expect(onSpy).not.toHaveBeenCalledWith('afterCaptureMetric', expect.any(Function));
 
-      _INTERNAL_captureMetric({ name: 'metric1', value: 1, type: 'counter', attributes: {} }, { scope });
+      captureMetricEvent({ name: 'metric1', value: 1, type: 'counter', attributes: {} }, { scope });
       expect(onSpy).toHaveBeenCalledWith('afterCaptureMetric', expect.any(Function));
 
       onSpy.mockClear();
-      _INTERNAL_captureMetric({ name: 'metric2', value: 2, type: 'counter', attributes: {} }, { scope });
+      captureMetricEvent({ name: 'metric2', value: 2, type: 'counter', attributes: {} }, { scope });
       expect(onSpy).not.toHaveBeenCalledWith('afterCaptureMetric', expect.any(Function));
 
       onSpy.mockRestore();
@@ -4447,7 +4447,7 @@ describe('Client', () => {
 
       // Create large metrics that will exceed the 800KB threshold
       const largeValue = 'x'.repeat(400_000); // 400KB string
-      _INTERNAL_captureMetric(
+      captureMetricEvent(
         { name: 'large_metric', value: 1, type: 'counter', attributes: { large_value: largeValue } },
         { scope },
       );
@@ -4466,7 +4466,7 @@ describe('Client', () => {
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       // Create metrics that won't exceed the threshold
-      _INTERNAL_captureMetric({ name: 'test_metric', value: 42, type: 'counter', attributes: {} }, { scope });
+      captureMetricEvent({ name: 'test_metric', value: 42, type: 'counter', attributes: {} }, { scope });
 
       expect(sendEnvelopeSpy).not.toHaveBeenCalled();
     });
@@ -4482,8 +4482,8 @@ describe('Client', () => {
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       // Add some metrics
-      _INTERNAL_captureMetric({ name: 'metric1', value: 1, type: 'counter', attributes: {} }, { scope });
-      _INTERNAL_captureMetric({ name: 'metric2', value: 2, type: 'counter', attributes: {} }, { scope });
+      captureMetricEvent({ name: 'metric1', value: 1, type: 'counter', attributes: {} }, { scope });
+      captureMetricEvent({ name: 'metric2', value: 2, type: 'counter', attributes: {} }, { scope });
 
       // Trigger flush event
       client.emit('flush');
@@ -4502,7 +4502,7 @@ describe('Client', () => {
       scope.setClient(client);
 
       // Capture a metric which will start the flush timer
-      _INTERNAL_captureMetric({ name: 'test_metric', value: 42, type: 'counter', attributes: {} }, { scope });
+      captureMetricEvent({ name: 'test_metric', value: 42, type: 'counter', attributes: {} }, { scope });
 
       // Verify safeUnref was called on the timer
       expect(safeUnrefSpy).toHaveBeenCalledTimes(1);
@@ -4522,7 +4522,7 @@ describe('Client', () => {
       client.on('flushMetrics', flushMetricsHandler);
 
       // Capture a metric which starts the weight-based flush timer
-      _INTERNAL_captureMetric({ name: 'test_metric', value: 42, type: 'counter', attributes: {} }, { scope });
+      captureMetricEvent({ name: 'test_metric', value: 42, type: 'counter', attributes: {} }, { scope });
 
       expect(flushMetricsHandler).not.toHaveBeenCalled();
 
@@ -4543,7 +4543,7 @@ describe('Client', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      _INTERNAL_captureMetric({ name: 'test_metric', value: 42, type: 'counter', attributes: {} }, { scope });
+      captureMetricEvent({ name: 'test_metric', value: 42, type: 'counter', attributes: {} }, { scope });
 
       expect(safeUnrefSpy).not.toHaveBeenCalled();
 
@@ -4561,7 +4561,7 @@ describe('Client', () => {
 
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
-      _INTERNAL_captureMetric({ name: 'metric1', value: 1, type: 'counter', attributes: {} }, { scope });
+      captureMetricEvent({ name: 'metric1', value: 1, type: 'counter', attributes: {} }, { scope });
 
       expect(sendEnvelopeSpy).not.toHaveBeenCalled();
 
@@ -4582,7 +4582,7 @@ describe('Client', () => {
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       const largeValue = 'x'.repeat(400_000);
-      _INTERNAL_captureMetric(
+      captureMetricEvent(
         { name: 'large_metric', value: 1, type: 'counter', attributes: { large_value: largeValue } },
         { scope },
       );

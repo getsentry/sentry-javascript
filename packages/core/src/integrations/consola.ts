@@ -1,7 +1,7 @@
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
-import { _INTERNAL_captureLog } from '../logs/internal';
+import { captureLogEvent } from '../logs/internal';
 import { createConsoleTemplateAttributes, formatConsoleArgs, hasConsoleSubstitutions } from '../logs/utils';
 import type { LogSeverityLevel } from '../types/log';
 import { isPlainObject } from '../utils/is';
@@ -279,7 +279,7 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
         Object.assign(attributes, extractionResult.attributes);
       }
 
-      _INTERNAL_captureLog({
+      captureLogEvent({
         level: logSeverityLevel,
         message:
           extractionResult?.message ||

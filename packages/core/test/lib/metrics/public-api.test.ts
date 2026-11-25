@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Scope } from '../../../src';
-import { _INTERNAL_getMetricBuffer } from '../../../src/metrics/internal';
+import { getMetricBuffer } from '../../../src/metrics/internal';
 import { count, distribution, gauge } from '../../../src/metrics/public-api';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
@@ -16,7 +16,7 @@ describe('Metrics Public API', () => {
 
       count('api.requests', undefined, { scope });
 
-      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      const metricBuffer = getMetricBuffer(client);
       expect(metricBuffer).toHaveLength(1);
       expect(metricBuffer?.[0]).toEqual(
         expect.objectContaining({
@@ -35,7 +35,7 @@ describe('Metrics Public API', () => {
 
       count('items.processed', 5, { scope });
 
-      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      const metricBuffer = getMetricBuffer(client);
       expect(metricBuffer).toHaveLength(1);
       expect(metricBuffer?.[0]).toEqual(
         expect.objectContaining({
@@ -61,7 +61,7 @@ describe('Metrics Public API', () => {
         },
       });
 
-      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      const metricBuffer = getMetricBuffer(client);
       expect(metricBuffer).toHaveLength(1);
       expect(metricBuffer?.[0]).toEqual(
         expect.objectContaining({
@@ -101,7 +101,7 @@ describe('Metrics Public API', () => {
         unit: 'byte',
       });
 
-      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      const metricBuffer = getMetricBuffer(client);
       expect(metricBuffer).toHaveLength(1);
       expect(metricBuffer?.[0]).toEqual(
         expect.objectContaining({
@@ -123,7 +123,7 @@ describe('Metrics Public API', () => {
 
       gauge('memory.usage', 1024, { scope });
 
-      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      const metricBuffer = getMetricBuffer(client);
       expect(metricBuffer).toHaveLength(1);
       expect(metricBuffer?.[0]).toEqual(
         expect.objectContaining({
@@ -145,7 +145,7 @@ describe('Metrics Public API', () => {
         unit: 'megabyte',
       });
 
-      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      const metricBuffer = getMetricBuffer(client);
       expect(metricBuffer).toHaveLength(1);
       expect(metricBuffer?.[0]).toEqual(
         expect.objectContaining({
@@ -171,7 +171,7 @@ describe('Metrics Public API', () => {
         },
       });
 
-      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      const metricBuffer = getMetricBuffer(client);
       expect(metricBuffer).toHaveLength(1);
       expect(metricBuffer?.[0]).toEqual(
         expect.objectContaining({
@@ -206,7 +206,7 @@ describe('Metrics Public API', () => {
 
       distribution('task.duration', 500, { scope });
 
-      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      const metricBuffer = getMetricBuffer(client);
       expect(metricBuffer).toHaveLength(1);
       expect(metricBuffer?.[0]).toEqual(
         expect.objectContaining({
@@ -228,7 +228,7 @@ describe('Metrics Public API', () => {
         unit: 'millisecond',
       });
 
-      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      const metricBuffer = getMetricBuffer(client);
       expect(metricBuffer).toHaveLength(1);
       expect(metricBuffer?.[0]).toEqual(
         expect.objectContaining({
@@ -254,7 +254,7 @@ describe('Metrics Public API', () => {
         },
       });
 
-      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      const metricBuffer = getMetricBuffer(client);
       expect(metricBuffer).toHaveLength(1);
       expect(metricBuffer?.[0]).toEqual(
         expect.objectContaining({
@@ -291,7 +291,7 @@ describe('Metrics Public API', () => {
       gauge('memory.usage', 1024, { scope });
       distribution('task.duration', 500, { scope });
 
-      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      const metricBuffer = getMetricBuffer(client);
       expect(metricBuffer).toHaveLength(3);
       expect(metricBuffer?.[0]).toEqual(
         expect.objectContaining({

@@ -1,7 +1,7 @@
 import type { Scope } from '../scope';
 import type { Log, LogSeverityLevel } from '../types/log';
 import type { ParameterizedString } from '../types/parameterize';
-import { _INTERNAL_captureLog } from './internal';
+import { captureLogEvent } from './internal';
 import { fmt } from '../utils/parameterize';
 
 /**
@@ -20,7 +20,7 @@ function captureLog(
   scope?: Scope,
   severityNumber?: Log['severityNumber'],
 ): void {
-  _INTERNAL_captureLog({ level, message, attributes, severityNumber }, scope);
+  captureLogEvent({ level, message, attributes, severityNumber }, scope);
 }
 
 /**

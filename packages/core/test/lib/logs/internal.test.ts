@@ -1,11 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fmt, Scope } from '../../../src';
-import {
-  _INTERNAL_captureLog,
-  _INTERNAL_flushLogsBuffer,
-  _INTERNAL_getLogBuffer,
-  _removeLoneSurrogates,
-} from '../../../src/logs/internal';
+import { captureLogEvent, flushLogsBuffer, getLogBuffer, _removeLoneSurrogates } from '../../../src/logs/internal';
 import type { Log } from '../../../src/types/log';
 import * as loggerModule from '../../../src/utils/debug-logger';
 import * as timeModule from '../../../src/utils/time';
@@ -17,7 +12,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
 // toWellFormed() is only available in Node 20+, Chrome 111+, Safari 15.4+, Firefox 119+, Hermes
 const hasToWellFormed = typeof ''.isWellFormed === 'function';
 
-describe('_INTERNAL_captureLog', () => {
+describe('captureLogEvent', () => {
   beforeEach(() => {
     _INTERNAL_resetSequenceNumber();
   });
@@ -27,9 +22,9 @@ describe('_INTERNAL_captureLog', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    _INTERNAL_captureLog({ level: 'info', message: 'test log message' }, scope);
-    expect(_INTERNAL_getLogBuffer(client)).toHaveLength(1);
-    expect(_INTERNAL_getLogBuffer(client)?.[0]).toEqual(
+    captureLogEvent({ level: 'info', message: 'test log message' }, scope);
+    expect(getLogBuffer(client)).toHaveLength(1);
+    expect(getLogBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
         level: 'info',
         body: 'test log message',
@@ -53,9 +48,9 @@ describe('_INTERNAL_captureLog', () => {
       sampleRand: 1,
     });
 
-    _INTERNAL_captureLog({ level: 'error', message: 'test log with trace' }, scope);
+    captureLogEvent({ level: 'error', message: 'test log with trace' }, scope);
 
-    expect(_INTERNAL_getLogBuffer(client)?.[0]).toEqual(
+    expect(getLogBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
         trace_id: '3d9355f71e9c444b81161599adac6e29',
         severity_number: 17, // error level maps to 17
@@ -73,9 +68,9 @@ describe('_INTERNAL_captureLog', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    _INTERNAL_captureLog({ level: 'info', message: 'test log with metadata' }, scope);
+    captureLogEvent({ level: 'info', message: 'test log with metadata' }, scope);
 
-    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    const logAttributes = getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).toEqual({
       'sentry.release': {
         value: '1.0.0',
@@ -104,9 +99,9 @@ describe('_INTERNAL_captureLog', () => {
       },
     });
 
-    _INTERNAL_captureLog({ level: 'info', message: 'test log with SDK metadata' }, scope);
+    captureLogEvent({ level: 'info', message: 'test log with SDK metadata' }, scope);
 
-    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    const logAttributes = getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).toEqual({
       'sentry.sdk.name': {
         value: 'sentry.javascript.node',
@@ -130,9 +125,9 @@ describe('_INTERNAL_captureLog', () => {
     // Mock getSdkMetadata to return no SDK info
     vi.spyOn(client, 'getSdkMetadata').mockReturnValue({});
 
-    _INTERNAL_captureLog({ level: 'info', message: 'test log without SDK metadata' }, scope);
+    captureLogEvent({ level: 'info', message: 'test log without SDK metadata' }, scope);
 
-    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    const logAttributes = getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ key: 'sentry.sdk.name' }),
@@ -148,7 +143,7 @@ describe('_INTERNAL_captureLog', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      _INTERNAL_captureLog(
+      captureLogEvent(
         {
           level: 'info',
           message: 'test log with custom attributes',
@@ -157,7 +152,7 @@ describe('_INTERNAL_captureLog', () => {
         scope,
       );
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         userId: {
           value: '123',
@@ -185,7 +180,7 @@ describe('_INTERNAL_captureLog', () => {
         scope_5: { value: [true, false, true], unit: 'second' },
       });
 
-      _INTERNAL_captureLog(
+      captureLogEvent(
         {
           level: 'info',
           message: 'test log with custom attributes',
@@ -194,7 +189,7 @@ describe('_INTERNAL_captureLog', () => {
         scope,
       );
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
 
       expect(logAttributes).toStrictEqual({
         userId: {
@@ -240,16 +235,16 @@ describe('_INTERNAL_captureLog', () => {
 
     // Fill the buffer to max size (100 is the MAX_LOG_BUFFER_SIZE constant in client.ts)
     for (let i = 0; i < 100; i++) {
-      _INTERNAL_captureLog({ level: 'info', message: `log message ${i}` }, scope);
+      captureLogEvent({ level: 'info', message: `log message ${i}` }, scope);
     }
 
-    expect(_INTERNAL_getLogBuffer(client)).toHaveLength(100);
+    expect(getLogBuffer(client)).toHaveLength(100);
 
     // Add one more to trigger flush
-    _INTERNAL_captureLog({ level: 'info', message: 'trigger flush' }, scope);
+    captureLogEvent({ level: 'info', message: 'trigger flush' }, scope);
 
     // After flushing the 100 logs, the new log starts a fresh buffer with 1 item
-    const buffer = _INTERNAL_getLogBuffer(client);
+    const buffer = getLogBuffer(client);
     expect(buffer).toHaveLength(1);
     expect(buffer?.[0]?.body).toBe('trigger flush');
   });
@@ -259,7 +254,7 @@ describe('_INTERNAL_captureLog', () => {
     const client = new TestClient(options);
 
     const mockSendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => {});
-    _INTERNAL_flushLogsBuffer(client);
+    flushLogsBuffer(client);
     expect(mockSendEnvelope).not.toHaveBeenCalled();
   });
 
@@ -271,9 +266,9 @@ describe('_INTERNAL_captureLog', () => {
 
     const parameterizedMessage = fmt`Hello ${'John'}, welcome to ${'Sentry'}`;
 
-    _INTERNAL_captureLog({ level: 'info', message: parameterizedMessage }, scope);
+    captureLogEvent({ level: 'info', message: parameterizedMessage }, scope);
 
-    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    const logAttributes = getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).toEqual({
       'sentry.message.template': {
         value: 'Hello %s, welcome to %s',
@@ -297,9 +292,9 @@ describe('_INTERNAL_captureLog', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    _INTERNAL_captureLog({ level: 'debug', message: fmt`User logged in` }, scope);
+    captureLogEvent({ level: 'debug', message: fmt`User logged in` }, scope);
 
-    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    const logAttributes = getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).toEqual({
       'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
     });
@@ -323,7 +318,7 @@ describe('_INTERNAL_captureLog', () => {
     scope.setAttribute('scope_1', 'attribute_value');
     scope.setAttribute('scope_2', { value: 38, unit: 'gigabytes' });
 
-    _INTERNAL_captureLog(
+    captureLogEvent(
       {
         level: 'info',
         message: 'original message',
@@ -341,7 +336,7 @@ describe('_INTERNAL_captureLog', () => {
       },
     });
 
-    const logBuffer = _INTERNAL_getLogBuffer(client);
+    const logBuffer = getLogBuffer(client);
     expect(logBuffer).toBeDefined();
     expect(logBuffer?.[0]).toEqual(
       expect.objectContaining({
@@ -386,7 +381,7 @@ describe('_INTERNAL_captureLog', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    expect(() => _INTERNAL_captureLog({ level: 'info', message: 'test message' }, scope)).not.toThrow();
+    expect(() => captureLogEvent({ level: 'info', message: 'test message' }, scope)).not.toThrow();
 
     expect(beforeSendLog).toHaveBeenCalled();
     expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'log_item', 1);
@@ -394,7 +389,7 @@ describe('_INTERNAL_captureLog', () => {
       'The `beforeSendLog` callback threw an error, dropping the log:',
       exception,
     );
-    expect(_INTERNAL_getLogBuffer(client)).toBeUndefined();
+    expect(getLogBuffer(client)).toBeUndefined();
 
     recordDroppedEventSpy.mockRestore();
   });
@@ -412,7 +407,7 @@ describe('_INTERNAL_captureLog', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    _INTERNAL_captureLog(
+    captureLogEvent(
       {
         level: 'info',
         message: 'test message',
@@ -423,7 +418,7 @@ describe('_INTERNAL_captureLog', () => {
     expect(beforeSendLog).toHaveBeenCalled();
     expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'log_item', 1);
     expect(loggerWarnSpy).toHaveBeenCalledWith('beforeSendLog returned null, log will not be captured.');
-    expect(_INTERNAL_getLogBuffer(client)).toBeUndefined();
+    expect(getLogBuffer(client)).toBeUndefined();
 
     recordDroppedEventSpy.mockRestore();
     loggerWarnSpy.mockRestore();
@@ -442,7 +437,7 @@ describe('_INTERNAL_captureLog', () => {
       attributes: {},
     };
 
-    _INTERNAL_captureLog(log, scope);
+    captureLogEvent(log, scope);
 
     expect(beforeCaptureLogSpy).toHaveBeenCalledWith('beforeCaptureLog', log);
     expect(beforeCaptureLogSpy).toHaveBeenCalledWith('afterCaptureLog', log);
@@ -467,12 +462,12 @@ describe('_INTERNAL_captureLog', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with sampled replay' }, scope);
+      captureLogEvent({ level: 'info', message: 'test log with sampled replay' }, scope);
 
       // Verify getReplayId was called with onlyIfSampled=true
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'sentry.replay_id': {
           value: 'sampled-replay-id',
@@ -498,12 +493,12 @@ describe('_INTERNAL_captureLog', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with unsampled replay' }, scope);
+      captureLogEvent({ level: 'info', message: 'test log with unsampled replay' }, scope);
 
       // Verify getReplayId was called with onlyIfSampled=true
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
@@ -526,11 +521,11 @@ describe('_INTERNAL_captureLog', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with buffer replay' }, scope);
+      captureLogEvent({ level: 'info', message: 'test log with buffer replay' }, scope);
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'sentry.replay_id': {
           value: 'buffer-replay-id',
@@ -553,9 +548,9 @@ describe('_INTERNAL_captureLog', () => {
       // Mock no replay integration found
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(undefined);
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log without replay' }, scope);
+      captureLogEvent({ level: 'info', message: 'test log without replay' }, scope);
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
@@ -579,7 +574,7 @@ describe('_INTERNAL_captureLog', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureLog(
+      captureLogEvent(
         {
           level: 'info',
           message: 'test log with replay and other attributes',
@@ -588,7 +583,7 @@ describe('_INTERNAL_captureLog', () => {
         scope,
       );
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         component: {
           value: 'auth',
@@ -624,7 +619,7 @@ describe('_INTERNAL_captureLog', () => {
 
       testCases.forEach(returnValue => {
         // Clear buffer for each test
-        _INTERNAL_getLogBuffer(client)?.splice(0);
+        getLogBuffer(client)?.splice(0);
 
         const mockReplayIntegration = {
           getReplayId: vi.fn(() => returnValue),
@@ -632,9 +627,9 @@ describe('_INTERNAL_captureLog', () => {
 
         vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-        _INTERNAL_captureLog({ level: 'info', message: `test log with replay returning ${returnValue}` }, scope);
+        captureLogEvent({ level: 'info', message: `test log with replay returning ${returnValue}` }, scope);
 
-        const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+        const logAttributes = getLogBuffer(client)?.[0]?.attributes;
         expect(logAttributes).toEqual({
           'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
         });
@@ -656,12 +651,12 @@ describe('_INTERNAL_captureLog', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with buffered replay' }, scope);
+      captureLogEvent({ level: 'info', message: 'test log with buffered replay' }, scope);
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
       expect(mockReplayIntegration.getRecordingMode).toHaveBeenCalled();
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'sentry.replay_id': {
           value: 'buffer-replay-id',
@@ -689,12 +684,12 @@ describe('_INTERNAL_captureLog', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with session replay' }, scope);
+      captureLogEvent({ level: 'info', message: 'test log with session replay' }, scope);
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
       expect(mockReplayIntegration.getRecordingMode).toHaveBeenCalled();
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'sentry.replay_id': {
           value: 'session-replay-id',
@@ -719,12 +714,12 @@ describe('_INTERNAL_captureLog', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with stopped replay' }, scope);
+      captureLogEvent({ level: 'info', message: 'test log with stopped replay' }, scope);
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
       expect(mockReplayIntegration.getRecordingMode).toHaveBeenCalled();
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'sentry.replay_id': {
           value: 'stopped-replay-id',
@@ -749,13 +744,13 @@ describe('_INTERNAL_captureLog', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with buffer mode but no replay ID' }, scope);
+      captureLogEvent({ level: 'info', message: 'test log with buffer mode but no replay ID' }, scope);
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
       // getRecordingMode should not be called if there's no replay ID
       expect(mockReplayIntegration.getRecordingMode).not.toHaveBeenCalled();
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
@@ -772,9 +767,9 @@ describe('_INTERNAL_captureLog', () => {
       // Mock no replay integration found
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(undefined);
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log without replay integration' }, scope);
+      captureLogEvent({ level: 'info', message: 'test log without replay integration' }, scope);
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
@@ -800,7 +795,7 @@ describe('_INTERNAL_captureLog', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureLog(
+      captureLogEvent(
         {
           level: 'info',
           message: 'test log with buffer replay and other attributes',
@@ -809,7 +804,7 @@ describe('_INTERNAL_captureLog', () => {
         scope,
       );
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         component: {
           value: 'auth',
@@ -854,9 +849,9 @@ describe('_INTERNAL_captureLog', () => {
         username: 'testuser',
       });
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with user' }, scope);
+      captureLogEvent({ level: 'info', message: 'test log with user' }, scope);
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'user.id': {
           value: '123',
@@ -886,9 +881,9 @@ describe('_INTERNAL_captureLog', () => {
         // email and username are missing
       });
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with partial user' }, scope);
+      captureLogEvent({ level: 'info', message: 'test log with partial user' }, scope);
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'user.id': {
           value: '123',
@@ -911,9 +906,9 @@ describe('_INTERNAL_captureLog', () => {
         // id is missing
       });
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with email and username' }, scope);
+      captureLogEvent({ level: 'info', message: 'test log with email and username' }, scope);
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'user.email': {
           value: 'user@example.com',
@@ -936,9 +931,9 @@ describe('_INTERNAL_captureLog', () => {
       scope.setClient(client);
       scope.setUser({});
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with empty user' }, scope);
+      captureLogEvent({ level: 'info', message: 'test log with empty user' }, scope);
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' },
       });
@@ -958,7 +953,7 @@ describe('_INTERNAL_captureLog', () => {
         email: 'user@example.com',
       });
 
-      _INTERNAL_captureLog(
+      captureLogEvent(
         {
           level: 'info',
           message: 'test log with user and other attributes',
@@ -967,7 +962,7 @@ describe('_INTERNAL_captureLog', () => {
         scope,
       );
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         component: {
           value: 'auth',
@@ -1010,9 +1005,9 @@ describe('_INTERNAL_captureLog', () => {
         username: undefined, // undefined value
       });
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with non-string user values' }, scope);
+      captureLogEvent({ level: 'info', message: 'test log with non-string user values' }, scope);
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'user.id': {
           value: 123,
@@ -1038,7 +1033,7 @@ describe('_INTERNAL_captureLog', () => {
         email: 'user@example.com',
       });
 
-      _INTERNAL_captureLog(
+      captureLogEvent(
         {
           level: 'info',
           message: 'test log with existing user attributes',
@@ -1050,7 +1045,7 @@ describe('_INTERNAL_captureLog', () => {
         scope,
       );
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'user.custom': {
           value: 'custom-value',
@@ -1081,7 +1076,7 @@ describe('_INTERNAL_captureLog', () => {
         username: 'scope-user',
       });
 
-      _INTERNAL_captureLog(
+      captureLogEvent(
         {
           level: 'info',
           message: 'test log with partial existing user attributes',
@@ -1093,7 +1088,7 @@ describe('_INTERNAL_captureLog', () => {
         scope,
       );
 
-      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      const logAttributes = getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
         'other.attr': {
           value: 'value',
@@ -1134,7 +1129,7 @@ describe('_INTERNAL_captureLog', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    _INTERNAL_captureLog(
+    captureLogEvent(
       {
         level: 'info',
         message: 'test log with user-provided system attributes',
@@ -1149,7 +1144,7 @@ describe('_INTERNAL_captureLog', () => {
       scope,
     );
 
-    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    const logAttributes = getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).toEqual({
       'user.custom': {
         value: 'preserved-value',
@@ -1184,11 +1179,11 @@ describe('_INTERNAL_captureLog', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      _INTERNAL_captureLog({ level: 'info', message: 'first' }, scope);
-      _INTERNAL_captureLog({ level: 'info', message: 'second' }, scope);
-      _INTERNAL_captureLog({ level: 'info', message: 'third' }, scope);
+      captureLogEvent({ level: 'info', message: 'first' }, scope);
+      captureLogEvent({ level: 'info', message: 'second' }, scope);
+      captureLogEvent({ level: 'info', message: 'third' }, scope);
 
-      const buffer = _INTERNAL_getLogBuffer(client);
+      const buffer = getLogBuffer(client);
       expect(buffer?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
       expect(buffer?.[1]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 1, type: 'integer' });
       expect(buffer?.[2]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 2, type: 'integer' });
@@ -1211,11 +1206,11 @@ describe('_INTERNAL_captureLog', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      _INTERNAL_captureLog({ level: 'info', message: 'keep first' }, scope);
-      _INTERNAL_captureLog({ level: 'info', message: 'drop me' }, scope);
-      _INTERNAL_captureLog({ level: 'info', message: 'keep second' }, scope);
+      captureLogEvent({ level: 'info', message: 'keep first' }, scope);
+      captureLogEvent({ level: 'info', message: 'drop me' }, scope);
+      captureLogEvent({ level: 'info', message: 'keep second' }, scope);
 
-      const buffer = _INTERNAL_getLogBuffer(client);
+      const buffer = getLogBuffer(client);
       expect(buffer).toHaveLength(2);
       expect(buffer?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
       expect(buffer?.[1]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 1, type: 'integer' });
@@ -1233,10 +1228,10 @@ describe('_INTERNAL_captureLog', () => {
 
       const count = 50;
       for (let i = 0; i < count; i++) {
-        _INTERNAL_captureLog({ level: 'info', message: `log ${i}` }, scope);
+        captureLogEvent({ level: 'info', message: `log ${i}` }, scope);
       }
 
-      const buffer = _INTERNAL_getLogBuffer(client)!;
+      const buffer = getLogBuffer(client)!;
       expect(buffer).toHaveLength(count);
 
       for (let i = 1; i < count; i++) {
@@ -1254,7 +1249,7 @@ describe('_INTERNAL_captureLog', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      _INTERNAL_captureLog({ level: 'info', message: 'first' }, scope);
+      captureLogEvent({ level: 'info', message: 'first' }, scope);
 
       _INTERNAL_resetSequenceNumber();
 
@@ -1262,9 +1257,9 @@ describe('_INTERNAL_captureLog', () => {
       const scope2 = new Scope();
       scope2.setClient(client2);
 
-      _INTERNAL_captureLog({ level: 'info', message: 'after reset' }, scope2);
+      captureLogEvent({ level: 'info', message: 'after reset' }, scope2);
 
-      const buffer2 = _INTERNAL_getLogBuffer(client2);
+      const buffer2 = getLogBuffer(client2);
       expect(buffer2?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
     });
   });
@@ -1276,9 +1271,9 @@ describe('_INTERNAL_captureLog', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      _INTERNAL_captureLog({ level: 'error', message: 'bad surrogate \uD800 here' }, scope);
+      captureLogEvent({ level: 'error', message: 'bad surrogate \uD800 here' }, scope);
 
-      const logBuffer = _INTERNAL_getLogBuffer(client);
+      const logBuffer = getLogBuffer(client);
       expect(logBuffer?.[0]?.body).toBe('bad surrogate \uFFFD here');
     });
 
@@ -1289,9 +1284,9 @@ describe('_INTERNAL_captureLog', () => {
       scope.setClient(client);
 
       const badValue = 'bad\uD800value';
-      _INTERNAL_captureLog({ level: 'error', message: fmt`parameterized ${badValue} message` }, scope);
+      captureLogEvent({ level: 'error', message: fmt`parameterized ${badValue} message` }, scope);
 
-      const logBuffer = _INTERNAL_getLogBuffer(client);
+      const logBuffer = getLogBuffer(client);
       expect(logBuffer?.[0]?.body).toBe('parameterized bad\uFFFDvalue message');
     });
 
@@ -1301,7 +1296,7 @@ describe('_INTERNAL_captureLog', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      _INTERNAL_captureLog(
+      captureLogEvent(
         {
           level: 'error',
           message: 'test',
@@ -1310,7 +1305,7 @@ describe('_INTERNAL_captureLog', () => {
         scope,
       );
 
-      const logBuffer = _INTERNAL_getLogBuffer(client);
+      const logBuffer = getLogBuffer(client);
       expect(logBuffer?.[0]?.attributes?.['bad']).toEqual({
         value: '{"a":"\uFFFD"}',
         type: 'string',
@@ -1323,7 +1318,7 @@ describe('_INTERNAL_captureLog', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      _INTERNAL_captureLog(
+      captureLogEvent(
         {
           level: 'error',
           message: 'test',
@@ -1332,7 +1327,7 @@ describe('_INTERNAL_captureLog', () => {
         scope,
       );
 
-      const logBuffer = _INTERNAL_getLogBuffer(client);
+      const logBuffer = getLogBuffer(client);
       expect(logBuffer?.[0]?.attributes?.['bad\uFFFDkey']).toEqual({
         value: 'value',
         type: 'string',
@@ -1345,7 +1340,7 @@ describe('_INTERNAL_captureLog', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      _INTERNAL_captureLog(
+      captureLogEvent(
         {
           level: 'info',
           message: 'hello 😀 world',
@@ -1354,7 +1349,7 @@ describe('_INTERNAL_captureLog', () => {
         scope,
       );
 
-      const logBuffer = _INTERNAL_getLogBuffer(client);
+      const logBuffer = getLogBuffer(client);
       expect(logBuffer?.[0]?.body).toBe('hello 😀 world');
       expect(logBuffer?.[0]?.attributes?.['emoji']).toEqual({
         value: '🎉 party',

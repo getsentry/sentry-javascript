@@ -1,7 +1,7 @@
 import { SENTRY_MESSAGE_TEMPLATE } from '@sentry/conventions/attributes';
 import { format } from 'node:util';
 import type { Log, LogSeverityLevel, ParameterizedString, Scope } from '@sentry/core';
-import { _INTERNAL_captureLog } from '@sentry/core';
+import { captureLogEvent } from '@sentry/core';
 
 /**
  * Additional metadata to capture the log with.
@@ -42,9 +42,9 @@ export function captureLog(level: LogSeverityLevel, ...args: CaptureLogArgs): vo
       attributes[`sentry.message.parameter.${index}`] = param;
     });
     const message = format(messageOrMessageTemplate, ...paramsOrAttributes);
-    _INTERNAL_captureLog({ level, message, attributes }, maybeMetadata?.scope);
+    captureLogEvent({ level, message, attributes }, maybeMetadata?.scope);
   } else {
-    _INTERNAL_captureLog(
+    captureLogEvent(
       { level, message: messageOrMessageTemplate, attributes: paramsOrAttributes },
       // type-casting here because from the type definitions we know that `maybeAttributesOrMetadata` is a metadata object (or undefined)
       (maybeAttributesOrMetadata as CaptureLogMetadata | undefined)?.scope ?? maybeMetadata?.scope,
