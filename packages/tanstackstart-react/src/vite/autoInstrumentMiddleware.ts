@@ -43,7 +43,8 @@ const findGlobalSites: SiteFinder = (ast, onSite) => {
     if (!isCallToMethod(node, 'createStart')) return;
     walk((node as CallExpressionNode).arguments, inner => {
       const key = propertyKey(inner);
-      if (key && GLOBAL_MIDDLEWARE_KEYS.includes(key)) onSite(key, (inner as PropertyNode).value!);
+      const value = (inner as PropertyNode).value;
+      if (key && value && GLOBAL_MIDDLEWARE_KEYS.includes(key)) onSite(key, value);
     });
   });
 };
@@ -51,7 +52,8 @@ const findGlobalSites: SiteFinder = (ast, onSite) => {
 /** `middleware` properties, as route and handler options declare them. */
 const findRouteSites: SiteFinder = (ast, onSite) => {
   walk(ast, node => {
-    if (propertyKey(node) === 'middleware') onSite('middleware', (node as PropertyNode).value!);
+    const value = (node as PropertyNode).value;
+    if (value && propertyKey(node) === 'middleware') onSite('middleware', value);
   });
 };
 
@@ -59,12 +61,14 @@ const findRouteSites: SiteFinder = (ast, onSite) => {
 const findServerFnSites: SiteFinder = (ast, onSite) => {
   walk(ast, node => {
     const call = node as CallExpressionNode;
+    const argument = call.arguments?.[0];
     if (
+      argument &&
       call.callee?.type === 'MemberExpression' &&
       isCallToMethod(node, 'middleware') &&
       call.arguments?.length === 1
     ) {
-      onSite('.middleware(', call.arguments[0]!);
+      onSite('.middleware(', argument);
     }
   });
 };
