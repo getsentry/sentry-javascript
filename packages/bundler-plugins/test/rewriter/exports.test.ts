@@ -72,6 +72,13 @@ describe('collectors', () => {
     expect(statements.get('plain')).toBe(ast.body[4]);
   });
 
+  it('maps destructured bindings to their declaring statement', () => {
+    const destructured = parseModule('const { a, b: [c, ...d] } = shared;', 'module.js');
+    const statements = collectDeclaringStatements(destructured);
+    expect([...statements.keys()]).toEqual(['a', 'c', 'd']);
+    expect(statements.get('c')).toBe(destructured.body[0]);
+  });
+
   it('collects bindings assigned a call to a wrapper', () => {
     expect(collectManuallyWrappedLocals(ast, ['wrap'])).toEqual(new Set(['handWrapped', 'alsoHandWrapped']));
     expect(collectManuallyWrappedLocals(ast, ['other'])).toEqual(new Set());

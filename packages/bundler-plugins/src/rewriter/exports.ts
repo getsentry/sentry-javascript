@@ -55,14 +55,11 @@ export function collectDeclaringStatements(ast: ProgramBody): Map<string, BaseNo
   for (const node of ast.body) {
     const declaration = declarationOf(node);
     if (!declaration) continue;
-    const ids =
-      declaration.type === 'VariableDeclaration'
-        ? ((declaration as VariableDeclarationNode).declarations ?? []).map(declarator => declarator.id)
-        : declaration.type === 'ImportDeclaration'
-          ? ((declaration as ImportDeclarationNode).specifiers ?? []).map(specifier => specifier.local)
-          : [(declaration as ClassDeclarationNode).id];
-    for (const id of ids) {
-      const name = id?.type === 'Identifier' ? (id as { name?: string }).name : undefined;
+    const names =
+      declaration.type === 'ImportDeclaration'
+        ? ((declaration as ImportDeclarationNode).specifiers ?? []).map(specifier => specifier.local?.name)
+        : (declaredNames(declaration) ?? []);
+    for (const name of names) {
       if (name) statements.set(name, node);
     }
   }
