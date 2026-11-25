@@ -185,15 +185,19 @@ is the reference setup.
   it. Nitro turns every file under `server/api` into a route, so
   `nuxt.config.ts` lists the runtime-specific files there (such as `db-mongoose.cloudflare.ts`) in Nitro's `ignore`.
   `nuxt-5` (Nitro 3) has the same setup, with the `cloudflare_module` preset on Cloudflare.
+  Astro is different: the `@sentry/astro` integration bundles `sentry.server.config.js` into the server build, but
+  `@sentry/astro` itself stays external, so `astro-6` on Bun and Deno loads its `bun` or `deno` entry at run time,
+  which adds the integrations of `@sentry/bun` or `@sentry/deno`. Its Cloudflare build deletes
+  `sentry.server.config.js`, like `nuxt-4`.
 - **Start commands**: `playwright.config.mjs` selects the start command with `getRuntime()`. Bun and Deno use the same build
   as Node and only change the start command, for example
   `bun --bun --preload ./instrument.bun.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js` and
   `deno run -A --preload=@sentry/deno/import --preload=./instrument.deno.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js`.
   The app's `deno.json` maps `@sentry/deno/import` to `node_modules`, because the e2e dependencies are `file:` tarballs
   that `npm:@sentry/deno/import` does not resolve. `nuxt-4` starts the Nitro output with no preload:
-  `bun .output/server/index.mjs` and `deno run -A .output/server/index.mjs`. `express-5` builds CommonJS for Node, so
-  Deno runs its TypeScript sources (`src/main.ts`), and `deno.json` turns on `sloppy-imports` for the relative imports
-  without a file extension.
+  `bun .output/server/index.mjs` and `deno run -A .output/server/index.mjs`, and `astro-6` starts the `@astrojs/node`
+  output the same way. `express-5` builds CommonJS for Node, so Deno runs its TypeScript sources (`src/main.ts`), and
+  `deno.json` turns on `sloppy-imports` for the relative imports without a file extension.
 - **Cloudflare**: the app has the Cloudflare dependencies installed all the time. The Cloudflare build has its own
   `vite.cloudflare.config.ts` with `@cloudflare/vite-plugin` and `sentryCloudflareVitePlugin` from
   `@sentry/cloudflare/vite`, which the runner uses in place of `vite.config.ts` (see runtime-specific files). List the
@@ -205,7 +209,10 @@ is the reference setup.
   because workerd does not allow it. A socket also works only in the request that opened it, so `express-5` opens its
   MySQL connection in the request. In an app without `"type": "module"`, name the config `vite.config.mts`. `nextjs-16`
   has no Vite build: its Cloudflare variant builds with `opennextjs-cloudflare build --config wrangler.opennext.jsonc`
-  and wraps the generated Worker in `worker.ts` with `withSentry` from `@sentry/nextjs/cloudflare`.
+  and wraps the generated Worker in `worker.ts` with `withSentry` from `@sentry/nextjs/cloudflare`. `astro-6` replaces
+  `astro.config.mjs` with `astro.config.cloudflare.mjs`, which uses the `@astrojs/cloudflare` adapter (it builds with
+  `@cloudflare/vite-plugin`) and adds `sentryCloudflareVitePlugin` to `vite.plugins`. The Worker entry is the one of
+  the adapter, so `instrument.server.ts` sits next to `wrangler.jsonc`.
 - **Cloudflare in `vite dev`**: to run the Worker in `vite dev` (for example the dev tests of the `hono-4` Cloudflare
   variant), start it with `CLOUDFLARE_INCLUDE_PROCESS_ENV=true vite dev`. The runner gives `E2E_TEST_DSN` to the app
   only as a process env var. `wrangler dev` adds it to the Worker `env` with `--var "E2E_TEST_DSN:$E2E_TEST_DSN"`, but

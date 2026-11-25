@@ -1,13 +1,17 @@
 import { expect, test } from '@playwright/test';
 import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import { APP_NAME, RUNTIME } from './constants';
+
+// `@sentry/cloudflare` handles the request on Workers, so the events have no Node contexts, server name or cookies.
+const isCloudflare = RUNTIME === 'cloudflare';
 
 test.describe('server-side errors', () => {
   test('captures SSR error', async ({ page }) => {
-    const errorEventPromise = waitForError('astro-6', errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === "Cannot read properties of undefined (reading 'x')";
+    const errorEventPromise = waitForError(APP_NAME, errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.type === 'TypeError' && errorEvent.transaction === 'GET /ssr-error';
     });
 
-    const spanPromise = waitForStreamedSpan('astro-6', span => {
+    const spanPromise = waitForStreamedSpan(APP_NAME, span => {
       return getSpanOp(span) === 'http.server' && span.is_segment && span.name === 'GET /ssr-error';
     });
 
@@ -28,12 +32,10 @@ test.describe('server-side errors', () => {
 
     expect(errorEvent).toMatchObject({
       contexts: {
-        app: expect.any(Object),
+        ...(isCloudflare ? {} : { app: expect.any(Object), device: expect.any(Object), os: expect.any(Object) }),
         cloud_resource: expect.any(Object),
         culture: expect.any(Object),
-        device: expect.any(Object),
-        os: expect.any(Object),
-        runtime: expect.any(Object),
+        runtime: expect.objectContaining({ name: RUNTIME }),
         trace: {
           span_id: spanId,
           trace_id: traceId,
@@ -50,13 +52,17 @@ test.describe('server-side errors', () => {
             },
             stacktrace: expect.any(Object),
             type: 'TypeError',
-            value: "Cannot read properties of undefined (reading 'x')",
+            // JavaScriptCore words the error differently than V8.
+            value:
+              RUNTIME === 'bun'
+                ? expect.stringContaining('undefined is not an object')
+                : "Cannot read properties of undefined (reading 'x')",
           },
         ],
       },
-      platform: 'node',
+      platform: isCloudflare ? 'javascript' : 'node',
       request: {
-        cookies: {},
+        ...(isCloudflare ? {} : { cookies: {} }),
         headers: expect.objectContaining({
           // demonstrates that requestData integration is getting data
           host: 'localhost:3030',
@@ -78,13 +84,13 @@ test.describe('server-side errors', () => {
   });
 
   test('captures endpoint error', async ({ page }) => {
-    const errorEventPromise = waitForError('astro-6', errorEvent => {
+    const errorEventPromise = waitForError(APP_NAME, errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Endpoint Error';
     });
-    const apiSpanPromise = waitForStreamedSpan('astro-6', span => {
+    const apiSpanPromise = waitForStreamedSpan(APP_NAME, span => {
       return getSpanOp(span) === 'http.server' && span.name === 'GET /endpoint-error/api';
     });
-    const endpointSpanPromise = waitForStreamedSpan('astro-6', span => {
+    const endpointSpanPromise = waitForStreamedSpan(APP_NAME, span => {
       return getSpanOp(span) === 'http.server' && span.is_segment && span.name === 'GET /endpoint-error';
     });
 
@@ -129,9 +135,9 @@ test.describe('server-side errors', () => {
           },
         ],
       },
-      platform: 'node',
+      platform: isCloudflare ? 'javascript' : 'node',
       request: {
-        cookies: {},
+        ...(isCloudflare ? {} : { cookies: {} }),
         headers: expect.objectContaining({
           accept: expect.any(String),
         }),

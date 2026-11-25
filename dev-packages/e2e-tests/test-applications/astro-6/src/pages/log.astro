@@ -1,0 +1,10 @@
+---
+import * as Sentry from '@sentry/astro';
+import Layout from '../layouts/Layout.astro';
+
+Sentry.logger.info('astro-6 server log', { 'e2e.attr': 'value' });
+---
+
+<Layout title="Log">
+  <h1>Log sent</h1>
+</Layout>
