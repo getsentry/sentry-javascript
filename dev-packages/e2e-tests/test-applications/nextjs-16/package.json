@@ -138,6 +138,12 @@
         "build-command": "pnpm test:build-latest:cloudflare",
         "assert-command": "pnpm test:prod",
         "label": "nextjs-16 (cloudflare, latest)"
+      },
+      {
+        "runtime": "bun",
+        "build-command": "pnpm test:build:vinext",
+        "assert-command": "pnpm test:assert:vinext",
+        "label": "nextjs-16 (vinext, bun)"
       }
     ],
     "optionalVariants": [
@@ -145,12 +151,6 @@
         "build-command": "pnpm test:build:vinext",
         "assert-command": "pnpm test:assert:vinext",
         "label": "nextjs-16 (vinext)"
-      },
-      {
-        "runtime": "bun",
-        "build-command": "pnpm test:build:vinext",
-        "assert-command": "pnpm test:assert:vinext",
-        "label": "nextjs-16 (vinext, bun)"
       }
     ],
     "canaryVariants": [

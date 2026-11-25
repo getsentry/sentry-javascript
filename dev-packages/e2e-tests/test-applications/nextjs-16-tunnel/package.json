@@ -66,9 +66,7 @@
         "build-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=managed pnpm test:build-middleware-webpack",
         "label": "nextjs-16-tunnel (managed, webpack, edge middleware)",
         "assert-command": "NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE=managed pnpm test:assert-webpack"
-      }
-    ],
-    "optionalVariants": [
+      },
       {
         "runtime": "cloudflare",
         "build-command": "pnpm test:build:cloudflare",
