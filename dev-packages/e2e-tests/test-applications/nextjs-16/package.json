@@ -162,7 +162,8 @@
       {
         "build-command": "pnpm test:build-canary-webpack",
         "label": "nextjs-16 (canary, webpack)",
-        "assert-command": "pnpm test:assert-webpack"
+        "assert-command": "pnpm test:assert-webpack",
+        "test-shards": 3
       }
     ],
     "baseVariant": {

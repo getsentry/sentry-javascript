@@ -45,9 +45,7 @@ const config = getPlaywrightConfig({
 
 export default {
   ...config,
-  // The webpack dev server does a full reload of the pages that are open in the other workers when it compiles a
-  // route. That reload drops the telemetry that those pages did not send yet.
-  workers: process.env.CI && testEnv !== 'development-webpack' ? 4 : config.workers,
+  workers: process.env.CI ? 4 : config.workers,
   globalSetup: './global-setup.mjs',
   globalTeardown: './global-teardown.mjs',
 };
