@@ -286,7 +286,7 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
         agentCandidates.size > 0
           ? await detectAgentClasses(ast, normalizedId, agentCandidates, {
               parse: code => this.parse(code),
-              resolve: this.resolve ? (source, importer) => this.resolve!(source, importer) : undefined,
+              resolve: this.resolve?.bind(this),
             })
           : undefined;
 

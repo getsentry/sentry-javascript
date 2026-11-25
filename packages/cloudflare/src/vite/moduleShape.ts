@@ -212,6 +212,7 @@ export function shapeFromSource(rawCode: string): ModuleShape {
   // `class X extends Y {` / `class X<T> extends Y<T> {`, optionally exported and/or abstract.
   const CLASS_RE = /\b(?:export\s+(?:default\s+)?)?(?:abstract\s+)?class\s+([A-Za-z_$][\w$]*)([^{]*)\{/g;
   for (const match of code.matchAll(CLASS_RE)) {
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- mandatory capture group
     const className = match[1]!;
     const isDefault = /\bexport\s+default\b/.test(match[0]);
     const superRef = superRefFromHeader(match[2] ?? '');
@@ -249,6 +250,7 @@ export function shapeFromSource(rawCode: string): ModuleShape {
 
   // `import Default, { a as b }, * as ns from '...'` in its various shapes.
   for (const match of code.matchAll(/\bimport\s+([^'";]+?)\s+from\s*['"]([^'"]+)['"]/g)) {
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- mandatory capture group
     addSourceImports(shape, match[1] ?? '', match[2]!);
   }
 
@@ -265,6 +267,7 @@ function superRefFromHeader(header: string): SuperRef | undefined {
   const match = /\bextends\s+([A-Za-z_$][\w$]*)\s*(?:\.\s*([A-Za-z_$][\w$]*))?/.exec(withoutParams);
   if (!match) return undefined;
 
+  // oxlint-disable-next-line typescript/no-non-null-assertion -- mandatory capture group
   return match[2] ? { kind: 'member', object: match[1]!, property: match[2] } : { kind: 'identifier', name: match[1]! };
 }
 
@@ -302,6 +305,7 @@ function parseSpecifierList(clause: string): Array<{ imported: string; local: st
 
     const aliased = /^([A-Za-z_$][\w$]*)\s+as\s+([A-Za-z_$][\w$]*)$/.exec(part);
     if (aliased) {
+      // oxlint-disable-next-line typescript/no-non-null-assertion -- mandatory capture groups
       specifiers.push({ imported: aliased[1]!, local: aliased[2]! });
     } else if (/^[A-Za-z_$][\w$]*$/.test(part)) {
       specifiers.push({ imported: part, local: part });
@@ -317,6 +321,7 @@ function addSourceImports(shape: ModuleShape, clause: string, source: string): v
 
   const namespaceMatch = /\*\s*as\s+([A-Za-z_$][\w$]*)/.exec(clause);
   if (namespaceMatch) {
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- mandatory capture group
     shape.namespaces.set(namespaceMatch[1]!, source);
   }
 
@@ -330,6 +335,7 @@ function addSourceImports(shape: ModuleShape, clause: string, source: string): v
   // A leading bare identifier (before any brace/star) is the default import.
   const defaultMatch = /^\s*([A-Za-z_$][\w$]*)\s*(?:,|$)/.exec(clause);
   if (defaultMatch) {
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- mandatory capture group
     shape.imports.set(defaultMatch[1]!, { source, imported: DEFAULT_EXPORT });
   }
 }
@@ -340,7 +346,7 @@ function stripComments(code: string): string {
   let index = 0;
 
   while (index < code.length) {
-    const char = code[index]!;
+    const char = code.charAt(index);
     const next = code[index + 1];
 
     if (char === '/' && next === '/') {
@@ -362,12 +368,12 @@ function stripComments(code: string): string {
       result += char;
       index++;
       while (index < code.length) {
-        const inner = code[index]!;
+        const inner = code.charAt(index);
         result += inner;
         index++;
         if (inner === '\\') {
           if (index < code.length) {
-            result += code[index]!;
+            result += code.charAt(index);
             index++;
           }
           continue;

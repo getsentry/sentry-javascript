@@ -203,6 +203,7 @@ function wrapReader(
  */
 function instrumentedSource(readable: ReadableStreamLike): ReadableStream<unknown> {
   // The patched `getReader`, so reads are accumulated and the span is ended by the shared logic.
+  // oxlint-disable-next-line typescript/no-non-null-assertion -- only called when `getReader` is a function
   const reader = readable.getReader!();
 
   return new ReadableStream({

@@ -250,8 +250,8 @@ function wrapExtMethods<T extends PatchableExtMethod | PatchableExtMethod[]>(
   pluginName?: string,
 ): T {
   if (Array.isArray(method)) {
-    for (let i = 0; i < method.length; i++) {
-      method[i] = wrapExtMethods(method[i]!, extPoint);
+    for (const [i, m] of method.entries()) {
+      method[i] = wrapExtMethods(m, extPoint);
     }
     return method;
   } else if (isPatchableExtMethod(method)) {
@@ -280,8 +280,8 @@ function wrapExtMethods<T extends PatchableExtMethod | PatchableExtMethod[]>(
 export function wrapRouteArguments(args: unknown[], pluginName?: string): void {
   const route = args[0] as PatchableServerRoute | PatchableServerRoute[];
   if (Array.isArray(route)) {
-    for (let i = 0; i < route.length; i++) {
-      route[i] = wrapRouteHandler(route[i]!, pluginName);
+    for (const [i, r] of route.entries()) {
+      route[i] = wrapRouteHandler(r, pluginName);
     }
   } else {
     args[0] = wrapRouteHandler(route, pluginName);
@@ -297,8 +297,7 @@ export function wrapRouteArguments(args: unknown[], pluginName?: string): void {
 export function wrapExtArguments(args: unknown[], pluginName?: string): void {
   if (Array.isArray(args[0])) {
     const eventsList = args[0] as ServerExtEventsObject[] | ServerExtEventsRequestObject[];
-    for (let i = 0; i < eventsList.length; i++) {
-      const eventObj = eventsList[i]!;
+    for (const [i, eventObj] of eventsList.entries()) {
       if (isLifecycleExtType(eventObj.type)) {
         const lifecycleEventObj = eventObj as ServerExtEventsRequestObject;
         const handler = wrapExtMethods(lifecycleEventObj.method, eventObj.type, pluginName);

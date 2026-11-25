@@ -125,9 +125,9 @@ function redactGraphqlDocument(document: GraphqlDocumentNode | undefined): strin
     }
 
     let out = body;
-    // Reverse index loop (not `for...of`) so we splice back-to-front; `i` is bounded by the loop, so
-    // `ranges[i]` is always present and the `!` just satisfies `noUncheckedIndexedAccess`.
+    // Reverse index loop (not `for...of`) so we splice back-to-front.
     for (let i = ranges.length - 1; i >= 0; i--) {
+      // oxlint-disable-next-line typescript/no-non-null-assertion -- `i` is bounded by the loop
       const { start, end, kind } = ranges[i]!;
       const replacement = kind === 'String' || kind === 'BlockString' ? '"*"' : '*';
       out = out.slice(0, start) + replacement + out.slice(end);

@@ -47,7 +47,7 @@ export function parseCookieHeader(value: string | string[], headerName: 'cookie'
       return [];
     }
     return headerName === 'set-cookie'
-      ? splitJoinedSetCookieHeader(headerValue).map(cookie => cookie.split(';')[0]!)
+      ? splitJoinedSetCookieHeader(headerValue).flatMap(cookie => cookie.split(';', 1))
       : headerValue.split(';');
   });
 

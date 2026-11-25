@@ -184,13 +184,14 @@ const _denoHttpIntegration = ((options: DenoHttpIntegrationOptions = {}) => {
       });
       subscribe(HTTP_ON_SERVER_REQUEST, onHttpServerRequest);
 
+      const { ignoreOutgoingRequests } = options;
       const { [HTTP_ON_CLIENT_REQUEST]: onHttpClientRequest } = getHttpClientSubscriptions({
         ...options,
         breadcrumbs,
         tracePropagation,
         applyCustomAttributesOnSpan: options.outgoingRequestApplyCustomAttributes,
-        ignoreOutgoingRequests: options.ignoreOutgoingRequests
-          ? (url, request) => options.ignoreOutgoingRequests!(url, getRequestOptions(request))
+        ignoreOutgoingRequests: ignoreOutgoingRequests
+          ? (url, request) => ignoreOutgoingRequests(url, getRequestOptions(request))
           : undefined,
         // Deno doesn't run OTel's http instrumentation, so there's no
         // double-wrap to detect; skip the warning to avoid loading the module.

@@ -11,6 +11,7 @@ const PRODUCER_OPERATIONS = new Set(['add', 'addbulk', 'addflow', 'addbulkflows'
 const CONSUMER_OPERATIONS = new Set(['process']);
 
 function getOperation(name: string): string {
+  // oxlint-disable-next-line typescript/no-non-null-assertion -- `split` always returns at least one item
   return name.split(' ')[0]!.toLowerCase();
 }
 

@@ -171,6 +171,7 @@ function createResolvedEngineSpans(): void {
   while (createdSpan) {
     createdSpan = false;
     for (let i = pendingEngineSpans.length - 1; i >= 0; i--) {
+      // oxlint-disable-next-line typescript/no-non-null-assertion -- `i` is bounded by the loop
       const engineSpan = pendingEngineSpans[i]!;
       const parentSpan = prismaSpanRegistry.get(engineSpan.parent_span_id);
       if (!parentSpan) {

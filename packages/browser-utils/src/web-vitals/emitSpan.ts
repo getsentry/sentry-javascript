@@ -153,6 +153,6 @@ function getReplayAttributes(): SpanAttributes {
     [SENTRY_REPLAY_ID]: replayId,
     // Not the `SENTRY_REPLAY_IS_BUFFERING` convention: that one has no `sentry._internal.` prefix, and
     // the rest of the SDK sets the prefixed key (see `logs/internal.ts`, `metrics/internal.ts`).
-    'sentry._internal.replay_is_buffering': replay!.getRecordingMode() === 'buffer' ? true : undefined,
+    'sentry._internal.replay_is_buffering': replay?.getRecordingMode() === 'buffer' ? true : undefined,
   };
 }
