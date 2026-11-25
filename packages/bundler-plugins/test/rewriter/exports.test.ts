@@ -130,7 +130,7 @@ describe('wrapInlineExport', () => {
     const output = rewrite('export class A {}', (state, ast) => {
       expect(wrapInlineExport(state, namedExportsOf(ast)[0]!, 'A', wrap)).toBe(true);
     });
-    expect(output).toBe('class A {}\nconst __SENTRY_WRAPPED_A__ = wrap(A);\nexport { __SENTRY_WRAPPED_A__ as A };\n');
+    expect(output).toBe('export { __SENTRY_WRAPPED_A__ as A };\nclass A {}\nconst __SENTRY_WRAPPED_A__ = wrap(A);\n');
   });
 
   it('wraps an exported function', () => {
@@ -146,8 +146,26 @@ describe('wrapInlineExport', () => {
     const output = rewrite('export const load = () => {}, prerender = true;', (state, ast) => {
       wrapInlineExport(state, namedExportsOf(ast)[0]!, 'load', wrap);
     });
-    expect(output).toMatch(/^const load = \(\) => \{\}, prerender = true;/);
+    expect(output).toContain('const load = () => {}, prerender = true;');
     expect(output).toContain('export { __SENTRY_WRAPPED_load__ as load, prerender };');
+  });
+
+  it('wraps two names of the same declaration', () => {
+    const output = rewrite('export const load = () => {}, actions = {};', (state, ast) => {
+      const node = namedExportsOf(ast)[0]!;
+      expect(wrapInlineExport(state, node, 'load', wrap)).toBe(true);
+      expect(wrapInlineExport(state, node, 'actions', wrap)).toBe(true);
+    });
+    expect(output).toBe(
+      [
+        'export { __SENTRY_WRAPPED_load__ as load, __SENTRY_WRAPPED_actions__ as actions };',
+        'const load = () => {}, actions = {};',
+        'const __SENTRY_WRAPPED_load__ = wrap(load);',
+        '',
+        'const __SENTRY_WRAPPED_actions__ = wrap(actions);',
+        '',
+      ].join('\n'),
+    );
   });
 
   it('keeps TypeScript annotations', () => {

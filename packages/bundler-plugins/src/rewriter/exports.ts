@@ -130,8 +130,9 @@ export function wrapLocalBinding(
 /**
  * Wrap `localName` where an inline export declares it (`export class X {}`,
  * `export const x = ...`, `export function x() {}`). The `export` keyword is
- * stripped and the export is aliased to the wrapper. Other names the same
- * declaration exports are exported again unchanged.
+ * replaced by an export clause that aliases the name to the wrapper. Other
+ * names the same declaration exports are exported again, through their
+ * wrapper when a later call wraps them too.
  *
  * @returns whether the declaration exports `localName`
  */
@@ -145,11 +146,13 @@ export function wrapInlineExport(
   const names = declaration ? declaredNames(declaration) : undefined;
   if (!declaration || !names?.includes(localName)) return false;
 
-  state.ms.overwrite(exportNode.start, declaration.start, '');
-
-  const wrappedName = wrapLocalBinding(state, localName, declaration, wrap);
-  const specifiers = names.map(name => (name === localName ? `${wrappedName} as ${name}` : name));
-  state.ms.appendLeft(exportNode.end, `export { ${specifiers.join(', ')} };\n`);
+  wrapLocalBinding(state, localName, declaration, wrap);
+  const specifiers = names.map(name => {
+    const wrappedName = state.wrappedLocals.get(name);
+    return wrappedName ? `${wrappedName} as ${name}` : name;
+  });
+  // A second call for another name of this declaration overwrites the same range again.
+  state.ms.overwrite(exportNode.start, declaration.start, `export { ${specifiers.join(', ')} };\n`);
   return true;
 }
 
