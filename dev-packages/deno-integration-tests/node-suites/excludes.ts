@@ -37,7 +37,6 @@ const NO_SENTRY_DENO_EXPORT = [
   'suites/cron/node-cron/base/test.ts',
   'suites/cron/node-cron/isolateTrace/test.ts',
   'suites/cron/node-schedule/test.ts',
-  'suites/esm/modules-integration/test.ts',
   'suites/express/multiple-init/test.ts',
   'suites/express/with-http/maxIncomingRequestBodySize/test.ts',
   'suites/fs-instrumentation/test.ts',
@@ -65,12 +64,11 @@ const NO_CLIENT_TRACER = ['suites/tracing/tracer-start-active-span-error/test.ts
 const NO_NODE_LOGGER_PARAMETERS = ['suites/public-api/logs/test.ts'];
 
 // The test expects data that a default integration of `@sentry/node` adds and `@sentry/deno` does
-// not have: process sessions, child process breadcrumbs, the `modules` of the event, the
-// `node_system_error` context, and the context attributes of `nodeContextIntegration` on spans.
+// not have: process sessions, child process breadcrumbs, the `node_system_error` context, and the
+// context attributes of `nodeContextIntegration` on spans.
 const NO_NODE_DEFAULT_INTEGRATION = [
   'suites/child-process/test.ts',
   'suites/context/test.ts',
-  'suites/modules/test.ts',
   'suites/public-api/startSpan/basic-usage/with-children/test.ts',
   'suites/sessions/process-session/test.ts',
   'suites/sessions/server-without-process-session/test.ts',

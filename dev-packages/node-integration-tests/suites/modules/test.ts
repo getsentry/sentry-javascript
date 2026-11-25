@@ -2,6 +2,7 @@ import { SDK_VERSION } from '@sentry/core';
 import { copyFileSync, cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { afterAll, describe, expect, test } from 'vitest';
+import { supports } from '../../utils';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
 // Each test writes its packages into a folder of its own, because the Bun integration tests run this suite in
@@ -10,12 +11,16 @@ function makeTempDir(): string {
   return mkdtempSync(join(__dirname, 'tmp-'));
 }
 
+// The Deno integration cannot see packages that were loaded but not declared in `package.json`, because it does not
+// read the CommonJS module cache.
+const READS_LOADED_MODULES = supports({ runtimes: ['node', 'bun'] });
+
 describe('modulesIntegration', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('CJS', async () => {
+  test.runIf(READS_LOADED_MODULES)('CJS', async () => {
     await createRunner(__dirname, 'scenario.js')
       .expect({
         event: {
@@ -33,7 +38,7 @@ describe('modulesIntegration', () => {
       .completed();
   });
 
-  test('CJS with the isolated layouts of pnpm and Bun', async () => {
+  test.runIf(READS_LOADED_MODULES)('CJS with the isolated layouts of pnpm and Bun', async () => {
     const tempDir = makeTempDir();
     copyFileSync(join(__dirname, 'scenario-isolated.js'), join(tempDir, 'scenario-isolated.js'));
     const nodeModulesDir = join(tempDir, 'node_modules');
@@ -90,7 +95,7 @@ describe('modulesIntegration', () => {
       .completed();
   });
 
-  test('ESM app in a subfolder with its own package.json', async () => {
+  test.runIf(READS_LOADED_MODULES)('ESM app in a subfolder with its own package.json', async () => {
     const tempDir = makeTempDir();
     const appDir = join(tempDir, 'esm-app');
     cpSync(join(__dirname, 'esm-app'), appDir, { recursive: true });
