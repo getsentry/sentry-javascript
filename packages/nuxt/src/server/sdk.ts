@@ -22,6 +22,7 @@ import {
   markNuxtServerInitialized,
 } from '../common/devMode';
 import type { SentryNuxtServerOptions } from '../common/types';
+import { getBuildAssetRequestFilters } from '../runtime/utils/buildAssetRequestFilters';
 
 /**
  * Initializes the server-side of the Nuxt SDK
@@ -62,7 +63,11 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
   const sentryOptions = {
     environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
     ..._INTERNAL_captureOptionsSetByUser(options),
-    ignoreSpans: [...(options.ignoreSpans || []), ...getBuildAssetRequestFilters(), ...getPublicFileRequestFilters()],
+    ignoreSpans: [
+      ...(options.ignoreSpans || []),
+      ...getBuildAssetRequestFilters(getNuxtBuildAssetsPath()),
+      ...getPublicFileRequestFilters(),
+    ],
   };
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'node']);
@@ -78,18 +83,6 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
   client?.addEventProcessor(clientSourceMapErrorFilter(options));
 
   return client;
-}
-
-/**
- * Ignores build output that the HTTP integration's static asset filter misses, such as `.map` and `.json` files.
- * Matches `url.path`, because a span name has no path yet when `ignoreSpans` runs. A runtime `NUXT_APP_BASE_URL`
- * disables this filter, because the path comes from build-time config.
- */
-function getBuildAssetRequestFilters(): NonNullable<SentryNuxtServerOptions['ignoreSpans']> {
-  const buildAssetsPath = getNuxtBuildAssetsPath();
-  return buildAssetsPath
-    ? [{ op: HTTP_SERVER, attributes: { [URL_PATH]: new RegExp(`^${escapeStringForRegex(buildAssetsPath)}`) } }]
-    : [];
 }
 
 /**

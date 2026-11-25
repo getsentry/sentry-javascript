@@ -23,15 +23,20 @@ type GlobalWithNuxtPaths = {
  * Returns `app.buildAssetsDir` with a leading and a trailing slash.
  * Returns `undefined` for `/`, because there build output and routes share one path.
  */
-export function getNuxtBuildAssetsDir(): string | undefined {
-  const dir = joinPath((GLOBAL_OBJ as GlobalWithNuxtPaths)[NUXT_BUILD_ASSETS_DIR_GLOBAL] ?? DEFAULT_BUILD_ASSETS_DIR);
+export function getNuxtBuildAssetsDir(
+  buildAssetsDir = (GLOBAL_OBJ as GlobalWithNuxtPaths)[NUXT_BUILD_ASSETS_DIR_GLOBAL] ?? DEFAULT_BUILD_ASSETS_DIR,
+): string | undefined {
+  const dir = joinPath(buildAssetsDir);
   return dir === '/' ? undefined : dir;
 }
 
 /** Returns `app.baseURL` + `app.buildAssetsDir`, the path prefix of build output requests to the server. */
-export function getNuxtBuildAssetsPath(): string | undefined {
-  const dir = getNuxtBuildAssetsDir();
-  return dir && joinPath((GLOBAL_OBJ as GlobalWithNuxtPaths)[NUXT_BASE_PATH_GLOBAL] ?? '', dir);
+export function getNuxtBuildAssetsPath(
+  baseURL = (GLOBAL_OBJ as GlobalWithNuxtPaths)[NUXT_BASE_PATH_GLOBAL] ?? '',
+  buildAssetsDir?: string,
+): string | undefined {
+  const dir = getNuxtBuildAssetsDir(buildAssetsDir);
+  return dir && joinPath(baseURL, dir);
 }
 
 /** Returns `app.cdnURL` (or `app.baseURL`) + `app.buildAssetsDir`, the URL prefix the browser loads build output from. */

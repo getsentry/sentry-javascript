@@ -174,7 +174,7 @@ describe('addServerConfigPlugin', () => {
   it('registers a plugin that evaluates the runtime flags before the config', () => {
     const { nuxt } = createFakeNuxt();
 
-    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true, false);
 
     expect(templateContents('sentry-server-config-plugin.mjs', nuxt)).toBe(
       `import ${JSON.stringify(flagsDst)};\nimport ${JSON.stringify(APP_CONFIG)};\nexport default () => {};\n`,
@@ -185,7 +185,7 @@ describe('addServerConfigPlugin', () => {
   it('derives the runtime flags from the build-time `import.meta` values', () => {
     const { nuxt } = createFakeNuxt();
 
-    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true, false);
 
     const contents = templateContents('sentry-runtime-flags.mjs', nuxt);
     expect(contents).toContain('globalThis.__SENTRY_NUXT_DEV_MODE__ = import.meta.dev === true;');
@@ -198,7 +198,7 @@ describe('addServerConfigPlugin', () => {
     nuxt.options.app.baseURL = '/shop/';
     nuxt.options.app.buildAssetsDir = '/assets/';
 
-    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true, false);
 
     const contents = templateContents('sentry-runtime-flags.mjs', nuxt);
     expect(contents).toContain('globalThis.__sentry_nuxt_base_path = "/shop/";');
@@ -208,7 +208,7 @@ describe('addServerConfigPlugin', () => {
   it('passes the public files that Nitro serves to the server SDK', () => {
     getNitroPublicFilePathsMock.mockReturnValueOnce(['/humans.txt', '/docs/guide.pdf']);
     const { nuxt, hooks } = createFakeNuxt();
-    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true, false);
     const nitro = { options: { preset: 'node-server', plugins: [] } };
 
     hooks['nitro:init']!(nitro as never);
@@ -223,7 +223,7 @@ describe('addServerConfigPlugin', () => {
     const { nuxt } = createFakeNuxt();
     nuxt.options.nitro.moduleSideEffects = ['unenv/polyfill/'];
 
-    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true, false);
 
     expect(nuxt.options.nitro.moduleSideEffects).toEqual(['unenv/polyfill/', APP_CONFIG, flagsDst]);
   });
@@ -232,14 +232,14 @@ describe('addServerConfigPlugin', () => {
     const { nuxt } = createFakeNuxt();
     nuxt.options.nitro.moduleSideEffects = ['unenv/polyfill/'];
 
-    addServerConfigPlugin(nuxt, APP_CONFIG, false);
+    addServerConfigPlugin(nuxt, APP_CONFIG, false, false);
 
     expect(nuxt.options.nitro.moduleSideEffects).toEqual(['unenv/polyfill/']);
   });
 
   it('inlines the config and both templates so the dev bundle transpiles them', () => {
     const { nuxt, hooks } = createFakeNuxt();
-    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true, false);
     const nitroConfig: NitroConfig = { externals: { inline: ['@sentry/'] } };
 
     hooks['nitro:config']!(nitroConfig);
@@ -249,7 +249,7 @@ describe('addServerConfigPlugin', () => {
 
   it('leaves `externals` alone on Nitro v3, which has no such option', () => {
     const { nuxt, hooks } = createFakeNuxt();
-    addServerConfigPlugin(nuxt, APP_CONFIG, false);
+    addServerConfigPlugin(nuxt, APP_CONFIG, false, false);
     const nitroConfig: NitroConfig = { plugins: ['other-module-plugin.mjs'] };
 
     hooks['nitro:config']!(nitroConfig);
@@ -261,7 +261,7 @@ describe('addServerConfigPlugin', () => {
 
   it('moves its plugin to the front when other modules registered plugins first', () => {
     const { nuxt, hooks } = createFakeNuxt();
-    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true, false);
     const nitroConfig: NitroConfig = { plugins: ['other-module-plugin.mjs', pluginDst] };
 
     hooks['nitro:config']!(nitroConfig);
@@ -271,7 +271,7 @@ describe('addServerConfigPlugin', () => {
 
   it('removes the plugin for explicitly configured Cloudflare presets', () => {
     const { nuxt, hooks } = createFakeNuxt();
-    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true, false);
     const nitroConfig: NitroConfig = { preset: 'cloudflare_module', plugins: ['other-plugin.mjs', pluginDst] };
 
     hooks['nitro:config']!(nitroConfig);
@@ -285,13 +285,28 @@ describe('addServerConfigPlugin', () => {
     // after `nitro:config` ran, so the authoritative check uses `nitro:init`.
     const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { nuxt, hooks } = createFakeNuxt();
-    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true, false);
     const nitro = { options: { preset: 'cloudflare_pages', plugins: ['other-plugin.mjs', pluginDst] } };
 
     hooks['nitro:init']!(nitro as never);
 
     expect(nitro.options.plugins).toEqual(['other-plugin.mjs']);
-    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('sentryCloudflareNitroPlugin'));
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[Sentry] Found `sentry.server.config.ts`, but the Nitro preset targets Cloudflare, where this file is not used. Set up the SDK in `sentry.cloudflare.config.ts` instead: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/cloudflare-workers/',
+    );
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('removes the plugin without a warning on Cloudflare when the app also has a `sentry.cloudflare.config` file', () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { nuxt, hooks } = createFakeNuxt();
+    addServerConfigPlugin(nuxt, APP_CONFIG, true, true);
+    const nitro = { options: { preset: 'cloudflare_module', plugins: ['other-plugin.mjs', pluginDst] } };
+
+    hooks['nitro:init']!(nitro as never);
+
+    expect(nitro.options.plugins).toEqual(['other-plugin.mjs']);
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
     consoleWarnSpy.mockRestore();
   });
 
@@ -300,7 +315,7 @@ describe('addServerConfigPlugin', () => {
     const { nuxt, hooks } = createFakeNuxt();
     const serverPlugins: string[] = [];
     addNitroPluginMock.mockImplementationOnce((plugin: string) => serverPlugins.push(plugin));
-    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true, false);
     const nitroConfig: NitroConfig = { preset: 'cloudflare_module', plugins: ['other-plugin.mjs'] };
 
     hooks['nitro:config']!(nitroConfig);
@@ -314,7 +329,7 @@ describe('addServerConfigPlugin', () => {
 
   it('keeps the plugin when the resolved preset is not Cloudflare', () => {
     const { nuxt, hooks } = createFakeNuxt();
-    addServerConfigPlugin(nuxt, APP_CONFIG, true);
+    addServerConfigPlugin(nuxt, APP_CONFIG, true, false);
     const nitro = { options: { preset: 'node-server', plugins: ['other-plugin.mjs', pluginDst] } };
 
     hooks['nitro:init']!(nitro as never);

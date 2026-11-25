@@ -72,6 +72,13 @@ describe('getNuxtBuildAssetsPath', () => {
 
     expect(getNuxtBuildAssetsPath()).toBeUndefined();
   });
+
+  it('joins the given base path and dir instead of the values of the generated code', () => {
+    globalWithNuxtPaths[NUXT_BASE_PATH_GLOBAL] = '/app/';
+    globalWithNuxtPaths[NUXT_BUILD_ASSETS_DIR_GLOBAL] = '/assets/';
+
+    expect(getNuxtBuildAssetsPath('/shop', 'static/build')).toBe('/shop/static/build/');
+  });
 });
 
 describe('getNuxtPublicBuildAssetsUrl', () => {

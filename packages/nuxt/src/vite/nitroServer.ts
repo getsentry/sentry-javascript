@@ -21,12 +21,16 @@ type NitroModuleOptions = Omit<SentryNuxtModuleOptions, 'experimental_entrypoint
 /**
  * Sets up the server SDK on the Nitro side: the server config plugin, the server plugins, and the
  * middleware, storage and database instrumentation.
+ *
+ * Without a `serverConfigFile` (on Cloudflare, `withSentry` initializes the SDK), it sets up everything except the
+ * server config.
  */
 export function setupNitroServer(
   nuxt: Nuxt,
   serverApi: Exclude<ServerApi, 'nuxt'>,
-  serverConfigFile: string,
+  serverConfigFile: string | undefined,
   moduleOptions: NitroModuleOptions,
+  hasCloudflareOptionsFile: boolean,
 ): void {
   const isNitroV3 = serverApi === 'nitro3';
   const moduleDirResolver = createResolver(import.meta.url);
@@ -36,8 +40,8 @@ export function setupNitroServer(
   const deprecatedInjectMode =
     injectMode === 'top-level-import' || injectMode === 'experimental_dynamic-import' ? injectMode : undefined;
 
-  if (!deprecatedInjectMode) {
-    addServerConfigPlugin(nuxt, serverConfigFile, !isNitroV3);
+  if (serverConfigFile && !deprecatedInjectMode) {
+    addServerConfigPlugin(nuxt, serverConfigFile, !isNitroV3, hasCloudflareOptionsFile);
   }
 
   if (isNitroV3) {
@@ -67,6 +71,10 @@ export function setupNitroServer(
 
     if (isNitroV3) {
       addCacheStorageInstrumentation(nitro);
+    }
+
+    if (!serverConfigFile) {
+      return;
     }
 
     if (deprecatedInjectMode) {
