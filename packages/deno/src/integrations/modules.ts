@@ -52,7 +52,7 @@ function collectModules(): Record<string, string> {
 const _modulesIntegration = (() => {
   let modules: Record<string, string> | undefined;
   return {
-    name: 'Modules',
+    name: 'Modules' as const,
     processEvent(event) {
       modules = modules || collectModules();
       event.modules = { ...event.modules, ...modules };
