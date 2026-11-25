@@ -1,5 +1,8 @@
+import { URL_PATH } from '@sentry/conventions/attributes';
+import { CACHE_GET, CACHE_PUT, CACHE_REMOVE } from '@sentry/conventions/op';
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
+import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { isViteServer, NITRO_ONLY } from './isViteServer';
 
 test.skip(isViteServer, NITRO_ONLY);
@@ -15,6 +18,14 @@ async function collectStorageSpans(route: string) {
   return spans.filter(
     span => span.trace_id === rootSpan?.trace_id && span.attributes['sentry.origin']?.value === 'auto.cache.nuxt',
   );
+}
+
+const STORAGE_OPS: ReadonlyArray<string | undefined> = [CACHE_GET, CACHE_PUT, CACHE_REMOVE];
+const isStorageSpan = (span: SerializedStreamedSpan) => STORAGE_OPS.includes(getSpanOp(span));
+
+/** Every span of the request's trace, whatever created it, so that a second span for one storage call shows up. */
+function collectRequestSpans(route: string) {
+  return collectStreamedSpansUntilSegment('nuxt-4', span => span.attributes[URL_PATH]?.value === route, isStorageSpan);
 }
 
 test.describe('Storage Instrumentation', () => {
@@ -157,5 +168,31 @@ test.describe('Storage Instrumentation', () => {
     allStorageSpans.forEach(span => {
       expect(span.status).toBe('ok');
     });
+  });
+
+  test('creates exactly one span for each storage driver call', async ({ request }) => {
+    const spansPromise = collectRequestSpans('/api/storage-test');
+
+    await request.get('/api/storage-test');
+
+    const spanOps = (await spansPromise).map(getSpanOp);
+
+    // `/api/storage-test` writes 4 items, reads with hasItem, getItem, getItemRaw and 2x getKeys, and removes twice
+    // (removeItem, clear). Each `getKeys` call is 2 driver calls, because unstorage also asks the driver of the root mount.
+    expect(spanOps.filter(op => op === CACHE_PUT)).toHaveLength(4);
+    expect(spanOps.filter(op => op === CACHE_GET)).toHaveLength(7);
+    expect(spanOps.filter(op => op === CACHE_REMOVE)).toHaveLength(2);
+  });
+
+  test('makes each storage span a child of the request root span', async ({ request }) => {
+    const spansPromise = collectRequestSpans('/api/storage-test');
+
+    await request.get('/api/storage-test');
+
+    const spans = await spansPromise;
+    const rootSpan = spans.find(span => span.is_segment);
+    const parentSpanIds = new Set(spans.filter(isStorageSpan).map(span => span.parent_span_id));
+
+    expect(parentSpanIds).toEqual(new Set([rootSpan?.span_id]));
   });
 });
