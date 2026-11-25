@@ -18,11 +18,8 @@ function getServerTimingEntries(response: APIResponse, name: string): string[] {
 }
 
 test('names the segment span after the parameterized route', async ({ request }) => {
-  // In dev, the dev server in front of Nitro sends an unnamed segment span of its own for the request.
   const segmentSpanPromise = waitForStreamedSpan(APP_NAME, span => {
-    return (
-      span.is_segment && span.attributes[URL_PATH]?.value === '/api/test-param/123' && !!span.attributes[HTTP_ROUTE]
-    );
+    return span.is_segment && span.attributes[URL_PATH]?.value === '/api/test-param/123';
   });
 
   await request.get('/api/test-param/123');
@@ -64,9 +61,8 @@ test('sets one pair of Server-Timing entries that continue the request trace', a
 });
 
 test('creates one h3 handler span through the tracing channels the plugin turned on', async ({ request }) => {
-  // In dev, the dev server in front of Nitro sends an unnamed segment span of its own for the request.
   const isNitroSegment = (span: SerializedStreamedSpan): boolean =>
-    span.attributes[URL_PATH]?.value === '/api/test-param/456' && !!span.attributes[HTTP_ROUTE];
+    span.attributes[URL_PATH]?.value === '/api/test-param/456';
   const spansPromise = collectStreamedSpansUntilSegment(APP_NAME, isNitroSegment);
 
   const response = await request.get('/api/test-param/456');

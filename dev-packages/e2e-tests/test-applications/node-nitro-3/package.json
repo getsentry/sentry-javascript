@@ -6,7 +6,7 @@
   "scripts": {
     "build": "vite build",
     "build:nitro": "NITRO_BUILDER=rolldown nitro build",
-    "start": "PORT=3030 NODE_OPTIONS='--import ./instrument.mjs' node .output/server/index.mjs",
+    "start": "PORT=3030 node --import @sentry/node/import .output/server/index.mjs",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .output",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",

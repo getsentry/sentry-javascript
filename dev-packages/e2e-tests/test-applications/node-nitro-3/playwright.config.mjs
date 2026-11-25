@@ -3,7 +3,7 @@ import { getPlaywrightConfig } from '@sentry-internal/test-utils';
 const testEnv = process.env.TEST_ENV || 'production';
 
 const getStartCommand = () => {
-  const devEnv = `PORT=3030 NODE_OPTIONS='--import ./instrument.mjs'`;
+  const devEnv = `PORT=3030 NODE_OPTIONS='--import @sentry/node/import'`;
 
   switch (testEnv) {
     case 'development':
@@ -21,4 +21,7 @@ const getStartCommand = () => {
 
 export default getPlaywrightConfig({
   startCommand: getStartCommand(),
+  // `vite dev` loads the server entry, and with it `Sentry.init()`, on the first request, which then has no
+  // `http.server` span. Waiting on a request keeps it out of the tests.
+  url: 'http://localhost:3030/api/test-static',
 });
