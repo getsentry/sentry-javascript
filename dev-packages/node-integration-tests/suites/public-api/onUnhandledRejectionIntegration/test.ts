@@ -130,7 +130,8 @@ test rejection`);
     await createRunner(__dirname, 'scenario-warn.ts').expect({ event: expectedEvent }).start().completed();
   });
 
-  // `@sentry/deno` has no `onUnhandledRejectionIntegration`.
+  // Deno always exits on an unhandled rejection, so `@sentry/deno` has no `onUnhandledRejectionIntegration`
+  // and no strict mode to configure.
   test.runIf(supports({ runtimes: ['node', 'bun'] }))(
     'captures exceptions for unhandled rejections in strict mode',
     async () => {
