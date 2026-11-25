@@ -57,7 +57,7 @@ function setMetricAttribute(
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function _INTERNAL_captureSerializedMetric(client: Client, serializedMetric: SerializedMetric): void {
+export function captureSerializedMetric(client: Client, serializedMetric: SerializedMetric): void {
   const bufferMap = _getBufferMap();
   const metricBuffer = _INTERNAL_getMetricBuffer(client);
 
@@ -80,6 +80,12 @@ export function _INTERNAL_captureSerializedMetric(client: Client, serializedMetr
     }
   }
 }
+
+/**
+ * @deprecated Use `captureSerializedMetric` instead.
+ */
+// TODO(v12): Remove once the Electron SDK no longer uses it.
+export const _INTERNAL_captureSerializedMetric = captureSerializedMetric;
 
 /**
  * Options for capturing a metric internally.
@@ -184,9 +190,9 @@ function _buildSerializedMetric(
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: InternalCaptureMetricOptions): void {
+export function captureMetric(beforeMetric: Metric, options?: InternalCaptureMetricOptions): void {
   const currentScope = options?.scope ?? getCurrentScope();
-  const captureSerializedMetric = options?.captureSerializedMetric ?? _INTERNAL_captureSerializedMetric;
+  const captureSerialized = options?.captureSerializedMetric ?? captureSerializedMetric;
   const client = currentScope?.getClient() ?? getClient();
   if (!client) {
     DEBUG_BUILD && debug.warn('No client available to capture metric.');
@@ -224,10 +230,16 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
 
   DEBUG_BUILD && debug.log('[Metric]', serializedMetric);
 
-  captureSerializedMetric(client, serializedMetric);
+  captureSerialized(client, serializedMetric);
 
   client.emit('afterCaptureMetric', processedMetric);
 }
+
+/**
+ * @deprecated Use `captureMetric` instead.
+ */
+// TODO(v12): Remove once the Electron SDK no longer uses it.
+export const _INTERNAL_captureMetric = captureMetric;
 
 /**
  * Flushes the metrics buffer to Sentry.

@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Scope } from '../../../src';
-import {
-  _INTERNAL_captureMetric,
-  _INTERNAL_flushMetricsBuffer,
-  _INTERNAL_getMetricBuffer,
-} from '../../../src/metrics/internal';
+import { captureMetric, _INTERNAL_flushMetricsBuffer, _INTERNAL_getMetricBuffer } from '../../../src/metrics/internal';
 import type { Metric } from '../../../src/types/metric';
 import * as loggerModule from '../../../src/utils/debug-logger';
 import * as isBrowserModule from '../../../src/utils/isBrowser';
@@ -16,7 +12,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
 
 const SEQUENCE_ATTR = { 'sentry.timestamp.sequence': { value: expect.any(Number), type: 'integer' } };
 
-describe('_INTERNAL_captureMetric', () => {
+describe('captureMetric', () => {
   beforeEach(() => {
     _INTERNAL_resetSequenceNumber();
   });
@@ -27,7 +23,7 @@ describe('_INTERNAL_captureMetric', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+    captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
     expect(_INTERNAL_getMetricBuffer(client)).toHaveLength(1);
     expect(_INTERNAL_getMetricBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
@@ -51,7 +47,7 @@ describe('_INTERNAL_captureMetric', () => {
       sampleRand: 1,
     });
 
-    _INTERNAL_captureMetric({ type: 'gauge', name: 'test.gauge', value: 42 }, { scope });
+    captureMetric({ type: 'gauge', name: 'test.gauge', value: 42 }, { scope });
 
     expect(_INTERNAL_getMetricBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
@@ -70,7 +66,7 @@ describe('_INTERNAL_captureMetric', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+    captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
     const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
     expect(metricAttributes).toEqual({
@@ -101,7 +97,7 @@ describe('_INTERNAL_captureMetric', () => {
       },
     });
 
-    _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+    captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
     const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
     expect(metricAttributes).toEqual({
@@ -127,7 +123,7 @@ describe('_INTERNAL_captureMetric', () => {
     // Mock getSdkMetadata to return no SDK info
     vi.spyOn(client, 'getSdkMetadata').mockReturnValue({});
 
-    _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+    captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
     const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
     expect(metricAttributes).not.toEqual(
@@ -144,7 +140,7 @@ describe('_INTERNAL_captureMetric', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    _INTERNAL_captureMetric(
+    captureMetric(
       {
         type: 'counter',
         name: 'test.metric',
@@ -176,7 +172,7 @@ describe('_INTERNAL_captureMetric', () => {
     scope.setAttribute('scope_attribute_1', 1);
     scope.setAttributes({ scope_attribute_2: { value: 'test' }, scope_attribute_3: { value: 38, unit: 'gigabyte' } });
 
-    _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+    captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
     const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
     expect(metricAttributes).toEqual({
@@ -204,10 +200,7 @@ describe('_INTERNAL_captureMetric', () => {
     scope.setClient(client);
     scope.setAttribute('my-attribute', 42);
 
-    _INTERNAL_captureMetric(
-      { type: 'counter', name: 'test.metric', value: 1, attributes: { 'my-attribute': 43 } },
-      { scope },
-    );
+    captureMetric({ type: 'counter', name: 'test.metric', value: 1, attributes: { 'my-attribute': 43 } }, { scope });
 
     const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
     expect(metricAttributes).toEqual({
@@ -224,13 +217,13 @@ describe('_INTERNAL_captureMetric', () => {
 
     // Fill the buffer to max size (1000 is the MAX_METRIC_BUFFER_SIZE constant)
     for (let i = 0; i < 1000; i++) {
-      _INTERNAL_captureMetric({ type: 'counter', name: `metric.${i}`, value: i }, { scope });
+      captureMetric({ type: 'counter', name: `metric.${i}`, value: i }, { scope });
     }
 
     expect(_INTERNAL_getMetricBuffer(client)).toHaveLength(1000);
 
     // Add one more to trigger flush
-    _INTERNAL_captureMetric({ type: 'counter', name: 'trigger.flush', value: 999 }, { scope });
+    captureMetric({ type: 'counter', name: 'trigger.flush', value: 999 }, { scope });
 
     // After flushing the 1000 metrics, the new metric starts a fresh buffer with 1 item
     const buffer = _INTERNAL_getMetricBuffer(client);
@@ -246,7 +239,7 @@ describe('_INTERNAL_captureMetric', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+    captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
     const sendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => {});
     _INTERNAL_flushMetricsBuffer(client);
@@ -264,7 +257,7 @@ describe('_INTERNAL_captureMetric', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+    captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
     const sendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => {});
     _INTERNAL_flushMetricsBuffer(client);
@@ -298,7 +291,7 @@ describe('_INTERNAL_captureMetric', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    _INTERNAL_captureMetric(
+    captureMetric(
       {
         type: 'counter',
         name: 'original.metric',
@@ -348,7 +341,7 @@ describe('_INTERNAL_captureMetric', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    _INTERNAL_captureMetric(
+    captureMetric(
       {
         type: 'counter',
         name: 'test.metric',
@@ -382,7 +375,7 @@ describe('_INTERNAL_captureMetric', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    expect(() => _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope })).not.toThrow();
+    expect(() => captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope })).not.toThrow();
 
     expect(beforeSendMetric).toHaveBeenCalled();
     expect(recordDroppedEventSpy).toHaveBeenCalledWith('callback_error', 'trace_metric', 1);
@@ -409,7 +402,7 @@ describe('_INTERNAL_captureMetric', () => {
       attributes: {},
     };
 
-    _INTERNAL_captureMetric(metric, { scope });
+    captureMetric(metric, { scope });
 
     expect(afterCaptureMetricSpy).toHaveBeenCalledWith('afterCaptureMetric', expect.objectContaining(metric));
     afterCaptureMetricSpy.mockRestore();
@@ -432,7 +425,7 @@ describe('_INTERNAL_captureMetric', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
 
@@ -461,7 +454,7 @@ describe('_INTERNAL_captureMetric', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
 
@@ -485,7 +478,7 @@ describe('_INTERNAL_captureMetric', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
 
@@ -512,7 +505,7 @@ describe('_INTERNAL_captureMetric', () => {
       // Mock no replay integration found
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(undefined);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({ ...SEQUENCE_ATTR });
@@ -537,7 +530,7 @@ describe('_INTERNAL_captureMetric', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureMetric(
+      captureMetric(
         {
           type: 'counter',
           name: 'test.metric',
@@ -591,7 +584,7 @@ describe('_INTERNAL_captureMetric', () => {
 
         vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-        _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+        captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
         const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
         expect(metricAttributes).toEqual({ ...SEQUENCE_ATTR });
@@ -613,7 +606,7 @@ describe('_INTERNAL_captureMetric', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
       expect(mockReplayIntegration.getRecordingMode).toHaveBeenCalled();
@@ -646,7 +639,7 @@ describe('_INTERNAL_captureMetric', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
       expect(mockReplayIntegration.getRecordingMode).toHaveBeenCalled();
@@ -676,7 +669,7 @@ describe('_INTERNAL_captureMetric', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
       expect(mockReplayIntegration.getRecordingMode).toHaveBeenCalled();
@@ -706,7 +699,7 @@ describe('_INTERNAL_captureMetric', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
       // getRecordingMode should not be called if there's no replay ID
@@ -727,7 +720,7 @@ describe('_INTERNAL_captureMetric', () => {
       // Mock no replay integration found
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(undefined);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({ ...SEQUENCE_ATTR });
@@ -754,7 +747,7 @@ describe('_INTERNAL_captureMetric', () => {
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
 
-      _INTERNAL_captureMetric(
+      captureMetric(
         {
           type: 'counter',
           name: 'test.metric',
@@ -809,7 +802,7 @@ describe('_INTERNAL_captureMetric', () => {
         username: 'testuser',
       });
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
@@ -841,7 +834,7 @@ describe('_INTERNAL_captureMetric', () => {
         // email and username are missing
       });
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
@@ -866,7 +859,7 @@ describe('_INTERNAL_captureMetric', () => {
         // id is missing
       });
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
@@ -891,7 +884,7 @@ describe('_INTERNAL_captureMetric', () => {
       scope.setClient(client);
       scope.setUser({});
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({ ...SEQUENCE_ATTR });
@@ -912,7 +905,7 @@ describe('_INTERNAL_captureMetric', () => {
         email: 'user@example.com',
       });
 
-      _INTERNAL_captureMetric(
+      captureMetric(
         {
           type: 'counter',
           name: 'test.metric',
@@ -965,7 +958,7 @@ describe('_INTERNAL_captureMetric', () => {
         username: undefined,
       });
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual({
@@ -993,7 +986,7 @@ describe('_INTERNAL_captureMetric', () => {
         email: 'user@example.com',
       });
 
-      _INTERNAL_captureMetric(
+      captureMetric(
         {
           type: 'counter',
           name: 'test.metric',
@@ -1037,7 +1030,7 @@ describe('_INTERNAL_captureMetric', () => {
         username: 'scope-user',
       });
 
-      _INTERNAL_captureMetric(
+      captureMetric(
         {
           type: 'counter',
           name: 'test.metric',
@@ -1091,7 +1084,7 @@ describe('_INTERNAL_captureMetric', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    _INTERNAL_captureMetric(
+    captureMetric(
       {
         type: 'counter',
         name: 'test.metric',
@@ -1144,9 +1137,9 @@ describe('_INTERNAL_captureMetric', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'first', value: 1 }, { scope });
-      _INTERNAL_captureMetric({ type: 'counter', name: 'second', value: 2 }, { scope });
-      _INTERNAL_captureMetric({ type: 'counter', name: 'third', value: 3 }, { scope });
+      captureMetric({ type: 'counter', name: 'first', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'second', value: 2 }, { scope });
+      captureMetric({ type: 'counter', name: 'third', value: 3 }, { scope });
 
       const buffer = _INTERNAL_getMetricBuffer(client);
       expect(buffer?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });
@@ -1162,7 +1155,7 @@ describe('_INTERNAL_captureMetric', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'first', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'first', value: 1 }, { scope });
 
       _INTERNAL_resetSequenceNumber();
 
@@ -1170,7 +1163,7 @@ describe('_INTERNAL_captureMetric', () => {
       const scope2 = new Scope();
       scope2.setClient(client2);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'after reset', value: 2 }, { scope: scope2 });
+      captureMetric({ type: 'counter', name: 'after reset', value: 2 }, { scope: scope2 });
 
       const buffer2 = _INTERNAL_getMetricBuffer(client2);
       expect(buffer2?.[0]?.attributes?.['sentry.timestamp.sequence']).toEqual({ value: 0, type: 'integer' });

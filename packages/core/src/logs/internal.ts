@@ -60,7 +60,7 @@ function setLogAttribute(
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function _INTERNAL_captureSerializedLog(client: Client, serializedLog: SerializedLog): void {
+export function captureSerializedLog(client: Client, serializedLog: SerializedLog): void {
   const bufferMap = _getBufferMap();
   const logBuffer = _INTERNAL_getLogBuffer(client);
 
@@ -79,12 +79,18 @@ export function _INTERNAL_captureSerializedLog(client: Client, serializedLog: Se
 }
 
 /**
+ * @deprecated Use `captureSerializedLog` instead.
+ */
+// TODO(v12): Remove once the Electron SDK no longer uses it.
+export const _INTERNAL_captureSerializedLog = captureSerializedLog;
+
+/**
  * Captures a log event and sends it to Sentry.
  *
  * @param log - The log event to capture.
  * @param scope - A scope. Uses the current scope if not provided.
  * @param client - A client. Uses the current client if not provided.
- * @param captureSerializedLog - A function to capture the serialized log.
+ * @param captureSerialized - A function to capture the serialized log.
  *
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
@@ -92,7 +98,7 @@ export function _INTERNAL_captureSerializedLog(client: Client, serializedLog: Se
 export function _INTERNAL_captureLog(
   beforeLog: Log,
   currentScope = getCurrentScope(),
-  captureSerializedLog: (client: Client, log: SerializedLog) => void = _INTERNAL_captureSerializedLog,
+  captureSerialized: (client: Client, log: SerializedLog) => void = captureSerializedLog,
 ): void {
   const client = currentScope?.getClient() ?? getClient();
   if (!client) {
@@ -195,7 +201,7 @@ export function _INTERNAL_captureLog(
     }),
   };
 
-  captureSerializedLog(client, serializedLog);
+  captureSerialized(client, serializedLog);
 
   client.emit('afterCaptureLog', log);
 }

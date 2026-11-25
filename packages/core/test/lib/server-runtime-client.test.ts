@@ -1,6 +1,6 @@
 import { describe, expect, it, test, vi } from 'vitest';
 import { applySdkMetadata, createTransport, Scope } from '../../src';
-import { _INTERNAL_captureMetric, _INTERNAL_getMetricBuffer } from '../../src/metrics/internal';
+import { captureMetric, _INTERNAL_getMetricBuffer } from '../../src/metrics/internal';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
 import type { Event, EventHint } from '../../src/types/event';
@@ -245,7 +245,7 @@ describe('ServerRuntimeClient', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).toEqual(
@@ -264,7 +264,7 @@ describe('ServerRuntimeClient', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+      captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
       const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
       expect(metricAttributes).not.toEqual(
@@ -280,7 +280,7 @@ describe('ServerRuntimeClient', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      _INTERNAL_captureMetric(
+      captureMetric(
         {
           type: 'counter',
           name: 'test.metric',
