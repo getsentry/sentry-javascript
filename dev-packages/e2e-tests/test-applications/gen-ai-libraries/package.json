@@ -42,7 +42,7 @@
     "wrangler": "^4.86.0"
   },
   "sentryTest": {
-    "optional": true,
+    "needsSecrets": true,
     "optionalVariants": [
       {
         "build-command": "pnpm test:build:cloudflare",

@@ -33,7 +33,7 @@
     "wrangler": "^4.136.2"
   },
   "sentryTest": {
-    "optional": true,
+    "needsSecrets": true,
     "optionalVariants": [
       {
         "build-command": "pnpm test:build-ai-v6",

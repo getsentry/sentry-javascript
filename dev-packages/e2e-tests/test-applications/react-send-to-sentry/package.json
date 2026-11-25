@@ -45,6 +45,7 @@
     "serve": "14.2.8"
   },
   "sentryTest": {
-    "optional": true
+    "optional": true,
+    "needsSecrets": true
   }
 }

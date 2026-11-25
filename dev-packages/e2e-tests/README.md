@@ -135,6 +135,25 @@ Because the apps run in a temporary directory without the repo's `package.json` 
 app's Node.js and pnpm versions into the copied `package.json`. pnpm's `node` and `actions/setup-node` in CI read them
 from there.
 
+### Test apps that need CI secrets
+
+E2E jobs get no secrets by default. They send events to the local event proxy with a dummy `E2E_TEST_DSN`. If an app
+needs a real secret (for example, it calls an LLM API, deploys a Cloudflare Worker or checks what arrives in Sentry),
+set `needsSecrets`:
+
+```json
+"sentryTest": {
+  "needsSecrets": true
+}
+```
+
+- The required and optional jobs of this app get the E2E secrets. Canary jobs get none.
+- PRs from forks get no secrets, so they skip these jobs.
+- To add a secret, add it to `job_e2e_tests_with_secrets` in `.github/workflows/build.yml` and to
+  `.github/workflows/optional-e2e.yml`.
+
+`needsSecrets` does not make an app optional. Also set `"optional": true` if a failing job must not block the merge.
+
 ### Test apps that deploy a real Cloudflare Worker
 
 Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Worker and check what arrives in Sentry:
@@ -153,8 +172,8 @@ Apps like `cloudflare-workers-send-to-sentry` deploy the built app as a real Wor
 - To check what Cloudflare stored for a request (for example its Cloudflare trace id), read Workers Logs with
   `fetchWorkersLogsEvents`. `CLOUDFLARE_API_TOKEN` then also needs "Workers Observability: Edit". See
   `cloudflare-workers-without-tracing-send-to-sentry`.
-- Set `"sentryTest": { "optional": true }` in `package.json`, because only the optional CI job has the Cloudflare
-  secrets.
+- Set `"needsSecrets": true` (see [Test apps that need CI secrets](#test-apps-that-need-ci-secrets)) and
+  `"optional": true`, because what arrives in Sentry depends on more than the SDK.
 
 ## Runtime variants (Bun, Deno, Cloudflare)
 

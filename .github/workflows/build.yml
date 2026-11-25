@@ -223,7 +223,9 @@ jobs:
       e2e-matrix-1: ${{ steps.matrix.outputs.matrix-1 }}
       e2e-matrix-2: ${{ steps.matrix.outputs.matrix-2 }}
       e2e-matrix-aws-layer: ${{ steps.matrix.outputs.matrix-aws-layer }}
+      e2e-matrix-with-secrets: ${{ steps.matrix.outputs.matrix-with-secrets }}
       e2e-matrix-optional: ${{ steps.matrix-optional.outputs.matrix }}
+      e2e-matrix-optional-without-secrets: ${{ steps.matrix-optional.outputs.matrix-without-secrets }}
 
   job_build_layer:
     name: Build Lambda layer
@@ -1164,12 +1166,47 @@ jobs:
       matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-aws-layer) }}
     steps: *e2e-steps
 
+  # PRs from forks and Dependabot get no secrets, so they skip these jobs. Release branches skip them too, so that an
+  # outage of an external API cannot block a release.
+  job_e2e_tests_with_secrets:
+    name: E2E ${{ matrix.label || matrix.test-application }} Test
+    if:
+      always() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_build.result == 'success' &&
+      needs.job_build.outputs.e2e-matrix-with-secrets != '{"include":[]}' && (github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
+    needs: [job_get_metadata, job_build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    # Keep the secrets the same as in optional-e2e.yml.
+    env:
+      E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
+      E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      NEXT_PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      REACT_APP_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
+      E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
+      E2E_OPENROUTER_API_KEY: ${{ secrets.E2E_OPENROUTER_API_KEY }}
+      E2E_OPENAI_DECISIONS_API_KEY:
+        ${{ matrix.test-application == 'node-openai-decisions' && secrets.E2E_OPENAI_DECISIONS_API_KEY || '' }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      RUNTIME: ${{ matrix.runtime }}
+      SENTRY_E2E_TEST_SHARD: ${{ matrix.test-shard }}
+      pnpm_config_verify_deps_before_run: 'false'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-with-secrets) }}
+    steps: *e2e-steps
+
   # - We skip optional tests on release branches
   # - The tests run in optional-e2e.yml, so their failures do not mark the PR as failed. This job only waits for
   #   them. optional-e2e.yml reports the results in a PR comment.
   job_optional_e2e_tests:
     name: E2E Tests (optional)
-    # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
+    # A PR from a fork cannot dispatch optional-e2e.yml, see job_optional_e2e_tests_without_secrets.
     if:
       always() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_build.result == 'success' &&
       needs.job_build.outputs.e2e-matrix-optional != '{"include":[]}' && (github.event_name != 'pull_request' ||
@@ -1200,6 +1237,23 @@ jobs:
           commit: ${{ env.HEAD_COMMIT }}
           matrix: ${{ needs.job_build.outputs.e2e-matrix-optional }}
 
+  job_optional_e2e_tests_without_secrets:
+    name: E2E ${{ matrix.label || matrix.test-application }} Test (optional)
+    if:
+      always() && needs.job_get_metadata.outputs.is_release != 'true' && needs.job_build.result == 'success' &&
+      needs.job_build.outputs.e2e-matrix-optional-without-secrets != '{"include":[]}' && github.event_name ==
+      'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+    needs: [job_get_metadata, job_build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env: *e2e-env
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.job_build.outputs.e2e-matrix-optional-without-secrets) }}
+    steps: *e2e-steps
+
   job_required_jobs_passed:
     name: All required jobs passed or were skipped
     needs:
@@ -1222,6 +1276,7 @@ jobs:
         job_e2e_tests_1,
         job_e2e_tests_2,
         job_e2e_aws_layer_tests,
+        job_e2e_tests_with_secrets,
         job_artifacts,
         job_lint,
         job_check_lockfile,
