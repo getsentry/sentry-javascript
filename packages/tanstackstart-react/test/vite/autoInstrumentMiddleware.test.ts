@@ -218,6 +218,21 @@ createStart(() => ({
     expect(result.skipped).toHaveLength(0);
   });
 
+  it.each([
+    ['as const', '[authMiddleware] as const'],
+    ['satisfies', '[authMiddleware] satisfies Middleware[]'],
+    ['angle bracket assertion', '<Middleware[]>[authMiddleware]'],
+    ['non-null assertion', '[authMiddleware]!'],
+    ['parentheses', '([authMiddleware])'],
+  ])('wraps an array inside a type-only wrapper (%s)', (_, value) => {
+    const code = `createStart(() => ({ requestMiddleware: ${value} }));`;
+    const result = wrapGlobalMiddleware(code, '/app/start.ts', false);
+
+    expect(result.didWrap).toBe(true);
+    expect(result.code).toContain('wrapMiddlewaresWithSentry({ authMiddleware })');
+    expect(result.code).not.toContain('[authMiddleware]');
+  });
+
   it('wraps single middleware entry correctly', () => {
     const code = 'createStart(() => ({ requestMiddleware: [singleMiddleware] }));';
     const result = wrapGlobalMiddleware(code, '/app/start.ts', false);

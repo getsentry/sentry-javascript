@@ -79,9 +79,29 @@ function propertyKey(node: BaseNode): string | undefined {
   return property.computed || !property.value ? undefined : exportedName(property.key);
 }
 
+const TYPE_ONLY_WRAPPERS = new Set([
+  'ParenthesizedExpression',
+  'TSAsExpression',
+  'TSSatisfiesExpression',
+  'TSTypeAssertion',
+  'TSNonNullExpression',
+]);
+
+/** The expression inside wrappers such as `as const` and `satisfies`, which leave the value as it is. */
+function unwrapTypeOnly(node: BaseNode): BaseNode {
+  let current = node;
+  while (TYPE_ONLY_WRAPPERS.has(current.type)) {
+    const inner = (current as BaseNode & { expression?: BaseNode }).expression;
+    if (!inner) break;
+    current = inner;
+  }
+  return current;
+}
+
 /** Wraps each middleware array the finder reports, skipping values already wrapped. */
 function wrapSites({ ast, id, state }: RuleContext, findSites: SiteFinder, debug: boolean): void {
-  findSites(ast, (label, value) => {
+  findSites(ast, (label, site) => {
+    const value = unwrapTypeOnly(site);
     if (isCallToMethod(value, WRAPPER)) {
       state.report.alreadyWrapped.push(label);
       return;
