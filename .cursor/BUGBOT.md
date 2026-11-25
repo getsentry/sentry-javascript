@@ -39,7 +39,7 @@ Keep reviews high-signal. Prefer actionable, high-confidence findings over specu
 ### Trust, defaults, and dependencies
 
 - Never let SDK init or instrumentation failures crash or brick the host application. Prefer graceful degrade / no-op on unsupported or outdated environments; if that is impossible, the break must be obvious at install/build time, not at runtime.
-- Flag new runtime dependencies on the base SDK path. Integration-only optional dependencies are fine when justified; baseline deps increase license, maintenance, and supply-chain surface.
+- Flag new runtime dependencies in SDK packages. Integration-only optional dependencies are fine when justified; baseline deps increase license, maintenance, and supply-chain surface. Do not flag them in `@sentry/core`, `@sentry/browser`, `@sentry/browser-utils`, or workspace packages they depend on: `scripts/base-sdk-dependencies.test.mjs` checks those against an allowlist.
 - Flag new required configuration or integrations left disabled by default when auto-enable would give a better out-of-the-box experience without surprising side effects.
 - Flag heavy in-SDK business logic that permanently reshapes wire-format data when collecting rawer data and leaving transformation to the server would do.
 - SDKs must never `captureException` / `captureMessage` (or equivalent) for exceptions thrown inside the SDK itself or inside user callbacks such as `beforeSend` / `before_send`, `tracesSampler`, or similar hooks. Swallow gracefully and emit an error-level SDK log instead — capturing here can loop and take down the process. See [Never capture your own exceptions](https://develop.sentry.dev/sdk/getting-started/principles/#never-capture-your-own-exceptions).
