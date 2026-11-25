@@ -57,6 +57,7 @@
     "@sentry/rrweb": "2.47.0"
   },
   "dependencies": {
+    "@sentry/browser-utils": "11.19.0",
     "@sentry/replay": "11.19.0",
     "@sentry/core": "11.19.0"
   },

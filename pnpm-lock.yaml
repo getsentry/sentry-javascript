@@ -2080,6 +2080,9 @@ importers:
 
   packages/replay-canvas:
     dependencies:
+      '@sentry/browser-utils':
+        specifier: 11.19.0
+        version: link:../browser-utils
       '@sentry/core':
         specifier: 11.19.0
         version: link:../core
