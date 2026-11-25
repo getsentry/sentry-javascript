@@ -227,6 +227,37 @@ describe('sentryMiddleware', () => {
     });
   });
 
+  it('sets the Astro SDK name on a client that another SDK inited', async () => {
+    const sdk = {
+      name: 'sentry.javascript.cloudflare',
+      packages: [{ name: 'npm:@sentry/cloudflare', version: SentryCore.SDK_VERSION }],
+      version: SentryCore.SDK_VERSION,
+    };
+    vi.spyOn(SentryCore, 'getClient').mockImplementation(
+      () =>
+        ({
+          getOptions: () => ({ _metadata: { sdk } }),
+          getDataCollectionOptions: () => DATA_COLLECTION_DEFAULTS,
+        }) as unknown as Client,
+    );
+    const middleware = handleRequest();
+    const ctx = { ...DYNAMIC_REQUEST_CONTEXT, routePattern: '/users' };
+
+    // @ts-expect-error, a partial ctx object is fine here
+    await middleware(ctx, () => Promise.resolve(new Response('ok')));
+    // @ts-expect-error, a partial ctx object is fine here
+    await middleware(ctx, () => Promise.resolve(new Response('ok')));
+
+    expect(sdk).toEqual({
+      name: 'sentry.javascript.astro',
+      packages: [
+        { name: 'npm:@sentry/astro', version: SentryCore.SDK_VERSION },
+        { name: 'npm:@sentry/cloudflare', version: SentryCore.SDK_VERSION },
+      ],
+      version: SentryCore.SDK_VERSION,
+    });
+  });
+
   it("sets source route if the url couldn't be decoded correctly", async () => {
     const middleware = handleRequest();
     const ctx = {
