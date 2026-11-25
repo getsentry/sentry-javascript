@@ -312,6 +312,7 @@ async function sendBlockEvent(crashedThreadId: string): Promise<void> {
   await transport.flush(2000);
 }
 
+// oxlint-disable-next-line sdk/require-timer-unref -- keeps the watchdog worker thread alive
 setInterval(async () => {
   for (const [threadId, time] of Object.entries(getThreadsLastSeen())) {
     if (time > threshold) {

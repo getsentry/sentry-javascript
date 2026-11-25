@@ -28,6 +28,7 @@ export function watchdogTimer(
   let triggered = false;
   let enabled = true;
 
+  // oxlint-disable-next-line sdk/require-timer-unref -- runs in the ANR worker thread, which this interval keeps alive
   setInterval(() => {
     const diffMs = timer.getTimeMs();
 

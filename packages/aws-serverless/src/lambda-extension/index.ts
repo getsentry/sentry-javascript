@@ -30,6 +30,7 @@ async function main(): Promise<void> {
         throw err;
       }
 
+      // oxlint-disable-next-line sdk/require-timer-unref -- the extension's poll loop has to keep the process alive while it retries
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }

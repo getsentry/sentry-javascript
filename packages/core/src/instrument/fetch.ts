@@ -171,6 +171,7 @@ async function resolveResponse(res: Response | undefined, onFinishedResolving: (
     const responseReader = body.getReader();
 
     // Define a maximum duration after which we just cancel
+    // oxlint-disable-next-line sdk/require-timer-unref -- cancels a stalled body read and is cleared when reading ends
     const maxFetchDurationTimeout = setTimeout(
       () => {
         body.cancel().then(null, () => {
@@ -185,6 +186,7 @@ async function resolveResponse(res: Response | undefined, onFinishedResolving: (
       let chunkTimeout;
       try {
         // abort reading if read op takes more than 5s
+        // oxlint-disable-next-line sdk/require-timer-unref -- cancels a stalled body read and is cleared when the read ends
         chunkTimeout = setTimeout(() => {
           body.cancel().then(null, () => {
             // noop on error

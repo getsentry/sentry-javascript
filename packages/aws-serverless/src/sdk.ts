@@ -108,6 +108,7 @@ function setupTimeoutWarning(context: Context, options: WrapperOptions): NodeJS.
   if (options.captureTimeoutWarning) {
     const timeoutWarningDelay = tryGetRemainingTimeInMillis(context) - options.timeoutWarningLimit;
 
+    // oxlint-disable-next-line sdk/require-timer-unref -- cleared once the handler settles, so it never outlives the invocation
     return setTimeout(() => {
       withScope(scope => {
         scope.setTag('timeout', humanReadableTimeout);

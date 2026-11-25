@@ -76,6 +76,7 @@
     {
       "files": ["**/src/**/*.ts", "**/src/**/*.tsx"],
       "rules": {
+        "sdk/require-timer-unref": "error",
         "sdk/no-unfiltered-url-attributes": "error"
       }
     },

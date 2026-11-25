@@ -192,6 +192,7 @@ async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<v
   if (sentAnrEvents >= options.maxAnrEvents) {
     // Delay for 5 seconds so that stdio can flush if the main event loop ever restarts.
     // This is mainly for the benefit of logging or debugging.
+    // oxlint-disable-next-line sdk/require-timer-unref -- runs in the ANR worker thread and exits it on purpose
     setTimeout(() => {
       process.exit(0);
     }, 5_000);
@@ -233,6 +234,7 @@ if (options.captureStackTrace) {
 
       // Runtime.evaluate may never return if the event loop is blocked indefinitely
       // In that case, we want to send the event anyway
+      // oxlint-disable-next-line sdk/require-timer-unref -- sends the ANR event if the debugger never answers, so it has to fire
       const getScopeTimeout = setTimeout(() => {
         sendAnrEvent(stackFrames).then(null, () => {
           log('Sending ANR event failed.');

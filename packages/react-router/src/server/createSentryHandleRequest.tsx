@@ -130,6 +130,7 @@ export function createSentryHandleRequest(
       });
 
       // Abort the rendering stream after the `streamTimeout`
+      // oxlint-disable-next-line sdk/require-timer-unref -- aborts a render that outlives `streamTimeout`, so it has to be able to fire
       setTimeout(abort, streamTimeout);
     });
   };
