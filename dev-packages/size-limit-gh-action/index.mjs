@@ -49,7 +49,7 @@ async function run() {
   }
 
   const mergedBaseSha = await getMergedBaseSha(octokit);
-  const basePr = mergedBaseSha && (await findBasePr(octokit, mergedBaseSha));
+  const basePr = mergedBaseSha && (await findBasePr(octokit, mergedBaseSha, pr));
   const baseline = await downloadBaseline(octokit, githubToken, { comparisonBranch, basePr });
 
   const hasIncrease = baseline ? getSizeIncreases(baseline.results, current, sizeConfig).length > 0 : false;
@@ -116,27 +116,22 @@ async function getMergedBaseSha(octokit) {
 }
 
 /**
- * Find the open PR this PR is stacked on, if any. With GitHub stacks, a PR is tested on top of its base PR's test merge,
- * whose second parent is the base PR's head. With a plain base branch, the merge base is the base PR's head itself.
+ * Find the open PR this PR is stacked on, and the commit of it that this PR was tested on. With GitHub stacks, a PR is
+ * tested on top of its base PR's test merge, whose second parent is the base PR's head. With a plain base branch, the
+ * merge base is the base PR's head itself. Re-runs keep their original test merge, so the base PR may have moved on
+ * since. Open PRs that contain this PR's head are this PR itself or stacked on top of it.
  */
-async function findBasePr(octokit, mergedBaseSha) {
+async function findBasePr(octokit, mergedBaseSha, pr) {
   try {
     const { data } = await octokit.rest.repos.getCommit({ ...context.repo, ref: mergedBaseSha });
     const candidates = [mergedBaseSha, ...data.parents.slice(1).map(({ sha }) => sha)];
+    const prsAbove = new Set((await listOpenPrsWithCommit(octokit, pr.head.sha)).map(({ number }) => number));
 
     for (const sha of candidates) {
-      const { data: prs } = await octokit.rest.repos.listPullRequestsAssociatedWithCommit({
-        ...context.repo,
-        commit_sha: sha,
-      });
-      const basePr = prs.find(
-        pr =>
-          pr.state === 'open' &&
-          pr.head.sha === sha &&
-          pr.head.repo?.full_name === `${context.repo.owner}/${context.repo.repo}`,
-      );
+      const prs = (await listOpenPrsWithCommit(octokit, sha)).filter(({ number }) => !prsAbove.has(number));
+      const basePr = prs.find(({ head }) => head.sha === sha) ?? prs.find(({ base }) => base.ref === pr.base.ref);
       if (basePr) {
-        return basePr;
+        return { number: basePr.number, sha };
       }
     }
   } catch (error) {
@@ -144,6 +139,13 @@ async function findBasePr(octokit, mergedBaseSha) {
   }
 
   return undefined;
+}
+
+async function listOpenPrsWithCommit(octokit, sha) {
+  const { data } = await octokit.rest.repos.listPullRequestsAssociatedWithCommit({ ...context.repo, commit_sha: sha });
+  return data.filter(
+    pr => pr.state === 'open' && pr.head.repo?.full_name === `${context.repo.owner}/${context.repo.repo}`,
+  );
 }
 
 /**
@@ -155,7 +157,7 @@ async function downloadBaseline(octokit, githubToken, { comparisonBranch, basePr
     let found;
     if (basePr) {
       core.info(`Waiting for the results of base PR #${basePr.number}`);
-      const sha = basePr.head.sha;
+      const { sha } = basePr;
       await waitForSizeCheck(octokit, { workflow: WORKFLOW_FILE, sha, timeoutMs: BASE_PR_WAIT_MS });
       found = await getArtifactForCommit(octokit, { workflow: WORKFLOW_FILE, sha, artifactName: ARTIFACT_NAME });
     } else {
