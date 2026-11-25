@@ -97,12 +97,12 @@ export function maybeEnrichQueueProducerSpan(span: Span): void {
   }
 
   // Extract topic from path: /api/v3/topic/<topic>[/<messageId>]
-  const topicMatch = parsed.pathname.match(/^\/api\/v3\/topic\/([^/]+)/);
-  if (!topicMatch) {
+  const encodedTopic = parsed.pathname.match(/^\/api\/v3\/topic\/([^/]+)/)?.[1];
+  if (!encodedTopic) {
     return;
   }
 
-  const topic = decodeURIComponent(topicMatch[1]!);
+  const topic = decodeURIComponent(encodedTopic);
 
   span.setAttribute(MESSAGING_SYSTEM, 'vercel.queue');
   span.setAttribute(MESSAGING_DESTINATION_NAME, topic);

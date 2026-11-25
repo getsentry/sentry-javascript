@@ -45,8 +45,8 @@ export function filterKeyValueData<T>(
   }
 
   const result: Record<string, T | string> = {};
-  for (const key of Object.keys(data)) {
-    result[key] = shouldFilterDataKey(key, behavior, additionalDenyTerms) ? FILTERED : data[key]!;
+  for (const [key, value] of Object.entries(data)) {
+    result[key] = shouldFilterDataKey(key, behavior, additionalDenyTerms) ? FILTERED : value;
   }
   return result;
 }

@@ -10,5 +10,13 @@
     "typescript/no-base-to-string": "off",
     "typescript/await-thenable": "off"
   },
+  "overrides": [
+    {
+      "files": ["**/src/**"],
+      "rules": {
+        "typescript/no-non-null-assertion": "off"
+      }
+    }
+  ],
   "ignorePatterns": ["bundler-plugin-integration-tests/fixtures/**"]
 }

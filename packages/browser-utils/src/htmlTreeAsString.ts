@@ -15,7 +15,7 @@ type SimpleNode = {
 type AccessorKey = 'parentNode' | 'tagName' | 'id' | 'className' | 'getAttribute' | 'dataset';
 const accessors: Partial<Record<AccessorKey, Function>> = {};
 
-// oxlint-disable typescript/unbound-method
+// oxlint-disable typescript/unbound-method, typescript/no-non-null-assertion -- a missing descriptor throws into the catch below
 try {
   if (typeof Node !== 'undefined') {
     accessors.parentNode = Object.getOwnPropertyDescriptor(Node.prototype, 'parentNode')!.get!;
@@ -33,7 +33,7 @@ try {
   // Polyfilled or stubbed prototypes may not have the expected descriptors.
   // _safeRead falls back to direct property access.
 }
-// oxlint-enable typescript/unbound-method
+// oxlint-enable typescript/unbound-method, typescript/no-non-null-assertion
 
 function _safeRead<T>(el: unknown, prop: AccessorKey, arg?: string): T {
   const fn = accessors[prop];

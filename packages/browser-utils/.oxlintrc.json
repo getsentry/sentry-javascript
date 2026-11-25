@@ -8,8 +8,7 @@
     {
       "files": ["src/metrics/**"],
       "rules": {
-        "typescript/explicit-function-return-type": "off",
-        "typescript/no-non-null-assertion": "off"
+        "typescript/explicit-function-return-type": "off"
       }
     }
   ]
