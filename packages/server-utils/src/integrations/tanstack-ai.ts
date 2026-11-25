@@ -70,7 +70,7 @@ function warnOtelMiddleware(): void {
 /**
  * Traces the `chat()` calls of TanStack AI (`@tanstack/ai` >= 1.0.0 < 2), through the
  * `orchestrion:@tanstack/ai:chat` channel. Each call gets a `gen_ai.invoke_agent` span, with a
- * `gen_ai.chat` span for each model call.
+ * `gen_ai.chat` span for each model call and a `gen_ai.execute_tool` span for each tool run.
  * Needs the Sentry runtime hook (`--import`) or bundler plugin.
  *
  * @example

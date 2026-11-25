@@ -1,5 +1,12 @@
 import type { Span, SpanStatus } from '@sentry/core';
-import { getActiveSpan, SPAN_STATUS_ERROR, startInactiveSpan, stringify } from '@sentry/core';
+import {
+  captureException,
+  getActiveSpan,
+  SPAN_STATUS_ERROR,
+  startInactiveSpan,
+  stringify,
+  withActiveSpan,
+} from '@sentry/core';
 import {
   GEN_AI_AGENT_NAME,
   GEN_AI_CONVERSATION_ID,
@@ -10,9 +17,14 @@ import {
   GEN_AI_RESPONSE_ID,
   GEN_AI_RESPONSE_MODEL,
   GEN_AI_RESPONSE_STREAMING,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DEFINITIONS,
+  GEN_AI_TOOL_DESCRIPTION,
+  GEN_AI_TOOL_NAME,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
 import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
 import type { GenAiOptions } from '../core/utils';
 import { getErrorStatus, getGenAiSpanOp, resolveAIRecordingOptions, setOutputMessagesAttribute } from '../core/utils';
@@ -52,6 +64,7 @@ export function createTanstackAIMiddleware(
   let outputToolCalls: Array<{ id: string; name?: string; arguments: unknown }> = [];
   // `TOOL_CALL_END` has the arguments but not the name, which only `TOOL_CALL_START` has.
   const toolCallNames = new Map<string, string>();
+  const toolSpans = new Map<string, Span>();
 
   const endSpan = (span: Span, status?: SpanStatus): void => {
     if (status) {
@@ -71,6 +84,10 @@ export function createTanstackAIMiddleware(
     if (!agentSpan) {
       return;
     }
+    for (const span of toolSpans.values()) {
+      endSpan(span, status);
+    }
+    toolSpans.clear();
     endChatSpan(status);
     endSpan(agentSpan, status);
     agentSpan = undefined;
@@ -217,6 +234,58 @@ export function createTanstackAIMiddleware(
 
     onUsage(_ctx, usage) {
       chatSpan?.setAttributes(getUsageAttributes(usage));
+    },
+
+    // The guards run after all `onBeforeToolCall` decisions and after the input check, so `args`
+    // are the arguments that the tool gets.
+    onGuardToolCall(ctx, { toolName, toolCallId, args, tool }) {
+      // A client tool runs in the browser, not here.
+      if (!agentSpan || (tool && typeof tool.execute !== 'function')) {
+        return;
+      }
+      toolSpans.set(
+        toolCallId,
+        startInactiveSpan({
+          name: `execute_tool ${toolName}`,
+          op: getGenAiSpanOp('execute_tool'),
+          parentSpan: agentSpan,
+          attributes: {
+            [SENTRY_ORIGIN]: TANSTACK_AI_ORIGIN,
+            [GEN_AI_OPERATION_NAME]: 'execute_tool',
+            [GEN_AI_TOOL_NAME]: toolName,
+            [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: toolCallId,
+            [GEN_AI_CONVERSATION_ID]: ctx.threadId,
+            [GEN_AI_TOOL_DESCRIPTION]: tool?.description,
+            ...(recordInputs ? { [GEN_AI_TOOL_CALL_ARGUMENTS]: stringify(args) } : {}),
+          },
+        }),
+      );
+    },
+
+    onAfterToolCall(ctx, { toolCallId, ok, result, error }) {
+      const span = toolSpans.get(toolCallId);
+      if (!span) {
+        return;
+      }
+      toolSpans.delete(toolCallId);
+
+      if (recordOutputs && ok && result !== undefined) {
+        span.setAttribute(GEN_AI_TOOL_CALL_RESULT, typeof result === 'string' ? result : stringify(result));
+      }
+      if (ok) {
+        endSpan(span);
+        return;
+      }
+      // TanStack fails each tool that did not start yet with an `Operation aborted` error.
+      const status = getErrorStatus(ctx.signal);
+      if (status.message === 'internal_error') {
+        // TanStack gives a tool failure back to the model as the tool result, so the error handlers
+        // of the app never see it. The run continues, so the error counts as handled.
+        withActiveSpan(span, () => {
+          captureException(error, { mechanism: { type: TANSTACK_AI_ORIGIN, handled: true } });
+        });
+      }
+      endSpan(span, status);
     },
 
     onFinish() {
