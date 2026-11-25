@@ -10,10 +10,10 @@ export const MONGOOSE_UNSUPPORTED = 'Cloudflare: Nitro cannot bundle the `mongod
 
 export const SERVER_ORIGIN = RUNTIME === 'cloudflare' ? 'auto.http.cloudflare' : 'auto.http.http_server';
 
-// The Cloudflare variant builds without `sentry.server.config.ts`, as the Cloudflare setup of `@sentry/nuxt` documents.
-// The module adds the db0, storage, cache and middleware instrumentation only with that file.
-export const NO_SERVER_CONFIG_INSTRUMENTATION =
-  'Cloudflare: `@sentry/nuxt` instruments db0, storage, cache and middleware only with a `sentry.server.config.ts`';
+// On Cloudflare, the databases are D1 databases. `@sentry/cloudflare` creates the spans of their queries, and
+// `@sentry/nuxt` leaves them out of its database instrumentation.
+export const DB_SYSTEM_NAME = RUNTIME === 'cloudflare' ? 'cloudflare-d1' : 'sqlite';
+export const DB_ORIGIN = RUNTIME === 'cloudflare' ? 'auto.db.cloudflare.d1' : 'auto.db.nuxt';
 
 /** The command and arguments that start the built server on the runtime of the variant. */
 export function getServerCommand(preload?: string): [string, string[]] {
