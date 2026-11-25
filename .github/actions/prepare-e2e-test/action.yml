@@ -15,6 +15,12 @@ inputs:
   deno-version:
     description: 'The Deno version to install, if the application needs Deno.'
     default: 'v2.8.3'
+  build-lambda-layer:
+    description: 'Build the Lambda layer locally from the central SDK build instead of downloading its ZIP.'
+    default: 'false'
+  dependency-cache-key:
+    description: 'Workspace dependency cache key, required when building the Lambda layer locally.'
+    default: ''
   artifacts-run-id:
     description: 'The workflow run that uploaded the tarball artifacts. Defaults to the current run.'
     default: ''
@@ -50,6 +56,18 @@ runs:
     - name: Install pnpm
       uses: ./.github/actions/install-pnpm
 
+    - name: Restore SDK build and dependencies for Lambda layer
+      if: inputs.build-lambda-layer == 'true'
+      uses: ./.github/actions/restore-cache
+      with:
+        dependency_cache_key: ${{ inputs.dependency-cache-key }}
+
+    - name: Build Lambda layer locally
+      if: inputs.build-lambda-layer == 'true'
+      # The central build already compiled the SDK; call the package script without rerunning Nx dependencies.
+      run: pnpm --filter @sentry/aws-serverless run build:layer
+      shell: bash
+
     # upload-artifact strips the path through the first `*`, so the tarballs are stored as <pkg>/*.tgz and have to be
     # downloaded into packages/.
     - name: Restore tarball artifacts
@@ -69,7 +87,7 @@ runs:
         github-token: ${{ inputs.github-token }}
 
     - name: Restore build layer artifacts
-      if: inputs.test-application == 'aws-serverless-layer'
+      if: inputs.test-application == 'aws-serverless-layer' && inputs.build-lambda-layer != 'true'
       uses: actions/download-artifact@v8
       with:
         name: build-layer-output

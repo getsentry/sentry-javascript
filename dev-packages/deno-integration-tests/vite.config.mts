@@ -12,7 +12,7 @@ export default defineConfig({
     ...baseConfig.test,
     root: fileURLToPath(new URL('../node-integration-tests', import.meta.url)),
     isolate: false,
-    include: ['suites/**/test.ts'],
+    include: ['suites/**/test.ts', 'suites/**/*.test.ts'],
     exclude: NODE_SUITES_EXCLUDE,
     env: {
       RUNTIME: 'deno',

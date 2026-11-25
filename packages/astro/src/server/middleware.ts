@@ -36,13 +36,10 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
   filterCollectedUrl,
+  filterCollectedUrlFragment,
   filterCollectedUrlQuery,
 } from '@sentry/core';
-import {
-  flushIfServerless,
-  _INTERNAL_getCacheOriginMetaTags,
-  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-} from '@sentry/core/server';
+import { flushIfServerless, _INTERNAL_getCacheOriginMetaTags, handleServedTunnelRequest } from '@sentry/core/server';
 import { setHttpServerSpanRouteAttribute } from '@sentry/server-utils';
 import type { APIContext, MiddlewareHandler, MiddlewareNext, RoutePart } from 'astro';
 
@@ -233,7 +230,7 @@ async function instrumentRequestStartHttpServerSpan(
           }
 
           attributes[URL_QUERY] = filterCollectedUrlQuery(getUrlQuery(ctx.url.search));
-          attributes[URL_FRAGMENT] = getUrlFragment(ctx.url.hash);
+          attributes[URL_FRAGMENT] = filterCollectedUrlFragment(getUrlFragment(ctx.url.hash));
 
           const transactionName = `${method} ${parametrizedRoute || ctx.url.pathname}`;
 

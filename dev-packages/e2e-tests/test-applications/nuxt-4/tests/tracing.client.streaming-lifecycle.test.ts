@@ -1,9 +1,18 @@
+import { URL_FULL } from '@sentry/conventions/attributes';
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForStreamedSpan,
+  waitForStreamedSpans,
+} from '@sentry-internal/test-utils';
+import { isViteServer } from './isViteServer';
 
 test('sends a pageload root span with a parameterized URL', async ({ page }) => {
   const pageloadSpanPromise = waitForStreamedSpan('nuxt-4', span => {
-    return getSpanOp(span) === 'pageload' && span.is_segment;
+    return (
+      getSpanOp(span) === 'pageload' && span.is_segment && span.attributes['url.path']?.value === '/test-param/1234'
+    );
   });
 
   await page.goto(`/test-param/1234`);
@@ -123,4 +132,28 @@ test('sends component tracking spans when `trackComponents` is enabled', async (
       'sentry.description': { type: 'string', value: 'Vue <ErrorButton>' },
     }),
   });
+});
+
+// Nuxt fetches its build manifest in the browser, for example to find prerendered pages. A span for it can prolong the pageload.
+test('does not send a span for the build manifest request', async ({ page }) => {
+  test.skip(isViteServer, 'The Vite server builds no app manifest when it prerenders no routes');
+
+  const httpClientUrls: string[] = [];
+  const dataRequestSpanPromise = waitForStreamedSpans('nuxt-4', spans => {
+    httpClientUrls.push(
+      ...spans.filter(span => getSpanOp(span) === 'http.client').map(span => `${span.attributes[URL_FULL]?.value}`),
+    );
+    return httpClientUrls.some(url => url.includes('/api/test-param/build-manifest'));
+  });
+  const manifestResponsePromise = page.waitForResponse(response => response.url().includes('/_nuxt/builds/meta/'));
+
+  await page.goto('/test-param/build-manifest');
+  // Only fetches the manifest if Nuxt has not fetched it already.
+  await page.getByText('Fetch App Manifest').click();
+  await manifestResponsePromise;
+  // A manifest span would arrive before the span of this later request.
+  await page.getByText('Fetch Server Data').click();
+  await dataRequestSpanPromise;
+
+  expect(httpClientUrls).not.toContainEqual(expect.stringContaining('/_nuxt/builds/'));
 });

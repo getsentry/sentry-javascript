@@ -28,12 +28,19 @@ export default Sentry.withSentry(
     rpcTracePropagationBindings: ['MY_DURABLE_OBJECT'],
   }),
   {
-    async fetch(request, env) {
+    async fetch(request, env, ctx) {
       const url = new URL(request.url);
 
       if (url.pathname === '/queue/send') {
         await env.MY_QUEUE.send({ action: 'test' });
         return new Response('Queued');
+      }
+
+      if (url.pathname === '/ctx-exports') {
+        const namespace = (ctx as unknown as { exports: { MyDurableObject: DurableObjectNamespace } }).exports
+          .MyDurableObject;
+        const response = await namespace.getByName('test').fetch(new Request('http://fake-host/hello'));
+        return new Response(await response.text());
       }
 
       const id = env.MY_DURABLE_OBJECT.idFromName('test');

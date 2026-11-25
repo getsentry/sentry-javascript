@@ -18,7 +18,7 @@
     "astro": "^5.17.1"
   },
   "devDependencies": {
-    "@sentry/conventions": "0.34.0",
+    "@sentry/conventions": "0.36.0",
     "wrangler": "^4.63.0"
   }
 }

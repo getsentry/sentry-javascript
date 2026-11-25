@@ -9,12 +9,9 @@ export { init } from './sdk';
 export { wrapFetchWithSentry } from './wrapFetchWithSentry';
 export { wrapMiddlewaresWithSentry } from './middleware';
 export { sentryGlobalRequestMiddleware, sentryGlobalFunctionMiddleware } from './globalMiddleware';
+// Prefixed because only the code the Vite plugin injects imports it.
 export { addReleaseMetaTag as _INTERNAL_addReleaseMetaTag } from './releaseMetaTag';
-export {
-  createSentryTunnelRoute,
-  registerSentryServerTunnelRoute,
-  setTunnelRoute as _INTERNAL_setTunnelRoute,
-} from './tunnelRoute';
+export { createSentryTunnelRoute, registerSentryServerTunnelRoute, setTunnelRoute } from './tunnelRoute';
 
 /**
  * A no-op stub of the replay integration for the server. Router setup code is shared between client and server,

@@ -1,14 +1,12 @@
 // @ts-check
 import * as Sentry from '@sentry/effect';
-import * as Logger from 'effect/Logger';
 import * as Layer from 'effect/Layer';
 import * as ManagedRuntime from 'effect/ManagedRuntime';
-import * as Tracer from 'effect/Tracer';
 import * as References from 'effect/References';
 import * as Effect from 'effect/Effect';
 
 const AppLayer = Layer.mergeAll(
-  Sentry.effectLayer({
+  Sentry.layer({
     dsn: process.env.E2E_TEST_DSN,
     integrations: [Sentry.browserTracingIntegration(), Sentry.interactionsIntegration()],
     tracesSampleRate: 1.0,
@@ -16,8 +14,8 @@ const AppLayer = Layer.mergeAll(
     environment: 'qa',
     tunnel: 'http://localhost:3031',
   }),
-  Logger.layer([Sentry.SentryEffectLogger]),
-  Layer.succeed(Tracer.Tracer, Sentry.SentryEffectTracer),
+  Sentry.layerLogger,
+  Sentry.layerTracer,
   Layer.succeed(References.MinimumLogLevel, 'Debug'),
 );
 

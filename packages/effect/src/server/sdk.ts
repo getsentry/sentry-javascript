@@ -1,11 +1,11 @@
 import type { Client, Integration } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
 import { contextLinesIntegration, init as initNode, linkedErrorsIntegration } from '@sentry/node';
 
 /**
  * Only the integrations needed to enrich captured errors with source context and `cause` chains.
- * Node's auto-instrumentation defaults are left out because `SentryEffectTracer` records Effect's own spans.
+ * Node's auto-instrumentation defaults are left out because `Tracer` records Effect's own spans.
  */
 export function getDefaultIntegrations(): Integration[] {
   return [contextLinesIntegration(), linkedErrorsIntegration()];
@@ -19,7 +19,7 @@ export function getDefaultIntegrations(): Integration[] {
  */
 export function init(options: NodeOptions): Client | undefined {
   const opts = {
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
     defaultIntegrations: options.defaultIntegrations ?? getDefaultIntegrations(),
   };
 

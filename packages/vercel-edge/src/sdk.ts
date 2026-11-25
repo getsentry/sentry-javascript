@@ -1,7 +1,7 @@
 import { diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import type { Client, Integration } from '@sentry/core';
 import {
-  _INTERNAL_warnIfClientIsActive,
+  _INTERNAL_captureOptionsSetByUser,
   consoleIntegration,
   conversationIdIntegration,
   createStackParser,
@@ -16,6 +16,7 @@ import {
   linkedErrorsIntegration,
   requestDataIntegration,
   stackParserFromStackParserOptions,
+  warnIfClientIsActive,
 } from '@sentry/core';
 import { _INTERNAL_getReleaseFromCommitEnv as getReleaseFromCommitEnv, nodeStackLineParser } from '@sentry/core/server';
 import {
@@ -49,7 +50,9 @@ export function getDefaultIntegrations(): Integration[] {
 }
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
-export function init(options: VercelEdgeOptions = {}): Client {
+export function init(userOptions: VercelEdgeOptions = {}): Client {
+  const options = _INTERNAL_captureOptionsSetByUser(userOptions);
+
   setOpenTelemetryContextAsyncContextStrategy();
 
   const scope = getCurrentScope();
@@ -81,7 +84,7 @@ export function init(options: VercelEdgeOptions = {}): Client {
 
   options.traceLifecycle = options.traceLifecycle ?? getTraceLifecycleFromEnv(process.env.SENTRY_TRACE_LIFECYCLE);
 
-  _INTERNAL_warnIfClientIsActive();
+  warnIfClientIsActive();
 
   const client = new VercelEdgeClient({
     ...options,

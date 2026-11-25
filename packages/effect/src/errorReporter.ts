@@ -1,78 +1,80 @@
 import type { SeverityLevel } from '@sentry/core';
 import { captureException, isObjectLike } from '@sentry/core';
-import * as Effect from 'effect';
 import type * as Cause from 'effect/Cause';
+import * as Effect from 'effect/Effect';
 import type * as EffectErrorReporter from 'effect/ErrorReporter';
-import type * as EffectLayer from 'effect/Layer';
-import { empty as emptyLayer } from 'effect/Layer';
-import type * as LogLevel from 'effect/LogLevel';
+import * as Layer from 'effect/Layer';
+import { contextExports, isEffectV4 } from './compat';
 
-// `effect/ErrorReporter` only exists in Effect v4, so it is read off the main entry instead of being imported
-// as a subpath. On Effect v3 the lookup yields `undefined` and no reporter is registered. The property is read
-// with `Reflect.get` because bundlers fail the build on `Effect.ErrorReporter` when the export is absent, and
-// an aliased property read gets folded back into exactly that member access by our own build.
-const ErrorReporter = Reflect.get(Effect, 'ErrorReporter') as typeof EffectErrorReporter | undefined;
+// `effect/ErrorReporter` only exists in Effect v4. Importing it fails Effect v3 builds, and reading it off the
+// `effect` main entry bundles all of Effect, so the reporter uses the string keys of that API. The types make a
+// changed key fail type checking.
+const TYPE_ID: EffectErrorReporter.TypeId = '~effect/ErrorReporter';
+const IGNORE: EffectErrorReporter.ignore = '~effect/ErrorReporter/ignore';
+const SEVERITY: EffectErrorReporter.severity = '~effect/ErrorReporter/severity';
+const ATTRIBUTES: EffectErrorReporter.attributes = '~effect/ErrorReporter/attributes';
 
-const SEVERITY_TO_LEVEL: Record<LogLevel.Severity, SeverityLevel> = {
-  Fatal: 'fatal',
-  Error: 'error',
-  Warn: 'warning',
-  Info: 'info',
-  Debug: 'debug',
-  Trace: 'debug',
+/**
+ * Reference to the reporters that Effect calls for a reported failure. Effect looks up references by key, so it
+ * resolves to the same entry as `ErrorReporter.CurrentErrorReporters`. `undefined` on Effect v3.
+ */
+const CurrentErrorReporters = isEffectV4
+  ? contextExports.Reference<ReadonlySet<EffectErrorReporter.ErrorReporter>>(
+      'effect/ErrorReporter/CurrentErrorReporters',
+      { defaultValue: () => new Set() },
+    )
+  : undefined;
+
+// Only an explicit severity annotation changes the level. Effect's own `getSeverity` falls back to `Info`, which
+// would file plain failures as informational in Sentry.
+const SEVERITY_TO_LEVEL = new Map<unknown, SeverityLevel>([
+  ['Fatal', 'fatal'],
+  ['Error', 'error'],
+  ['Warn', 'warning'],
+  ['Info', 'info'],
+  ['Debug', 'debug'],
+  ['Trace', 'debug'],
+]);
+
+const reported = new WeakSet<object>();
+
+/**
+ * One instance for every Sentry layer, so the reporters set holds it once even when the layer is provided twice.
+ */
+const sentryErrorReporter: EffectErrorReporter.ErrorReporter = {
+  [TYPE_ID]: TYPE_ID,
+  report({ cause }: { readonly cause: Cause.Cause<unknown> }): void {
+    if (reported.has(cause)) {
+      return;
+    }
+    reported.add(cause);
+
+    for (const reason of cause.reasons) {
+      if (reason._tag === 'Interrupt') {
+        continue;
+      }
+
+      // The raw error is captured rather than Effect's pretty-printed copy so Sentry sees the original stack,
+      // `cause` chain and error class.
+      const error = reason._tag === 'Fail' ? reason.error : reason.defect;
+
+      if (isObjectLike(error)) {
+        if (reported.has(error) || error[IGNORE] === true) {
+          continue;
+        }
+        reported.add(error);
+      }
+
+      captureException(error, {
+        mechanism: { type: 'auto.function.effect.error_reporter', handled: false },
+        captureContext: {
+          level: (isObjectLike(error) && SEVERITY_TO_LEVEL.get(error[SEVERITY])) || 'error',
+          extra: isObjectLike(error) ? { ...(error[ATTRIBUTES] as Record<string, unknown> | undefined) } : undefined,
+        },
+      });
+    }
+  },
 };
-
-function getLevel(errorReporter: typeof EffectErrorReporter, error: unknown): SeverityLevel {
-  // Effect's `getSeverity` falls back to `Info` for unannotated errors, which would file plain failures as
-  // informational in Sentry. Only an explicit annotation changes the level.
-  if (isObjectLike(error) && errorReporter.severity in error) {
-    return SEVERITY_TO_LEVEL[errorReporter.getSeverity(error)];
-  }
-  return 'error';
-}
-
-function makeSentryErrorReporter(errorReporter: typeof EffectErrorReporter): EffectErrorReporter.ErrorReporter {
-  const reported = new WeakSet<object>();
-
-  return {
-    [errorReporter.TypeId]: errorReporter.TypeId,
-    report({ cause }: { readonly cause: Cause.Cause<unknown> }): void {
-      if (reported.has(cause)) {
-        return;
-      }
-      reported.add(cause);
-
-      for (const reason of cause.reasons) {
-        if (reason._tag === 'Interrupt') {
-          continue;
-        }
-
-        // The raw error is captured rather than Effect's pretty-printed copy so Sentry sees the original stack,
-        // `cause` chain and error class.
-        const error = reason._tag === 'Fail' ? reason.error : reason.defect;
-
-        if (isObjectLike(error)) {
-          if (reported.has(error)) {
-            continue;
-          }
-          reported.add(error);
-        }
-
-        if (errorReporter.isIgnored(error)) {
-          continue;
-        }
-
-        captureException(error, {
-          mechanism: { type: 'auto.function.effect.error_reporter', handled: false },
-          captureContext: {
-            level: getLevel(errorReporter, error),
-            extra: isObjectLike(error) ? { ...errorReporter.getAttributes(error) } : undefined,
-          },
-        });
-      }
-    },
-  };
-}
 
 /**
  * Registers a Sentry `ErrorReporter` for `Effect.withErrorReporting`, `ErrorReporter.report` and the
@@ -80,10 +82,17 @@ function makeSentryErrorReporter(errorReporter: typeof EffectErrorReporter): Eff
  *
  * Effect v3 has no `ErrorReporter` API, so the returned layer is empty there.
  */
-export function makeSentryErrorReporterLayer(): EffectLayer.Layer<never, never, never> {
-  if (!ErrorReporter) {
-    return emptyLayer;
+export function makeSentryErrorReporterLayer(): Layer.Layer<never> {
+  if (!CurrentErrorReporters) {
+    return Layer.empty;
   }
 
-  return ErrorReporter.layer([makeSentryErrorReporter(ErrorReporter)], { mergeWithExisting: true });
+  return Layer.effect(
+    CurrentErrorReporters,
+    Effect.gen(function* () {
+      const reporters = new Set(yield* CurrentErrorReporters);
+      reporters.add(sentryErrorReporter);
+      return reporters;
+    }),
+  );
 }

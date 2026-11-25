@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, type Mock, test, vi } from 'vitest';
 import type { Client } from '../../src/client';
+import { isClientClosed } from '../../src/client';
 import { getClient, getCurrentScope, withScope } from '../../src/currentScopes';
 import { close } from '../../src/exports';
 import { captureCheckIn } from '../../src/monitor';
 import { installedIntegrations } from '../../src/integration';
 import { originalConsoleMethods } from '../../src/utils/debug-logger';
-import { getActiveClient, initAndBind, setCurrentClient } from '../../src/sdk';
+import { initAndBind, setCurrentClient } from '../../src/sdk';
 import type { Integration } from '../../src/types/integration';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
@@ -158,42 +159,38 @@ describe('SDK', () => {
   });
 });
 
-describe('getActiveClient', () => {
+describe('isClientClosed', () => {
   beforeEach(() => {
     global.__SENTRY__ = {};
   });
 
-  test('returns the bound client', () => {
+  test('returns false for a client that was not closed', () => {
     const client = initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
 
-    expect(getActiveClient()).toBe(client);
+    expect(isClientClosed(client)).toBe(false);
   });
 
-  test('returns undefined when no client is bound', () => {
-    expect(getActiveClient()).toBeUndefined();
-  });
-
-  test('returns undefined for a closed client that is still bound', async () => {
+  test('returns true for a closed client that is still bound', async () => {
     const client = initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
     await client.close();
 
     expect(getClient()).toBe(client);
-    expect(getActiveClient()).toBeUndefined();
+    expect(isClientClosed(client)).toBe(true);
   });
 
-  test('returns undefined for a client that is still closing', () => {
+  test('returns true for a client that is still closing', () => {
     const client = initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
     void client.close();
 
-    expect(getActiveClient()).toBeUndefined();
+    expect(isClientClosed(client)).toBe(true);
   });
 
-  test('returns undefined for a client that was closed twice', async () => {
+  test('returns true for a client that was closed twice', async () => {
     const client = initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
     await client.close();
     await client.close();
 
-    expect(getActiveClient()).toBeUndefined();
+    expect(isClientClosed(client)).toBe(true);
   });
 
   test('sees a client closed through another copy of the SDK as closed', async () => {
@@ -206,10 +203,10 @@ describe('getActiveClient', () => {
     expect(otherCopy.isClientClosed(client)).toBe(true);
   });
 
-  test('returns a client that was created with enabled: false', () => {
+  test('returns false for a client that was created with enabled: false', () => {
     const client = initAndBind(TestClient, getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enabled: false }));
 
-    expect(getActiveClient()).toBe(client);
+    expect(isClientClosed(client)).toBe(false);
   });
 });
 

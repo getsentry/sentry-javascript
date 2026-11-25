@@ -16,6 +16,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { createTestServer } from '@sentry-internal/test-utils';
 import { afterAll, describe, expect } from 'vitest';
+import { LOOPBACK_ADDRESS } from '../../../../utils/assertions';
 import { cleanupChildProcesses, createCjsTests } from '../../../../utils/runner';
 import { supports } from '../../../../utils';
 
@@ -53,7 +54,7 @@ describe.runIf(supports({ bunMin: '1.4.0' }))('outgoing http spans - strip query
                 [HTTP_RESPONSE_STATUS_CODE]: { type: 'integer', value: 200 },
                 [HTTP_RESPONSE_BODY_SIZE]: { type: 'integer', value: 0 },
                 [HTTP_RESPONSE_STATUS_TEXT]: { type: 'string', value: 'OK' },
-                [NETWORK_PEER_ADDRESS]: { type: 'string', value: '::1' },
+                [NETWORK_PEER_ADDRESS]: { type: 'string', value: LOOPBACK_ADDRESS },
                 [SERVER_ADDRESS]: { type: 'string', value: 'localhost' },
                 [NETWORK_PEER_PORT]: { type: 'integer', value: expect.any(Number) },
                 [NETWORK_TRANSPORT]: { type: 'string', value: 'tcp' },

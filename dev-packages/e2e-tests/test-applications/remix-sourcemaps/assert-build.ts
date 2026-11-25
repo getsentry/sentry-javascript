@@ -1,7 +1,14 @@
 import * as assert from 'assert/strict';
 import * as fs from 'fs';
 import * as path from 'path';
-import { assertSourceMapUpload } from '@sentry-internal/test-utils';
+import {
+  assertSourceMapUpload,
+  findInjectedDebugIds,
+  findSourceMapFiles,
+  findSourceMappingUrlComments,
+  getChunkUploadPosts,
+  loadMockServerResults,
+} from '@sentry-internal/test-utils';
 
 const BUILD_DIR = 'build';
 const CLIENT_OUTPUT = path.join(BUILD_DIR, 'client');
@@ -39,13 +46,52 @@ for (const chunk of chunks) {
 }
 console.log(`no client chunk carries more than one debug ID (${chunks.length} chunks)\n`);
 
-// The plugin defaults `filesToDeleteAfterUpload` when the app configures no source map setting. Remix
-// runs a client and an SSR pass with different `outDir`s, while the deletion glob is held in a promise
-// that settles once, so a leftover `.map` means the second pass was left behind.
-assertSourceMapUpload({
-  outputDirs: [CLIENT_OUTPUT, SERVER_OUTPUT],
-  strippedDirs: [BUILD_DIR],
-  markers: { 'client source': 'SOURCEMAP_MARKER_CLIENT', 'server source': 'SOURCEMAP_MARKER_SERVER' },
-});
+// The SDK turns on hidden source maps when the app sets none, and asks the bundler plugin to
+// remove them from both the client and the SSR output, also when no upload runs.
+if (process.env.E2E_NO_UPLOAD) {
+  // The mock server only writes its results file when a request reaches it.
+  const requests = fs.existsSync('.tmp_mock_uploads.json') ? loadMockServerResults() : [];
+  assert.deepEqual(getChunkUploadPosts(requests), [], 'Expected no source map upload');
+  assert.deepEqual(findSourceMapFiles({ outputDir: BUILD_DIR }), [], `Expected no source maps in ${BUILD_DIR}`);
+  assert.deepEqual(
+    findSourceMappingUrlComments({ outputDir: BUILD_DIR }),
+    [],
+    `Expected no sourceMappingURL comments in ${BUILD_DIR}`,
+  );
+} else if (process.env.E2E_VARIANT === 'manual-upload') {
+  // `upload: false` with `delete: false`: nothing reaches Sentry, and the hidden maps Sentry turned on
+  // stay with the debug IDs of their chunks, ready for an upload with the CLI.
+  assert.deepEqual(getChunkUploadPosts(loadMockServerResults()), [], 'Expected no source map upload');
+  assert.deepEqual(
+    findSourceMappingUrlComments({ outputDir: BUILD_DIR }),
+    [],
+    `Expected no sourceMappingURL comments in ${BUILD_DIR}`,
+  );
+
+  for (const outputDir of [CLIENT_OUTPUT, SERVER_OUTPUT]) {
+    const mapDebugIds = new Set(
+      findSourceMapFiles({ outputDir }).map(file => {
+        const map = JSON.parse(fs.readFileSync(file, 'utf-8')) as { debug_id?: string; debugId?: string };
+        return (map.debug_id ?? map.debugId)?.toLowerCase();
+      }),
+    );
+    const injectedDebugIds = findInjectedDebugIds({ outputDir });
+
+    assert.ok(injectedDebugIds.length > 0, `Expected debug IDs to be injected into ${outputDir}`);
+    assert.deepEqual(
+      injectedDebugIds.filter(debugId => !mapDebugIds.has(debugId)),
+      [],
+      `Expected a source map with the same debug ID for every chunk in ${outputDir}`,
+    );
+    console.log(`  ${outputDir}: ${injectedDebugIds.length} debug ID(s), each with a kept source map`);
+  }
+} else {
+  // Also covers the `delete-all` variant: the maps the app turned on are uploaded and removed.
+  assertSourceMapUpload({
+    outputDirs: [CLIENT_OUTPUT, SERVER_OUTPUT],
+    strippedDirs: [BUILD_DIR],
+    markers: { 'client source': 'SOURCEMAP_MARKER_CLIENT', 'server source': 'SOURCEMAP_MARKER_SERVER' },
+  });
+}
 
 console.log('All sourcemap assertions passed!');

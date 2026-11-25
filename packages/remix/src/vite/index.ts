@@ -1,7 +1,9 @@
+import { resolveSourceMapsFeatures } from '@sentry/core';
 import type { Plugin } from 'vite';
 import { makeOrchestrionPlugin } from './orchestrionPlugin';
 import { makeReleasePlugin } from './releasePlugin';
 import { makeRouteManifestPlugin } from './routeManifestPlugin';
+import type { SourceMapState } from './sourceMaps';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsPlugin } from './sourceMaps';
 import type { SentryRemixVitePluginOptions } from './types';
 
@@ -44,22 +46,26 @@ export function sentryRemixVitePlugin(options: SentryRemixVitePluginOptions = {}
     return plugins;
   }
 
+  const sourceMapState: SourceMapState = { sdkEnabledSourceMaps: false };
+
+  // `'disable-upload'` still generates them - debug IDs are injected and the user uploads by hand.
+  //
+  // Order matters: the bundler plugin decides on the `build.sourcemap` it finds in its own
+  // `config` hook, so this plugin has to set it first.
+  if (resolveSourceMapsFeatures(options.sourcemaps).legacyDisable !== true) {
+    plugins.push(makeEnableSourceMapsPlugin(options, sourceMapState));
+  }
+
   // Added even when source maps are disabled: the bundler plugin also applies bundle size
   // optimizations, module metadata, the application key and release management, and it already
   // skips the upload itself.
-  //
-  // Order matters: Vite passes the already-merged config to every `config` hook, so the deletion
-  // plugin has to read `build.sourcemap` before `makeEnableSourceMapsPlugin` sets it to 'hidden'.
   if (options.release?.inject !== false) {
-    plugins.push(...makeAddSentryVitePlugin({ ...options, release: { ...options.release, inject: false } }));
+    plugins.push(
+      ...makeAddSentryVitePlugin({ ...options, release: { ...options.release, inject: false } }, sourceMapState),
+    );
     plugins.push(makeReleasePlugin(options));
   } else {
-    plugins.push(...makeAddSentryVitePlugin(options));
-  }
-
-  // `'disable-upload'` still generates them - debug IDs are injected and the user uploads by hand.
-  if (options.sourcemaps?.disable !== true) {
-    plugins.push(makeEnableSourceMapsPlugin(options));
+    plugins.push(...makeAddSentryVitePlugin(options, sourceMapState));
   }
 
   return plugins;

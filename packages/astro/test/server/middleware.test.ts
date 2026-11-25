@@ -38,7 +38,7 @@ describe('sentryMiddleware with the managed tunnel', () => {
     const getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue({} as Client);
     const tunnelResponse = new Response('forwarded');
     const matcherSpy = vi
-      .spyOn(SentryCoreServer, '_INTERNAL_handleServedTunnelRequest')
+      .spyOn(SentryCoreServer, 'handleServedTunnelRequest')
       .mockReturnValue(Promise.resolve(tunnelResponse));
     const next = vi.fn();
     const request = new Request('https://myDomain.io/abc123', { method: 'POST' });

@@ -265,6 +265,65 @@ describe('configureSourcemapSettings', () => {
 
     expect(config.sourcemap).toBe('hidden');
   });
+
+  it.each([
+    [{ upload: false }, undefined, false],
+    [{ injectDebugIds: false }, undefined, false],
+    [{ upload: false, delete: true }, undefined, false],
+    [{ injectDebugIds: false, delete: false }, undefined, false],
+    [{ upload: false, delete: false }, 'hidden', true],
+    [{ delete: false }, 'hidden', true],
+    [{ delete: true }, 'hidden', true],
+    [{ disable: true, upload: true }, 'hidden', true],
+  ] as const)('with an unset setting and `sourcemaps: %j` it sets %s', (sourcemaps, expected, sentryEnabled) => {
+    const config: NitroConfig = {};
+    const result = configureSourcemapSettings(config, { sourcemaps });
+
+    expect(config.sourcemap).toBe(expected);
+    expect(result.sentryEnabledSourcemaps).toBe(sentryEnabled);
+    expect(config.experimental?.sourcemapMinify).toBe(false);
+  });
+
+  it('does not warn about `sourcemap: false` when Sentry uploads nothing', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    configureSourcemapSettings({ sourcemap: false }, { sourcemaps: { upload: false } });
+
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+});
+
+describe('getPluginOptions with the new source map options', () => {
+  it('passes `upload` and `injectDebugIds` through', () => {
+    const result = getPluginOptions({ sourcemaps: { upload: false, injectDebugIds: true } });
+
+    expect(result.sourcemaps).toMatchObject({ upload: false, injectDebugIds: true });
+  });
+
+  it.each([
+    ['deletes every source map with `delete: true`', { delete: true }, false, ['/output/server/**/*.map']],
+    [
+      'deletes the user files next to the source maps with `delete: true`',
+      { delete: true, filesToDeleteAfterUpload: ['extra/**'] },
+      false,
+      ['/output/server/**/*.map', 'extra/**'],
+    ],
+    ['keeps the source maps Sentry enabled with `delete: false`', { delete: false }, true, undefined],
+    [
+      'deletes only the user files with `delete: false`',
+      { delete: false, filesToDeleteAfterUpload: ['extra/**'] },
+      true,
+      ['extra/**'],
+    ],
+  ] as const)('%s', (_label, sourcemaps, sentryEnabled, expected) => {
+    const result = getPluginOptions(
+      { sourcemaps: { ...sourcemaps, filesToDeleteAfterUpload: sourcemaps.filesToDeleteAfterUpload?.slice() } },
+      sentryEnabled,
+      '/output/server',
+    );
+
+    expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(expected);
+  });
 });
 
 describe('setupSentryNitroModule', () => {
@@ -293,6 +352,22 @@ describe('setupSentryNitroModule', () => {
 });
 
 describe('setupSourceMaps', () => {
+  // The plugin manager does not get `sourcemaps.delete`.
+  it('warns about conflicting source map options', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const nitro = {
+      options: { dev: true, output: { serverDir: '/output/server' } },
+      hooks: { hook: vi.fn() },
+    } as any;
+
+    setupSourceMaps(nitro, { sourcemaps: { delete: false, filesToDeleteAfterUpload: ['.output/**/*.map'] } });
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('`sourcemaps.filesToDeleteAfterUpload` still deletes the files'),
+    );
+    warnSpy.mockRestore();
+  });
+
   it('does not register hook in dev mode', () => {
     const hookFn = vi.fn();
     const nitro = {
@@ -317,7 +392,7 @@ describe('setupSourceMaps', () => {
     expect(hookFn).not.toHaveBeenCalled();
   });
 
-  it('does not register hook when nitro sourcemap is disabled', () => {
+  it('registers the hook for the release when nitro sourcemap is disabled', () => {
     const hookFn = vi.fn();
     const nitro = {
       options: { dev: false, sourcemap: false, output: { serverDir: '/output/server' } },
@@ -326,7 +401,7 @@ describe('setupSourceMaps', () => {
 
     setupSourceMaps(nitro);
 
-    expect(hookFn).not.toHaveBeenCalled();
+    expect(hookFn).toHaveBeenCalledWith('compiled', expect.any(Function));
   });
 
   it('does not register hook in nitro-prerender preset', () => {

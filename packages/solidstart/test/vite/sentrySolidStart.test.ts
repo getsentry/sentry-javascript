@@ -59,10 +59,9 @@ describe('sentrySolidStart()', () => {
       'sentry-solidstart-server-entry',
       // `sentryOrchestrionPlugin` spreads the upstream code-transformer plugin, which brings its name.
       'code-transformer',
-      'sentry-solidstart-files-to-delete-after-upload',
+      'sentry-solidstart-update-source-map-setting',
       'sentry-vite-plugin',
       'sentry-vite-upload-staging',
-      'sentry-solidstart-update-source-map-setting',
     ]);
   });
 
@@ -71,6 +70,12 @@ describe('sentrySolidStart()', () => {
 
     expect(names).toContain('sentry-orchestrion-disabled');
     expect(names).not.toContain('code-transformer');
+  });
+
+  it.each([{ upload: false }, { injectDebugIds: false }])('keeps the source maps plugins with %j', sourcemaps => {
+    const names = sentrySolidStart({ sourcemaps }).map(plugin => plugin.name);
+
+    expect(names).toContain('sentry-solidstart-update-source-map-setting');
   });
 
   it('omits the source maps plugins when source maps are disabled', () => {

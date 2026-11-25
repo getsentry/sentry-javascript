@@ -5,7 +5,12 @@ import { APP_NAME } from '../constants';
 test.describe('client - pageload performance', () => {
   test('should send pageload span', async ({ page }) => {
     const spanPromise = waitForStreamedSpan(APP_NAME, span => {
-      return span.name === '/performance' && getSpanOp(span) === 'pageload' && span.is_segment;
+      return (
+        span.name === '/performance' &&
+        getSpanOp(span) === 'pageload' &&
+        span.is_segment &&
+        span.attributes['url.full']?.value === page.url()
+      );
     });
 
     await page.goto(`/performance/`);

@@ -7,6 +7,7 @@ import {
 } from '@sentry/conventions/attributes';
 import { DB } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
+import { SUPPORTS_REQUIRE_OF_ESM } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
 afterAll(() => {
@@ -113,6 +114,7 @@ describe('Prisma ORM v7 Tests', () => {
         },
         afterSetupCommand: 'prisma generate --schema prisma/schema.prisma && tsc -p prisma/tsconfig.json',
         copyPaths: ['prisma', 'prisma.config.ts'],
+        failsOnCjs: !SUPPORTS_REQUIRE_OF_ESM,
       },
     );
   });

@@ -1,9 +1,11 @@
-import type { EventProcessor } from '@sentry/core';
-import { getGlobalScope, Scope, SDK_VERSION } from '@sentry/node';
+import { SENTRY_OP, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_SERVER } from '@sentry/conventions/op';
+import { SDK_VERSION } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { GLOBAL_OBJ } from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { TUNNEL_BASE_PATH_GLOBAL } from '../../src/common/tunnel';
 import { init as solidStartInit } from '../../src/server';
-import { lowQualityTransactionsFilter } from '../../src/server/utils';
 
 const browserInit = vi.spyOn(SentryNode, 'init');
 
@@ -20,6 +22,7 @@ describe('Initialize Solid Start SDK', () => {
 
     const expectedMetadata = {
       _metadata: {
+        optionsSetByUser: ['dsn'],
         sdk: {
           name: 'sentry.javascript.solidstart',
           packages: [
@@ -36,52 +39,76 @@ describe('Initialize Solid Start SDK', () => {
     expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
   });
 
-  describe('lowQualityTransactionsFilter', () => {
-    const options = { debug: false };
-    const filter = lowQualityTransactionsFilter(options);
-
-    describe('filters out low quality transactions', () => {
-      it.each(['GET /_build/some_asset.js', 'GET /_build/app.js', 'GET /_build/assets/logo.png'])(
-        'filters out low quality transaction: (%s)',
-        transaction => {
-          const event = { type: 'transaction' as const, transaction };
-          expect(filter(event, {})).toBeNull();
-        },
-      );
-    });
-
-    describe('keeps high quality transactions', () => {
-      it.each(['GET /', 'POST /_server'])('does not filter out route transactions (%s)', transaction => {
-        const event = { type: 'transaction' as const, transaction };
-        expect(filter(event, {})).toEqual(event);
-      });
-    });
-
-    it('does not filter non-transaction events', () => {
-      const event = { type: 'error' as const, transaction: 'GET /_build/app.js' } as any;
-      expect(filter(event, {})).toEqual(event);
-    });
-
-    it('handles events without transaction property', () => {
-      const event = { type: 'transaction' as const };
-      expect(filter(event, {})).toEqual(event);
-    });
-  });
-
-  it('registers an event processor', () => {
-    let passedEventProcessors: EventProcessor[] = [];
-    const addEventProcessor = vi
-      .spyOn(getGlobalScope(), 'addEventProcessor')
-      .mockImplementation((eventProcessor: EventProcessor) => {
-        passedEventProcessors = [...passedEventProcessors, eventProcessor];
-        return new Scope();
+  describe('ignoreSpans', () => {
+    const startServerSpan = (path: string): SentryNode.Span =>
+      SentryNode.startInactiveSpan({
+        name: 'GET',
+        forceTransaction: true,
+        attributes: { [SENTRY_OP]: HTTP_SERVER, [URL_PATH]: path },
       });
 
-    solidStartInit({
-      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+    it.each(['/_build/assets/app.js', '/_build/assets/app.js.map', '/_build/.vite/manifest.json'])(
+      'ignores build asset requests (%s)',
+      path => {
+        solidStartInit({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+        expect(startServerSpan(path).isRecording()).toBe(false);
+      },
+    );
+
+    it.each(['/', '/_server', '/users/jane.doe', '/api/data.json', '/blog/_build/'])(
+      'keeps route requests (%s)',
+      path => {
+        solidStartInit({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+        expect(startServerSpan(path).isRecording()).toBe(true);
+      },
+    );
+
+    it('merges the default with user-provided ignoreSpans', () => {
+      solidStartInit({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        tracesSampleRate: 1,
+        ignoreSpans: [{ attributes: { [URL_PATH]: '/health' } }],
+      });
+
+      expect(startServerSpan('/health').isRecording()).toBe(false);
+      expect(startServerSpan('/_build/assets/app.js.map').isRecording()).toBe(false);
     });
 
-    expect(addEventProcessor).toHaveBeenCalledTimes(1);
-    expect(passedEventProcessors[0]?.id).toEqual('SolidStartLowQualityTransactionsFilter');
+    describe('with a base path', () => {
+      afterEach(() => {
+        vi.unstubAllGlobals();
+        (GLOBAL_OBJ as { [TUNNEL_BASE_PATH_GLOBAL]?: string })[TUNNEL_BASE_PATH_GLOBAL] = undefined;
+      });
+
+      it('ignores build asset requests under the defined base path (SolidStart 2)', () => {
+        vi.stubGlobal('__SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__', '/app');
+
+        solidStartInit({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+        expect(startServerSpan('/app/_build/assets/app.js.map').isRecording()).toBe(false);
+        expect(startServerSpan('/_build/assets/app.js.map').isRecording()).toBe(true);
+        expect(startServerSpan('/app/users/_build/').isRecording()).toBe(true);
+      });
+
+      it('ignores build asset requests under the base path global (SolidStart 1)', () => {
+        (GLOBAL_OBJ as { [TUNNEL_BASE_PATH_GLOBAL]?: string })[TUNNEL_BASE_PATH_GLOBAL] = '/shop.v2';
+
+        solidStartInit({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+        expect(startServerSpan('/shop.v2/_build/assets/app.js.map').isRecording()).toBe(false);
+        expect(startServerSpan('/shopxv2/_build/assets/app.js.map').isRecording()).toBe(true);
+      });
+
+      it('ignores build asset requests at the root when the base is a full URL', () => {
+        // `normalizeTunnelBasePath` turns `base: 'https://cdn.example.com/'` into this.
+        vi.stubGlobal('__SENTRY_SOLIDSTART_TUNNEL_BASE_PATH__', '/https://cdn.example.com');
+
+        solidStartInit({ dsn: 'https://public@dsn.ingest.sentry.io/1337', tracesSampleRate: 1 });
+
+        expect(startServerSpan('/_build/assets/app.js.map').isRecording()).toBe(false);
+      });
+    });
   });
 });

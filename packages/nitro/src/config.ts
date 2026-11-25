@@ -1,6 +1,7 @@
 import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { NitroConfig } from 'nitro/types';
 import { createNitroModule } from './module';
+import { createOrchestrionModule } from './orchestrion';
 import { configureSourcemapSettings } from './sourceMaps';
 
 export type SentryNitroOptions = BuildTimeOptionsBase;
@@ -9,7 +10,14 @@ export type SentryNitroOptions = BuildTimeOptionsBase;
  * Modifies the passed in Nitro configuration with automatic build-time instrumentation.
  */
 export function withSentryConfig(config: NitroConfig, sentryOptions?: SentryNitroOptions): NitroConfig {
-  return setupSentryNitroModule(config, sentryOptions);
+  const sentryConfig = setupSentryNitroModule(config, sentryOptions);
+
+  // Not part of `setupSentryNitroModule`, as framework SDKs that use it add the transform themselves.
+  if (sentryOptions?.buildTimeInstrumentation !== false) {
+    sentryConfig.modules?.push(createOrchestrionModule());
+  }
+
+  return sentryConfig;
 }
 
 /**

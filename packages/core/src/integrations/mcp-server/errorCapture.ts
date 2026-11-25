@@ -8,6 +8,7 @@
 import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
+import { isObjectLike } from '../../utils/is';
 import { getActiveSpan } from '../../utils/spanUtils';
 import type { McpErrorType } from './types';
 
@@ -53,6 +54,28 @@ export function captureError(error: Error, errorType?: McpErrorType, extraData?:
         },
       },
     });
+  } catch {
+    // noop
+  }
+}
+
+/**
+ * Captures JSON-RPC error responses for server-side errors.
+ * @see https://www.jsonrpc.org/specification#error_object
+ * @param errorResponse - JSON-RPC error response
+ */
+export function captureJsonRpcErrorResponse(errorResponse: unknown): void {
+  try {
+    if (isObjectLike(errorResponse) && 'code' in errorResponse && 'message' in errorResponse) {
+      const jsonRpcError = errorResponse as { code: number; message: string; data?: unknown };
+
+      if (typeof jsonRpcError.code === 'number' && isJsonRpcServerError(jsonRpcError.code)) {
+        const error = new Error(jsonRpcError.message);
+        error.name = `JsonRpcError_${jsonRpcError.code}`;
+
+        captureError(error, 'protocol');
+      }
+    }
   } catch {
     // noop
   }

@@ -179,11 +179,12 @@ is the reference setup.
   the integrations of `@sentry/bun` or `@sentry/deno`. Nuxt is similar: `@sentry/nuxt` bundles `sentry.server.config.ts`
   into the Nitro output, so `nuxt-4` calls `init()` of `@sentry/nuxt` on Bun and Deno too. `sentry.server.config.bun.ts`
   and `sentry.server.config.deno.ts` add the integrations of `@sentry/bun` or `@sentry/deno`. On Cloudflare, `nuxt-4`
-  builds with the `cloudflare_module` preset and sets up the SDK with `sentryCloudflareNitroPlugin`, which
-  `nuxt.config.ts` adds only for that runtime. Like the documented Cloudflare setup, that build has no
+  builds with the `cloudflare_durable` preset, and `@sentry/nuxt` wraps the Worker with `withSentry` and the options of
+  the root `sentry.cloudflare.config.ts`. Like the documented Cloudflare setup, that build has no
   `sentry.server.config.ts`: a runtime-specific file can replace a file but not remove it, so the build command deletes
   it. Nitro turns every file under `server/api` into a route, so
   `nuxt.config.ts` lists the runtime-specific files there (such as `db-mongoose.cloudflare.ts`) in Nitro's `ignore`.
+  `nuxt-5` (Nitro 3) has the same setup, with the `cloudflare_module` preset on Cloudflare.
 - **Start commands**: `playwright.config.mjs` selects the start command with `getRuntime()`. Bun and Deno use the same build
   as Node and only change the start command, for example
   `bun --bun --preload ./instrument.bun.mjs ./node_modules/@react-router/serve/bin.cjs ./build/server/index.js` and
@@ -226,8 +227,9 @@ is the reference setup.
   on `RUNTIME` and say why in a comment. An app that starts its own server can instead bundle it with
   `@sentry/bun/plugin`, as `nestjs-12/bun-build.mjs` and `express-5/bun-build.mjs` do. Bun 1.3 renames classes in
   bundles (`class Foo2`), which changes span names taken from class names, so `nestjs-12` pins Bun 1.4 (see #26289).
-  `nuxt-4` builds with `bun --bun nuxt build` on Bun, because the Nitro prerenderer loads its `bun-sqlite` connector in
-  the build process.
+  `nuxt-4` and `nuxt-5` build with `bun --bun nuxt build` on Bun, because the Nitro prerenderer loads its `bun-sqlite`
+  connector in the build process. On Bun, Nitro 3 selects its `bun` preset, which serves with `Bun.serve`, so the Bun
+  config of `nuxt-5` adds `bunServerIntegration` and not `bunHttpServerIntegration`.
 
 ```json
 "sentryTest": {

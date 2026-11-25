@@ -9,6 +9,7 @@ import type {
   StartSpanOptions,
 } from '@sentry/core';
 import {
+  defineIntegration,
   addNonEnumerableProperty,
   consoleSandbox,
   dateTimestampInSeconds,
@@ -328,16 +329,7 @@ const DEFAULT_FORWARDED_OPTIONS = {
   linkPreviousTrace: 'in-memory',
 } satisfies Partial<BrowserTracingOptions>;
 
-/**
- * The Browser Tracing integration automatically instruments browser pageload/navigation
- * actions as transactions, and captures requests, metrics and errors as spans.
- *
- * The integration can be configured with a variety of options, and can be extended to use
- * any routing library.
- *
- * We explicitly export the proper type here, as this has to be extended in some cases.
- */
-export const browserTracingIntegration = ((options: Partial<BrowserTracingOptions> = {}) => {
+const browserTracingIntegrationFn = ((options: Partial<BrowserTracingOptions> = {}) => {
   if ('enableElementTiming' in options) {
     consoleSandbox(() => {
       // oxlint-disable-next-line no-console
@@ -401,13 +393,30 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
 }) satisfies IntegrationFn;
 
 /**
+ * The Browser Tracing integration automatically instruments browser pageload/navigation
+ * actions as transactions, and captures requests, metrics and errors as spans.
+ *
+ * The integration can be configured with a variety of options, and can be extended to use
+ * any routing library.
+ *
+ * We explicitly export the proper type here, as this has to be extended in some cases.
+ */
+export const browserTracingIntegration = defineIntegration(
+  browserTracingIntegrationFn,
+) as typeof browserTracingIntegrationFn;
+
+const browserTracingCoreIntegrationFn = ((options: Partial<BrowserTracingCoreOptions> = {}) =>
+  _browserTracingIntegration(options)) satisfies IntegrationFn;
+
+/**
  * The pageload and navigation spans of `browserTracingIntegration`, without the features it registers as
  * standalone integrations (such as `webVitalsIntegration`).
  *
  * Use it instead of `browserTracingIntegration` to only bundle the integrations you add yourself.
  */
-export const browserTracingCoreIntegration = ((options: Partial<BrowserTracingCoreOptions> = {}) =>
-  _browserTracingIntegration(options)) satisfies IntegrationFn;
+export const browserTracingCoreIntegration = defineIntegration(
+  browserTracingCoreIntegrationFn,
+) as typeof browserTracingCoreIntegrationFn;
 
 function _browserTracingIntegration(
   options: Partial<BrowserTracingCoreOptions>,

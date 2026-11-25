@@ -1,7 +1,7 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { init as initBrowser } from '@sentry/browser';
 import type { Client } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/core';
 
 /**
  * Initializes the Sentry Effect SDK for browser clients.
@@ -11,7 +11,7 @@ import { applySdkMetadata } from '@sentry/core';
  */
 export function init(options: BrowserOptions): Client | undefined {
   const opts = {
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
   };
 
   applySdkMetadata(opts, 'effect', ['effect', 'browser']);

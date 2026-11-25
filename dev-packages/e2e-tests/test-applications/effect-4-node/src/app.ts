@@ -5,22 +5,21 @@ import * as Cause from 'effect/Cause';
 import * as Data from 'effect/Data';
 import * as ErrorReporter from 'effect/ErrorReporter';
 import * as Layer from 'effect/Layer';
-import * as Logger from 'effect/Logger';
 import * as Tracer from 'effect/Tracer';
 import * as References from 'effect/References';
 import { HttpRouter, HttpServerResponse } from 'effect/http';
 import { createServer } from 'http';
 
-const SentryLive = Layer.mergeAll(
-  Sentry.effectLayer({
+const SentryLayer = Layer.mergeAll(
+  Sentry.layer({
     dsn: process.env.E2E_TEST_DSN,
     environment: 'qa',
     debug: !!process.env.DEBUG,
     tunnel: 'http://localhost:3031/',
     tracesSampleRate: 1,
   }),
-  Logger.layer([Sentry.SentryEffectLogger]),
-  Layer.succeed(Tracer.Tracer, Sentry.SentryEffectTracer),
+  Sentry.layerLogger,
+  Sentry.layerTracer,
   Layer.succeed(References.MinimumLogLevel, 'Debug'),
 );
 
@@ -125,7 +124,7 @@ const Routes = Layer.mergeAll(
         }),
       );
       return yield* HttpServerResponse.json({ status: 'ok' });
-    }).pipe(Effect.provide(Sentry.SentryEffectExternalSpanLayer)),
+    }).pipe(Effect.provide(Sentry.layerExternalSpan)),
   ),
 
   HttpRouter.add(
@@ -219,9 +218,9 @@ const Routes = Layer.mergeAll(
   ),
 );
 
-const HttpLive = HttpRouter.serve(Routes).pipe(
+const HttpLayer = HttpRouter.serve(Routes).pipe(
   Layer.provide(NodeHttpServer.layer(() => createServer(), { port: 3030 })),
-  Layer.provide(SentryLive),
+  Layer.provide(SentryLayer),
 );
 
-NodeRuntime.runMain(Layer.launch(HttpLive));
+NodeRuntime.runMain(Layer.launch(HttpLayer));

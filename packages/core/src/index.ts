@@ -58,13 +58,8 @@ export { Scope } from './scope';
 export type { CaptureContext, ScopeContext, ScopeData } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint, SENTRY_API_VERSION } from './api';
-export { Client, isClientClosed as _INTERNAL_isClientClosed } from './client';
-export {
-  getActiveClient as _INTERNAL_getActiveClient,
-  initAndBind,
-  setCurrentClient,
-  warnIfClientIsActive as _INTERNAL_warnIfClientIsActive,
-} from './sdk';
+export { Client, isClientClosed } from './client';
+export { initAndBind, setCurrentClient, warnIfClientIsActive } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from './transports/multiplexed';
@@ -83,7 +78,11 @@ export {
 export { filterKeyValueData as _INTERNAL_filterKeyValueData } from './utils/data-collection/filterKeyValueData';
 export { filterCookies as _INTERNAL_filterCookies } from './utils/data-collection/filterCookies';
 export { filterQueryParams as _INTERNAL_filterQueryParams } from './utils/data-collection/filterQueryParams';
-export { filterCollectedUrl, filterCollectedUrlQuery } from './utils/data-collection/filterCollectedUrl';
+export {
+  filterCollectedUrl,
+  filterCollectedUrlFragment,
+  filterCollectedUrlQuery,
+} from './utils/data-collection/filterCollectedUrl';
 export { envToBool } from './utils/envToBool';
 export { getVercelEnv } from './utils/vercel';
 export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
@@ -103,11 +102,7 @@ export { safeCallback } from './utils/safeCallback';
 export { parameterize, fmt } from './utils/parameterize';
 export type { HandleTunnelRequestOptions } from './utils/tunnelForward';
 export { handleTunnelRequest } from './utils/tunnelForward';
-export {
-  applyBrowserTunnelDefaults as _INTERNAL_applyBrowserTunnelDefaults,
-  getTunnelPath,
-  normalizeTunnelBasePath as _INTERNAL_normalizeTunnelBasePath,
-} from './utils/tunnel';
+export { applyBrowserTunnelDefaults, getTunnelPath, normalizeTunnelBasePath } from './utils/tunnel';
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
@@ -577,5 +572,7 @@ export {
 export { warnOnRemovedBuildOptions } from './build-time-plugins/warnOnRemovedBuildOptions';
 export { resolveSourceMapsFeatures } from './build-time-plugins/resolveSourceMapsFeatures';
 export type { SourceMapsFeatures } from './build-time-plugins/resolveSourceMapsFeatures';
+export { warnOnConflictingSourceMapOptions } from './build-time-plugins/warnOnConflictingSourceMapOptions';
+export type { ConflictingSourceMapOptions } from './build-time-plugins/warnOnConflictingSourceMapOptions';
 export { stringifyForCodeInjection } from './build-time-plugins/stringifyForCodeInjection';
 export { startSpan, startInactiveSpan, startSpanManual } from './tracing/trace';

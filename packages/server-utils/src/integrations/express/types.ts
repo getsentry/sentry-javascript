@@ -13,6 +13,8 @@ export interface ExpressLayer {
   name?: string;
   path?: string;
   keys?: unknown[];
+  // The path pattern of an `app.use()` or `router.use()` call, e.g. `/users/:id`. Set by `router` 2.3.0 and later.
+  rawPath?: unknown;
   route?: { path?: unknown };
   // Only set on a Route's *inner* method-handler layers (e.g. `'get'`), which
   // run inside the route-dispatch layer we already span.

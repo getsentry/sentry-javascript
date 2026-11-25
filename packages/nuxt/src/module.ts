@@ -3,14 +3,16 @@ import { addPlugin, addPluginTemplate, addTemplate, addVitePlugin, createResolve
 import type {} from '@nuxt/nitro-server';
 
 import * as path from 'path';
-import { NUXT_TUNNEL_BASE_PATH_GLOBAL } from './common/tunnel';
+import { NUXT_BUILD_ASSETS_DIR_GLOBAL, NUXT_CDN_URL_GLOBAL } from './common/buildAssets';
+import { NUXT_BASE_PATH_GLOBAL } from './common/tunnel';
 import type { SentryNuxtModuleOptions } from './common/types';
+import { setupCloudflareEntry } from './vite/cloudflare';
 import { addTunnelPlugin, setupNitroServer } from './vite/nitroServer';
 import { setupOrchestrion } from './vite/orchestrion';
 import { NUXT_RELEASE_RUNTIME_CONFIG_KEY, setupSourceMaps } from './vite/sourceMaps';
-import { findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
+import { findCloudflareOptionsFile, findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
 import { setupViteServer } from './vite/viteServer';
-import { stringifyForCodeInjection } from '@sentry/core';
+import { stringifyForCodeInjection, warnOnConflictingSourceMapOptions } from '@sentry/core';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 type NuxtPageSubset = { file?: string; path: string };
@@ -64,7 +66,9 @@ export default defineNuxtModule<ModuleOptions>({
             name: 'sentry-client-config',
             async setup() {
               const runtimeConfig = useRuntimeConfig();
-              globalThis.${NUXT_TUNNEL_BASE_PATH_GLOBAL} = runtimeConfig.app.baseURL;
+              globalThis.${NUXT_BASE_PATH_GLOBAL} = runtimeConfig.app.baseURL;
+              globalThis.${NUXT_BUILD_ASSETS_DIR_GLOBAL} = runtimeConfig.app.buildAssetsDir;
+              globalThis.${NUXT_CDN_URL_GLOBAL} = runtimeConfig.app.cdnURL;
               const sentryRelease = runtimeConfig.public.${NUXT_RELEASE_RUNTIME_CONFIG_KEY};
               if (sentryRelease) {
                 globalThis.SENTRY_RELEASE = { id: sentryRelease };
@@ -84,35 +88,42 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     const serverConfigFile = await findDefaultSdkInitFile('server', nuxt, moduleOptions);
+    const cloudflareOptionsFile = await findCloudflareOptionsFile(nuxt, moduleOptions);
     const nuxtMajor = parseInt((nuxt as unknown as { _version: string })._version?.split('.')[0] ?? '3', 10);
     const isMinNuxtV4 = nuxtMajor >= 4;
 
     // Orchestrion runs on both the Node path (gated on a server config file) and the Cloudflare path
-    // (which has no server config file — the SDK is set up via `sentryCloudflareNitroPlugin`). The
+    // (which has no server config file, the SDK is set up via `withSentry` or `sentryCloudflareNitroPlugin`). The
     // Cloudflare detection happens inside, keyed off the resolved Nitro preset.
     setupOrchestrion(nuxt, !!serverConfigFile, moduleOptions.buildTimeInstrumentation);
 
-    if (serverConfigFile) {
-      if (serverApi === 'nuxt') {
+    if (cloudflareOptionsFile) {
+      setupCloudflareEntry(nuxt, cloudflareOptionsFile);
+    }
+
+    if (serverApi === 'nuxt') {
+      if (serverConfigFile) {
         setupViteServer(nuxt, serverConfigFile, moduleOptions);
-      } else {
-        setupNitroServer(nuxt, serverApi, serverConfigFile, moduleOptions);
       }
+    } else if (serverConfigFile || cloudflareOptionsFile) {
+      setupNitroServer(nuxt, serverApi, serverConfigFile, moduleOptions, !!cloudflareOptionsFile);
     } else {
-      // The Cloudflare setup initializes the SDK from `sentryCloudflareNitroPlugin`, so it needs the tunnel too.
+      // `sentryCloudflareNitroPlugin` initializes the SDK without a config file, so it needs the tunnel too.
       addTunnelPlugin(serverApi);
     }
 
-    // Names the server spans of pages after their route, with the SDK set up from the server config or from
-    // `sentryCloudflareNitroPlugin`.
+    // Names the server spans of pages after their route, with the SDK set up from the server config, from
+    // `sentry.cloudflare.config.ts` or from `sentryCloudflareNitroPlugin`.
     if (isMinNuxtV4) {
       addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'), mode: 'server' });
     } else {
       addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector-legacy.server'), mode: 'server' });
     }
 
-    if (clientConfigFile || serverConfigFile) {
-      setupSourceMaps(moduleOptions, nuxt, addVitePlugin, !!clientConfigFile);
+    if (clientConfigFile || serverConfigFile || cloudflareOptionsFile) {
+      // The bundler plugins do not get `sourcemaps.delete`.
+      warnOnConflictingSourceMapOptions(moduleOptions.sourcemaps);
+      setupSourceMaps(moduleOptions, nuxt, addVitePlugin, !!clientConfigFile, serverApi === 'nuxt');
     }
 
     let pagesData: NuxtPageSubset[] = [];
@@ -162,6 +173,10 @@ export default defineNuxtModule<ModuleOptions>({
       }
       if (serverConfigFile) {
         const relativePath = path.relative(nuxt.options.buildDir, serverConfigFile);
+        tsConfig.include.push(relativePath);
+      }
+      if (cloudflareOptionsFile) {
+        const relativePath = path.relative(nuxt.options.buildDir, cloudflareOptionsFile);
         tsConfig.include.push(relativePath);
       }
     });

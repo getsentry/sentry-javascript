@@ -59,51 +59,58 @@ export function markBuiltInTool(tool: unknown): void {
 /**
  * Prepare the runtime of a `pi.tool` phase. The tool task resolves the called tool from its agent,
  * so the runtime hands out traced tools, and it collects the result entries the phase commits.
- * `finish` ends the phase's tool spans with the result the model receives, which pi-durable builds
- * after `execute()` returns: from `api.output()`, through `afterTool` hooks and output limits.
+ * The returned function ends the phase's tool spans with the result the model receives, which
+ * pi-durable builds after `execute()` returns: from `api.output()`, through `afterTool` hooks and
+ * output limits.
  */
 export function instrumentToolPhase(
   runtime: PiTaskRuntime,
   runs: PiRuns,
   wrapTool: (tool: PiTool) => PiTool,
-): { runtime: PiTaskRuntime; finish: () => void } {
+  isNested: boolean,
+): () => void {
   const results = new Map<unknown, PiToolResultMessage>();
   runs.toolCalls.set(runtime.taskId, []);
 
-  const agent = (context: unknown): Promise<PiAgent> =>
-    runtime
-      .agent(context)
-      .then(resolved => (resolved?.tools ? { ...resolved, tools: resolved.tools.map(wrapTool) } : resolved));
+  const agent: PiTaskRuntime['agent'] = runtime.agent.bind(runtime);
+  const commit: PiTaskRuntime['commit'] = runtime.commit.bind(runtime);
 
-  const commit = (change: PiCommitChange, context: unknown): Promise<void> => {
+  // Replaced on the runtime itself and put back when the phase ends, see `observeRunControl`.
+  runtime.agent = (context: unknown): Promise<PiAgent> =>
+    agent(context).then(resolved =>
+      resolved?.tools
+        ? {
+            ...resolved,
+            tools: resolved.tools.map(wrapTool),
+            // A call made with `api.executeTool()` resolves its tool among these.
+            ...(resolved.callable ? { callable: resolved.callable.map(wrapTool) } : {}),
+          }
+        : resolved,
+    );
+
+  runtime.commit = (change: PiCommitChange, context: unknown, ...rest: unknown[]): Promise<void> => {
     let committed: PiToolResultMessage[] = [];
     const observedChange: PiCommitChange = (tx, current) => {
       // A commit can run its change again, so only the attempt that committed counts.
       committed = [];
       return change(observeToolResultEntries(tx, committed), current);
     };
-    return runtime.commit(observedChange, context).then(() => {
+    return commit(observedChange, context, ...rest).then(() => {
       for (const message of committed) {
         results.set(message.toolCallId, message);
       }
     });
   };
 
-  return {
-    runtime: new Proxy(runtime, {
-      get(target, property) {
-        if (property === 'agent') {
-          return agent;
-        }
-        return property === 'commit' ? commit : bound(target, property);
-      },
-    }),
-    finish: () => {
-      for (const call of runs.toolCalls.get(runtime.taskId) ?? []) {
-        finishToolCall(call, call.callId !== undefined ? results.get(call.callId) : undefined);
-      }
-      runs.toolCalls.delete(runtime.taskId);
-    },
+  return () => {
+    runtime.agent = agent;
+    runtime.commit = commit;
+    for (const call of runs.toolCalls.get(runtime.taskId) ?? []) {
+      // A nested call gives its result to the calling tool and commits no result entry.
+      const committed = call.callId !== undefined ? results.get(call.callId) : undefined;
+      finishToolCall(call, isNested ? call.returned : committed);
+    }
+    runs.toolCalls.delete(runtime.taskId);
   };
 }
 
@@ -147,9 +154,10 @@ export function instrumentTool(
           const result = await tool.execute(args, trackOwnedConversations(api, span, runs), context);
           call.endTimestamp = timestampInSeconds();
           call.onSpanEnd = () => runGenAiSpanEnd(options, span, toolCall, { response: result });
+          call.returned = { content: result?.output ?? result?.content, isError: result?.isError };
           if (!calls) {
-            // No result entry follows a call outside a tool task phase, nor a nested call.
-            finishToolCall(call, { content: result?.output ?? result?.content, isError: result?.isError });
+            // No result entry follows a call outside a tool task phase, nor a call that got the api of another call.
+            finishToolCall(call, call.returned);
           }
           return result;
         } catch (error) {

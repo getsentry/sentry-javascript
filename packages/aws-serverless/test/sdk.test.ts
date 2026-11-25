@@ -614,6 +614,7 @@ describe('AWSLambda', () => {
       expect(mockInit).toBeCalledWith(
         expect.objectContaining({
           _metadata: {
+            optionsSetByUser: [],
             sdk: {
               name: 'sentry.javascript.aws-serverless',
               packages: [

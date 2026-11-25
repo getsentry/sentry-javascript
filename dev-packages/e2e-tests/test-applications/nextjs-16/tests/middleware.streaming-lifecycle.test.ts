@@ -134,16 +134,20 @@ test('Should trace outgoing fetch requests inside middleware', async ({ request 
   // In some builds (especially webpack) the fetch span is not a child of the middleware segment but a
   // segment of its own, so this waits for either. `http.client` span names are low cardinality under
   // span streaming, hence `GET localhost` rather than the full URL.
-  const spansPromise = collectStreamedSpans('nextjs-16', spans =>
-    spans.some(span => getSpanOp(span) === 'http.client' && span.name === 'GET localhost'),
-  );
+  const fetchSpanPromise = waitForStreamedSpan('nextjs-16', span => {
+    return (
+      getSpanOp(span) === 'http.client' &&
+      span.name === 'GET localhost' &&
+      span.attributes['url.full']?.value === 'http://localhost:3030/' &&
+      span.attributes['sentry.origin']?.value !== 'auto.http.browser'
+    );
+  });
 
   request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-make-request': '1' } }).catch(() => {
     // Noop
   });
 
-  const spans = await spansPromise;
-  const fetchSpan = spans.find(span => getSpanOp(span) === 'http.client' && span.name === 'GET localhost')!;
+  const fetchSpan = await fetchSpanPromise;
 
   expect(fetchSpan.status).toBe('ok');
   expect(fetchSpan.attributes['http.request.method']?.value).toBe('GET');

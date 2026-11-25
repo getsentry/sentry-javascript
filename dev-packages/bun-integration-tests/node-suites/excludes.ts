@@ -21,6 +21,7 @@ const NODE_ONLY = [
 // so the `@sentry/bun` project runs these suites, except the ones in `SENTRY_BUN_EXCLUDE`.
 const NO_HTTP_SERVER_SPANS = [
   'suites/sessions/**',
+  'suites/tracing/envelope-header/incoming-trace-without-dsc/test.ts',
   'suites/tracing/envelope-header/sampleRate-propagation/test.ts',
   'suites/tracing/httpIntegration-streamed/test.ts',
   'suites/tracing/httpIntegration/test.ts',
@@ -89,7 +90,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/is-localhost/test.ts',
   'suites/tracing/google-genai-v2/test.ts',
   'suites/tracing/google-genai-v3/test.ts',
-  'suites/tracing/google-genai/test.ts',
+  'suites/tracing/google-genai/**',
   'suites/tracing/groq/test.ts',
   'suites/tracing/hapi/test.ts',
   'suites/tracing/ioredis-dc/test.ts',
@@ -124,7 +125,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/openai/v7/test.ts',
   'suites/tracing/orchestrion-lazy-registration/test.ts',
   'suites/tracing/pi-ai/test.ts',
-  'suites/tracing/pi-durable/test.ts',
+  'suites/tracing/pi-durable/**',
   'suites/tracing/postgres/test.ts',
   'suites/tracing/postgresjs/test.ts',
   'suites/tracing/prisma-orm-v5/test.ts',
@@ -144,11 +145,6 @@ export const NO_AUTO_INSTRUMENTATION = [
 // Bun reports other stack frames than Node: the column of `new Error()` points at `Error`, not
 // `new`, and the top-level frame of a CommonJS module is `<anonymous>`, not `Object.?`.
 const BUN_STACK_FRAMES_DIFFER = ['suites/contextLines/filename-with-spaces/test.ts'];
-
-// The CJS and ESM cases need Express to capture the route error, which `bun run` does not
-// instrument. A bundled app does not help: it has no `require.cache`, and the isolated packages
-// are inlined, so the module versions do not match.
-const MODULES_NEED_UNBUNDLED_EXPRESS = ['suites/modules/test.ts'];
 
 // The scenario configures `nativeNodeFetchIntegration`, which `@sentry/bun` does not export.
 const NO_NATIVE_NODE_FETCH_INTEGRATION = [
@@ -188,7 +184,6 @@ export const NODE_SUITES_EXCLUDE = [
   ...NODE_ONLY,
   ...NO_AUTO_INSTRUMENTATION,
   ...BUN_STACK_FRAMES_DIFFER,
-  ...MODULES_NEED_UNBUNDLED_EXPRESS,
 ];
 
 // Excluded only in the `node-suites` project, which runs the suites with `@sentry/node`.

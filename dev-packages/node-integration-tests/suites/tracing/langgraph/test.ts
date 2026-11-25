@@ -494,4 +494,45 @@ describe('LangGraph integration', () => {
       });
     },
   );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test(
+        'runs the span hooks on the agent span only, with the graph call and result',
+        { timeout: 30000 },
+        async () => {
+          await createRunner()
+            .expect({
+              span: container => {
+                const hooks: Record<string, unknown[]> = {};
+                for (const span of container.items) {
+                  const op = String(span.attributes[SENTRY_OP]?.value);
+                  if (op.startsWith('gen_ai.')) {
+                    hooks[`${span.attributes[GEN_AI_CONVERSATION_ID]?.value} ${op}`] = [
+                      span.attributes['test.start']?.value,
+                      span.attributes['test.end']?.value,
+                    ];
+                  }
+                }
+                // The graph's chat and tool spans come from LangGraph's own handler and tool wrapper, which run no hooks.
+                const none = [undefined, undefined];
+                expect(hooks).toEqual({
+                  [`public ${GEN_AI_INVOKE_AGENT}`]: ['public:public', 'Paris.'],
+                  [`public ${GEN_AI_CHAT}`]: none,
+                  [`public ${GEN_AI_EXECUTE_TOOL}`]: none,
+                  [`private ${GEN_AI_INVOKE_AGENT}`]: ['private:private', 'Paris.'],
+                  [`private ${GEN_AI_CHAT}`]: none,
+                  [`private ${GEN_AI_EXECUTE_TOOL}`]: none,
+                });
+              },
+            })
+            .start()
+            .completed();
+        },
+      );
+    },
+  );
 });

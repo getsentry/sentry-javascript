@@ -1,10 +1,7 @@
 import { URL_PATH } from '@sentry/conventions/attributes';
 import type { ServerTunnelOptions } from '@sentry/core';
 import { dsnToString, escapeStringForRegex, getClient, handleTunnelRequest } from '@sentry/core';
-import {
-  _INTERNAL_forwardTunnelRequest as forwardTunnelRequest,
-  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
-} from '@sentry/core/server';
+import { forwardTunnelRequest, setTunnelDefaults } from '@sentry/core/server';
 
 const registeredTunnelRoutePaths = new Set<string>();
 

@@ -55,6 +55,20 @@ describe('withSentryConfig', () => {
     });
   });
 
+  // The bundler plugin does not get `sourcemaps.delete` or the user's `deleteSourcemapsAfterUpload`.
+  it.each([
+    [{ delete: true, deleteSourcemapsAfterUpload: false }, '`sourcemaps.deleteSourcemapsAfterUpload` is ignored'],
+    [{ delete: false, filesToDeleteAfterUpload: ['.next/**/*.map'] }, '`sourcemaps.filesToDeleteAfterUpload` still'],
+  ])('warns about the conflicting source map options %j', (sourcemaps, message) => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    materializeFinalNextConfig(exportedNextConfig, undefined, { sourcemaps });
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining(message));
+
+    consoleWarnSpy.mockRestore();
+  });
+
   it('includes expected properties', () => {
     const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 

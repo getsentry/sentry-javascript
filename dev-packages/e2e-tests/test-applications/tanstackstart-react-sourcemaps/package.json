@@ -7,7 +7,13 @@
     "build": "node start-mock-sentry-server.mjs & vite build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; if [ $BUILD_EXIT -ne 0 ]; then cat .tmp_build_stdout; cat .tmp_build_stderr >&2; fi; exit $BUILD_EXIT",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .output",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm ts-node --script-mode assert-build.ts"
+    "test:build:no-upload": "pnpm install && E2E_NO_UPLOAD=1 pnpm build",
+    "test:assert": "pnpm ts-node --script-mode assert-build.ts",
+    "test:assert:no-upload": "pnpm ts-node --script-mode assert-no-upload.ts",
+    "test:build:manual-upload": "pnpm install && E2E_VARIANT=manual-upload pnpm build",
+    "test:assert:manual-upload": "pnpm ts-node --script-mode assert-manual-upload.ts",
+    "test:build:delete-all": "pnpm install && E2E_VARIANT=delete-all pnpm build",
+    "test:assert:delete-all": "pnpm test:assert"
   },
   "dependencies": {
     "@sentry/tanstackstart-react": "file:../../packed/sentry-tanstackstart-react-packed.tgz",
@@ -24,11 +30,28 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react-swc": "^4.2.0",
-    "ts-node": "10.9.1",
+    "ts-node": "10.9.2",
     "typescript": "^5.9.0",
     "vite": "^8.3.0"
   },
   "sentryTest": {
-    "optional": true
+    "optional": true,
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build:no-upload",
+        "assert-command": "pnpm test:assert:no-upload",
+        "label": "tanstackstart-react-sourcemaps (no upload)"
+      },
+      {
+        "build-command": "pnpm test:build:manual-upload",
+        "assert-command": "pnpm test:assert:manual-upload",
+        "label": "tanstackstart-react-sourcemaps (manual upload)"
+      },
+      {
+        "build-command": "pnpm test:build:delete-all",
+        "assert-command": "pnpm test:assert:delete-all",
+        "label": "tanstackstart-react-sourcemaps (delete all)"
+      }
+    ]
   }
 }

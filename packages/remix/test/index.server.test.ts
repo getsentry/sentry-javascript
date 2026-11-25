@@ -21,6 +21,7 @@ describe('Server init()', () => {
     expect(nodeInit).toHaveBeenLastCalledWith(
       expect.objectContaining({
         _metadata: {
+          optionsSetByUser: [],
           sdk: {
             name: 'sentry.javascript.remix',
             version: expect.any(String),

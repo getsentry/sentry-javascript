@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { getCurrentScope } from '../../src/currentScopes';
 import {
   addIntegration,
+  defineIntegration,
   extendIntegration,
   getIntegrationsToSetup,
   installedIntegrations,
@@ -854,5 +855,30 @@ describe('extendIntegration', () => {
     result.teardown();
 
     expect(order).toEqual(['base:setupOnce', 'ext:setupOnce', 'base:teardown', 'ext:teardown']);
+  });
+});
+
+describe('defineIntegration', () => {
+  it('records a copy of the options the integration was created with', () => {
+    const integrationFn = defineIntegration((options: { capture?: boolean } = {}) => {
+      options.capture = false;
+
+      return { name: 'Mutating' };
+    });
+
+    expect(integrationFn({ capture: true })._options).toEqual({ capture: true });
+  });
+
+  it('records the options of a wrapper, not the options it passes to the integration it wraps', () => {
+    const innerIntegration = defineIntegration(
+      (_options: { instrumentNavigation?: boolean; sampleRate?: number } = {}) => ({
+        name: 'Inner',
+      }),
+    );
+    const wrapperIntegration = defineIntegration((options: { sampleRate?: number } = {}) => ({
+      ...innerIntegration({ ...options, instrumentNavigation: false }),
+    }));
+
+    expect(wrapperIntegration({ sampleRate: 0.5 })._options).toEqual({ sampleRate: 0.5 });
   });
 });

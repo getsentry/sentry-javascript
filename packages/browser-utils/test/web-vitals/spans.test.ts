@@ -2,6 +2,7 @@ import * as SentryCore from '@sentry/core';
 import * as SentryCoreBrowser from '@sentry/core/browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { htmlTreeAsString } from '../../src/htmlTreeAsString';
+import { WINDOW } from '../../src/types';
 import * as inpModule from '../../src/web-vitals/inp';
 import * as instrument from '../../src/instrumentation/performanceObserver';
 import { MAX_PLAUSIBLE_LCP_DURATION } from '../../src/web-vitals/lcp';
@@ -496,6 +497,125 @@ describe('_sendLcpSpan', () => {
     expect(mockSpan.end).toHaveBeenCalledWith((1000 + sleepDurationMs + 2250) / 1000);
   });
 
+  describe('subparts', () => {
+    const url = 'https://example.com/hero.jpg';
+    const imageEntry = { element: { tagName: 'img' } as Element, url, startTime: 400 } as LargestContentfulPaint;
+    const subpartKeys = [
+      'browser.web_vital.lcp.resource_load_delay',
+      'browser.web_vital.lcp.resource_load_duration',
+      'browser.web_vital.lcp.element_render_delay',
+    ];
+
+    function mockPerformanceEntries(navigation: object, resources: object[]): void {
+      vi.mocked(WINDOW.performance.getEntriesByType).mockImplementation(
+        type => (type === 'navigation' ? [navigation] : resources) as any,
+      );
+    }
+
+    function expectNoSubparts(): void {
+      subpartKeys.forEach(key =>
+        expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+          expect.objectContaining({ attributes: expect.not.objectContaining({ [key]: expect.anything() }) }),
+        ),
+      );
+    }
+
+    beforeEach(() => {
+      vi.spyOn(performance, 'now').mockReturnValue(10_000);
+    });
+
+    afterEach(() => {
+      vi.mocked(WINDOW.performance.getEntriesByType).mockReturnValue([]);
+      vi.mocked(performance.now).mockRestore();
+    });
+
+    it('splits an image LCP into load delay, load duration and render delay', () => {
+      mockPerformanceEntries({ responseStart: 50 }, [
+        { name: url, startTime: 100, requestStart: 120, responseEnd: 300 },
+      ]);
+
+      _sendLcpSpan(400, imageEntry);
+
+      expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'browser.web_vital.lcp.resource_load_delay': 70,
+            'browser.web_vital.lcp.resource_load_duration': 180,
+            'browser.web_vital.lcp.element_render_delay': 100,
+          }),
+        }),
+      );
+    });
+
+    it('falls back to startTime when a cross-origin resource hides requestStart', () => {
+      mockPerformanceEntries({ responseStart: 50 }, [{ name: url, startTime: 100, requestStart: 0, responseEnd: 300 }]);
+
+      _sendLcpSpan(400, imageEntry);
+
+      expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'browser.web_vital.lcp.resource_load_delay': 50,
+            'browser.web_vital.lcp.resource_load_duration': 200,
+            'browser.web_vital.lcp.element_render_delay': 100,
+          }),
+        }),
+      );
+    });
+
+    it('puts all time after TTFB into render delay for a text LCP', () => {
+      mockPerformanceEntries({ responseStart: 50 }, []);
+
+      _sendLcpSpan(400, { element: { tagName: 'p' } as Element, url: '', startTime: 400 } as LargestContentfulPaint);
+
+      expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'browser.web_vital.lcp.resource_load_delay': 0,
+            'browser.web_vital.lcp.resource_load_duration': 0,
+            'browser.web_vital.lcp.element_render_delay': 350,
+          }),
+        }),
+      );
+    });
+
+    it('measures from activationStart on a prerendered page', () => {
+      mockPerformanceEntries({ responseStart: 50, activationStart: 1000 }, [
+        { name: url, startTime: 1100, requestStart: 1100, responseEnd: 1200 },
+      ]);
+
+      _sendLcpSpan(300, imageEntry, undefined, undefined, 'prerender');
+
+      expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'browser.web_vital.lcp.resource_load_delay': 100,
+            'browser.web_vital.lcp.resource_load_duration': 100,
+            'browser.web_vital.lcp.element_render_delay': 100,
+          }),
+        }),
+      );
+    });
+
+    it('omits the subparts when the image has no resource timing entry', () => {
+      mockPerformanceEntries({ responseStart: 50 }, []);
+
+      _sendLcpSpan(400, imageEntry);
+
+      expectNoSubparts();
+    });
+
+    it.each(['soft-navigation', 'back-forward-cache'] as const)('omits the subparts for a %s', navigationType => {
+      mockPerformanceEntries({ responseStart: 50 }, [
+        { name: url, startTime: 100, requestStart: 120, responseEnd: 300 },
+      ]);
+
+      _sendLcpSpan(400, imageEntry, undefined, undefined, navigationType);
+
+      expectNoSubparts();
+    });
+  });
+
   it('drops implausible LCP values', () => {
     _sendLcpSpan(0, undefined);
     _sendLcpSpan(MAX_PLAUSIBLE_LCP_DURATION + 1, undefined);
@@ -691,6 +811,62 @@ describe('_sendInpSpan', () => {
     expect(mockSpan.end).toHaveBeenCalledWith(1.62);
   });
 
+  it('adds the INP subparts of the interaction the entry belongs to', () => {
+    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
+    vi.spyOn(inpModule, 'getInpSubpartAttributes').mockReturnValueOnce({
+      'browser.web_vital.inp.input_delay': 5,
+      'browser.web_vital.inp.processing_duration': 460,
+      'browser.web_vital.inp.presentation_delay': 55,
+    });
+    const entry = { name: 'pointerdown', startTime: 500, duration: 520, interactionId: 101 } as any;
+
+    _sendInpSpan(520, entry);
+
+    expect(inpModule.getInpSubpartAttributes).toHaveBeenCalledWith(entry);
+    expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'browser.web_vital.inp.input_delay': 5,
+          'browser.web_vital.inp.processing_duration': 460,
+          'browser.web_vital.inp.presentation_delay': 55,
+        }),
+      }),
+    );
+  });
+
+  it('omits the INP subparts when the interaction was not observed', () => {
+    vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
+
+    _sendInpSpan(120, {
+      name: 'pointerdown',
+      startTime: 500,
+      processingStart: 540,
+      processingEnd: 600,
+      duration: 120,
+      interactionId: 102,
+    } as any);
+
+    ['input_delay', 'processing_duration', 'presentation_delay'].forEach(subpart =>
+      expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({ [`browser.web_vital.inp.${subpart}`]: expect.anything() }),
+        }),
+      ),
+    );
+  });
+
+  it('omits the INP subparts when there is no interaction to attribute', () => {
+    _sendInpSpan(120, undefined);
+
+    ['input_delay', 'processing_duration', 'presentation_delay'].forEach(subpart =>
+      expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({ [`browser.web_vital.inp.${subpart}`]: expect.anything() }),
+        }),
+      ),
+    );
+  });
+
   it('uses the time origin from when the interaction happened, not from when it was reported', () => {
     vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue(undefined);
 
@@ -769,6 +945,8 @@ describe('_sendInpSpan', () => {
     vi.spyOn(inpModule, 'getCachedInteractionContext').mockReturnValue({
       elementName: 'body > CachedButton',
       span: mockRootSpan as any,
+      interactionId: 42,
+      latency: 100,
     });
 
     const mockEntry = {
@@ -781,7 +959,7 @@ describe('_sendInpSpan', () => {
 
     _sendInpSpan(100, mockEntry);
 
-    expect(inpModule.getCachedInteractionContext).toHaveBeenCalledWith(42);
+    expect(inpModule.getCachedInteractionContext).toHaveBeenCalledWith(mockEntry);
 
     expect(SentryCoreBrowser.startInactiveSpan).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -411,4 +411,33 @@ describe('LangChain integration', () => {
       });
     },
   );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-recording-functions.mjs',
+    'instrument-with-span-hooks.mjs',
+    (createRunner, test) => {
+      test('runs the span hooks at start in the caller context and at end with the LLM result', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const hooksById = Object.fromEntries(
+                container.items
+                  .filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.langchain')
+                  .map(span => [
+                    span.attributes[GEN_AI_RESPONSE_ID]?.value,
+                    [span.attributes['test.start']?.value, span.attributes['test.end']?.value],
+                  ]),
+              );
+              expect(hooksById).toEqual({
+                msg_public: ['public:public', 'Paris.'],
+                msg_private: ['private:private', 'Paris.'],
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

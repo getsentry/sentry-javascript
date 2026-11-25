@@ -7,11 +7,19 @@ test.describe('distributed tracing', () => {
 
   test('capture a distributed pageload trace', async ({ page }) => {
     const clientSpanPromise = waitForStreamedSpan('nuxt-3', span => {
-      return getSpanOp(span) === 'pageload' && span.is_segment;
+      return (
+        getSpanOp(span) === 'pageload' &&
+        span.is_segment &&
+        span.attributes['url.path']?.value === `/test-param/${PARAM}`
+      );
     });
 
     const serverSpanPromise = waitForStreamedSpan('nuxt-3', span => {
-      return span.is_segment && span.name.includes('GET /test-param/');
+      return (
+        span.is_segment &&
+        getSpanOp(span) === 'http.server' &&
+        span.attributes['url.path']?.value === `/test-param/${PARAM}`
+      );
     });
 
     const [_, clientSpan, serverSpan] = await Promise.all([

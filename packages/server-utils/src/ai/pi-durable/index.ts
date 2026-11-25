@@ -27,6 +27,7 @@ import type {
   PiTask,
   PiTaskRuntime,
   PiTool,
+  PiToolTaskInput,
   PiToolExecutionResult,
 } from './types';
 import { withCleanScopes } from '../../utils/withCleanScopes';
@@ -145,7 +146,8 @@ function instrumentRegistry(registry: PiRegistryReader, options: PiDurableOption
         (taskRecord, runtime, context) =>
           runPhase(
             definition.name,
-            observed => phase.call(receiver, taskRecord, observed, context),
+            taskRecord,
+            () => phase.call(receiver, taskRecord, runtime, context),
             runtime,
             context,
             runs,
@@ -201,7 +203,8 @@ function instrumentRegistry(registry: PiRegistryReader, options: PiDurableOption
 
 function runPhase(
   kind: string,
-  phase: (runtime: PiTaskRuntime) => Promise<unknown>,
+  task: unknown,
+  phase: () => Promise<unknown>,
   runtime: PiTaskRuntime,
   context: unknown,
   runs: PiRuns,
@@ -219,14 +222,19 @@ function runPhase(
       ? (runs.active.get(conversationId) ?? (isRunWork && !isAbort ? startRun(conversationId, runs) : undefined))
       : undefined;
 
-  let observed = runtime;
-  let finishToolPhase: (() => void) | undefined;
+  // A call that a tool makes with `api.executeTool()`, as a code mode script does, is a `pi.tool`
+  // task of its own. Its span belongs under the span of the calling tool.
+  const input = kind === PI_TASK.TOOL ? (task as { input?: PiToolTaskInput } | undefined)?.input : undefined;
+  const callerSpan =
+    input?.kind === 'nested'
+      ? runs.toolCalls.get(input.parent)?.find(call => call.callId === input.parentCallId)?.span
+      : undefined;
+
+  let finishPhase: (() => void) | undefined;
   if (run && kind === PI_TASK.GENERATION) {
-    observed = observeRunControl(runtime, run, runs);
+    finishPhase = observeRunControl(runtime, run, runs);
   } else if (kind === PI_TASK.TOOL) {
-    const toolPhase = instrumentToolPhase(runtime, runs, wrapTool);
-    observed = toolPhase.runtime;
-    finishToolPhase = toolPhase.finish;
+    finishPhase = instrumentToolPhase(runtime, runs, wrapTool, input?.kind === 'nested');
   }
 
   const runInScope = async (scope: Scope): Promise<unknown> => {
@@ -243,7 +251,7 @@ function runPhase(
     scope.setConversationId(sessionId ?? toSentryConversationId(runs, conversationId));
     setPiAiDriverOptions(scope, options, { operation: 'chat', runtime, context });
     try {
-      return await phase(observed);
+      return await phase();
     } catch (error) {
       // The scheduler faults a task whose phase throws, and a faulted generation ends its run. A
       // throw after an abort mark, or once the Harness closes, is not a fault.
@@ -255,7 +263,7 @@ function runPhase(
       }
       throw error;
     } finally {
-      finishToolPhase?.();
+      finishPhase?.();
     }
   };
 
@@ -264,5 +272,5 @@ function runPhase(
       startNewTrace(() => runInScope(getCurrentScope())),
     );
   }
-  return withCleanScopes(run.isolationScope, () => withActiveSpan(run.span, runInScope));
+  return withCleanScopes(run.isolationScope, () => withActiveSpan(callerSpan ?? run.span, runInScope));
 }

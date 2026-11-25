@@ -1,4 +1,4 @@
-import { _INTERNAL_setTunnelDefaults as setTunnelDefaults } from '@sentry/core/server';
+import { setTunnelDefaults } from '@sentry/core/server';
 import { definePlugin } from 'nitro';
 import { useRuntimeConfig } from 'nitro/runtime-config';
 // @ts-expect-error - This is a virtual module

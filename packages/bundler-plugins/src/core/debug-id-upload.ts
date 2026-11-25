@@ -404,6 +404,7 @@ export function defaultRewriteSourcesHook(source: string): string {
   if (source.match(PROTOCOL_REGEX)) {
     return source.replace(PROTOCOL_REGEX, '');
   } else {
-    return path.relative(process.cwd(), path.normalize(source));
+    // Source map `sources` are URLs, so Windows separators must not leak into the uploaded map.
+    return path.relative(process.cwd(), path.normalize(source)).split(path.sep).join('/');
   }
 }

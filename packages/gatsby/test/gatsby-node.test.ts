@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { onCreateWebpackConfig } from '../gatsby-node';
 
 vi.hoisted(
@@ -106,122 +106,196 @@ describe('onCreateWebpackConfig', () => {
     });
   });
 
-  describe('delete source maps after upload', () => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
+  describe('source maps', () => {
+    it.each([
+      {
+        name: 'build-javascript, devtool unset: enables hidden source maps and passes delete options',
+        stage: 'build-javascript',
+        initialConfig: undefined,
+        options: {},
+        expected: { devtool: 'hidden-source-map', deleteOptions: true },
+      },
+      {
+        name: 'build-javascript, devtool false: enables hidden source maps and passes delete options',
+        stage: 'build-javascript',
+        initialConfig: { devtool: false },
+        options: {},
+        expected: { devtool: 'hidden-source-map', deleteOptions: true },
+      },
+      {
+        name: 'build-javascript, devtool eval: enables hidden source maps and passes delete options',
+        stage: 'build-javascript',
+        initialConfig: { devtool: 'eval' },
+        options: {},
+        expected: { devtool: 'hidden-source-map', deleteOptions: true },
+      },
+      {
+        name: 'build-javascript, source-map: keeps it and passes no delete options',
+        stage: 'build-javascript',
+        initialConfig: { devtool: 'source-map' },
+        options: {},
+        expected: { devtool: 'source-map', deleteOptions: undefined },
+      },
+      {
+        name: 'build-javascript, hidden-source-map: keeps it and passes no delete options',
+        stage: 'build-javascript',
+        initialConfig: { devtool: 'hidden-source-map' },
+        options: {},
+        expected: { devtool: 'hidden-source-map', deleteOptions: undefined },
+      },
+      {
+        name: 'build-javascript, devtool false, user false: enables hidden source maps and passes no delete options',
+        stage: 'build-javascript',
+        initialConfig: { devtool: false },
+        options: { deleteSourcemapsAfterUpload: false },
+        expected: { devtool: 'hidden-source-map', deleteOptions: undefined },
+      },
+      {
+        name: 'build-javascript, source-map, user true: passes delete options',
+        stage: 'build-javascript',
+        initialConfig: { devtool: 'source-map' },
+        options: { deleteSourcemapsAfterUpload: true },
+        expected: { devtool: 'source-map', deleteOptions: true },
+      },
+      {
+        name: 'build-javascript, hidden-source-map, user true: passes delete options',
+        stage: 'build-javascript',
+        initialConfig: { devtool: 'hidden-source-map' },
+        options: { deleteSourcemapsAfterUpload: true },
+        expected: { devtool: 'hidden-source-map', deleteOptions: true },
+      },
+      {
+        name: 'build-javascript, source-map, user truthy value: passes delete options as true',
+        stage: 'build-javascript',
+        initialConfig: { devtool: 'source-map' },
+        options: { deleteSourcemapsAfterUpload: 'true' },
+        expected: { devtool: 'source-map', deleteOptions: true },
+      },
+      {
+        name: 'build-javascript, hidden-source-map, user false: passes no delete options',
+        stage: 'build-javascript',
+        initialConfig: { devtool: 'hidden-source-map' },
+        options: { deleteSourcemapsAfterUpload: false },
+        expected: { devtool: 'hidden-source-map', deleteOptions: undefined },
+      },
+      {
+        name: 'build-html, devtool false: enables hidden source maps and passes no delete options',
+        stage: 'build-html',
+        initialConfig: { devtool: false },
+        options: {},
+        expected: { devtool: 'hidden-source-map', deleteOptions: undefined },
+      },
+      {
+        name: 'build-html, source-map, user true: passes no delete options',
+        stage: 'build-html',
+        initialConfig: { devtool: 'source-map' },
+        options: { deleteSourcemapsAfterUpload: true },
+        expected: { devtool: 'source-map', deleteOptions: undefined },
+      },
+    ])('$name', ({ stage, initialConfig, options, expected }) => {
+      const actions = { setWebpackConfig: vi.fn() };
+      const getConfig = vi.fn().mockReturnValue(initialConfig);
 
-    const actions = {
-      setWebpackConfig: vi.fn(),
-    };
-
-    const getConfig = vi.fn();
-
-    it('sets sourceMapFilesToDeleteAfterUpload when provided in options', () => {
-      const actions = {
-        setWebpackConfig: vi.fn(),
-      };
-
-      const getConfig = vi.fn().mockReturnValue({ devtool: 'source-map' });
-
-      onCreateWebpackConfig({ actions, getConfig }, { deleteSourcemapsAfterUpload: true });
+      onCreateWebpackConfig({ actions, getConfig, stage }, options);
 
       expect(actions.setWebpackConfig).toHaveBeenCalledTimes(1);
-
+      expect(actions.setWebpackConfig).toHaveBeenCalledWith({
+        devtool: expected.devtool,
+        plugins: [expect.any(Object)],
+      });
       expect(sentryWebpackPlugin).toHaveBeenCalledWith(
         expect.objectContaining({
-          sourcemaps: expect.objectContaining({
-            filesToDeleteAfterUpload: ['./public/**/*.map'],
-          }),
+          sourcemaps: {
+            assets: ['./public/**'],
+            deleteSourcemapsAfterUpload: expected.deleteOptions,
+            sdkEnabledSourceMaps: expected.deleteOptions,
+            ignore: ['polyfill-*', 'framework-*', 'webpack-runtime-*'],
+          },
         }),
       );
+    });
+
+    // Each row: the stage, the `devtool` Gatsby hands over, the `sourcemaps` options, the `devtool`
+    // of the final config, and whether the plugin removes every source map of the stage.
+    it.each([
+      ['build-javascript', undefined, { upload: false }, undefined, undefined],
+      ['build-javascript', false, { injectDebugIds: false }, false, undefined],
+      ['build-javascript', 'source-map', { upload: false }, 'source-map', undefined],
+      ['build-javascript', undefined, { upload: false, delete: false }, 'hidden-source-map', undefined],
+      ['build-javascript', undefined, { injectDebugIds: false, delete: false }, undefined, undefined],
+      ['build-javascript', 'source-map', { upload: false, delete: true }, 'source-map', true],
+      ['build-javascript', undefined, { delete: false }, 'hidden-source-map', undefined],
+      ['build-javascript', 'source-map', { delete: true }, 'source-map', true],
+      ['build-javascript', undefined, { delete: true }, 'hidden-source-map', true],
+      ['build-html', 'source-map', { delete: true }, 'source-map', undefined],
+    ] as const)(
+      '%s, devtool %s, `sourcemaps: %j`: sets devtool %s',
+      (stage, devtool, sourcemaps, expectedDevtool, deletes) => {
+        const actions = { setWebpackConfig: vi.fn() };
+        const getConfig = vi.fn().mockReturnValue(devtool === undefined ? undefined : { devtool });
+
+        onCreateWebpackConfig({ actions, getConfig, stage }, { sourcemaps });
+
+        expect(actions.setWebpackConfig).toHaveBeenCalledWith({
+          devtool: expectedDevtool,
+          plugins: [expect.any(Object)],
+        });
+        expect(sentryWebpackPlugin).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sourcemaps: {
+              assets: ['./public/**'],
+              upload: 'upload' in sourcemaps ? sourcemaps.upload : undefined,
+              injectDebugIds: 'injectDebugIds' in sourcemaps ? sourcemaps.injectDebugIds : undefined,
+              deleteSourcemapsAfterUpload: deletes,
+              sdkEnabledSourceMaps: deletes,
+              ignore: ['polyfill-*', 'framework-*', 'webpack-runtime-*'],
+            },
+          }),
+        );
+      },
+    );
+
+    it.each([
+      ['build-javascript', {}, 'will be deleted after they were uploaded'],
+      ['build-html', {}, 'stay in the build output'],
+      ['build-javascript', { delete: false }, 'stay in the build output'],
+    ] as const)('logs for stage %s and `sourcemaps: %j` that the maps %s', (stage, sourcemaps, message) => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+      const actions = { setWebpackConfig: vi.fn() };
+
+      onCreateWebpackConfig({ actions, getConfig: vi.fn().mockReturnValue(undefined), stage }, { sourcemaps });
+
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining(message));
+      logSpy.mockRestore();
+    });
+
+    it('warns once when `sourcemaps.delete` and the flat option are both set', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const getConfig = vi.fn().mockReturnValue({ devtool: 'source-map' });
+      const options = { deleteSourcemapsAfterUpload: true, sourcemaps: { delete: false } };
+
+      for (const stage of ['build-javascript', 'build-html']) {
+        onCreateWebpackConfig({ actions: { setWebpackConfig: vi.fn() }, getConfig, stage }, options);
+      }
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('`deleteSourcemapsAfterUpload` is ignored because `sourcemaps.delete` is set'),
+      );
+      warnSpy.mockRestore();
     });
 
     it.each([
-      {
-        name: 'without provided options: sets hidden source maps and deletes source maps',
-        initialConfig: undefined,
-        options: {},
-        expected: {
-          devtool: 'hidden-source-map',
-          deleteSourceMaps: true,
-        },
-      },
-      {
-        name: "preserves enabled source-map and doesn't delete",
-        initialConfig: { devtool: 'source-map' },
-        options: {},
-        expected: {
-          devtool: 'source-map',
-          deleteSourceMaps: false,
-        },
-      },
-      {
-        name: "preserves enabled hidden-source-map and doesn't delete",
-        initialConfig: { devtool: 'hidden-source-map' },
-        options: {},
-        expected: {
-          devtool: 'hidden-source-map',
-          deleteSourceMaps: false,
-        },
-      },
-      {
-        name: 'deletes source maps, when user explicitly sets it',
-        initialConfig: { devtool: 'eval' },
-        options: {},
-        expected: {
-          devtool: 'hidden-source-map',
-          deleteSourceMaps: true,
-        },
-      },
-      {
-        name: 'replaces disabled source maps with hidden ones and deletes them',
-        initialConfig: { devtool: false },
-        options: {},
-        expected: {
-          devtool: 'hidden-source-map',
-          deleteSourceMaps: true,
-        },
-      },
-      {
-        name: 'explicit deleteSourcemapsAfterUpload true',
-        initialConfig: { devtool: 'source-map' },
-        options: { deleteSourcemapsAfterUpload: true },
-        expected: {
-          devtool: 'source-map',
-          deleteSourceMaps: true,
-        },
-      },
-      {
-        name: 'explicit deleteSourcemapsAfterUpload false',
-        initialConfig: { devtool: 'hidden-source-map' },
-        options: { deleteSourcemapsAfterUpload: false },
-        expected: {
-          devtool: 'hidden-source-map',
-          deleteSourceMaps: false,
-        },
-      },
-    ])('$name', ({ initialConfig, options, expected }) => {
-      getConfig.mockReturnValue(initialConfig);
+      [{ delete: false }, { deleteSourcemapsAfterUpload: true }, undefined],
+      [{ delete: true }, { deleteSourcemapsAfterUpload: false }, true],
+    ])('lets `sourcemaps: %j` win over the flat option %j', (sourcemaps, flatOptions, deletes) => {
+      const actions = { setWebpackConfig: vi.fn() };
+      const getConfig = vi.fn().mockReturnValue({ devtool: 'source-map' });
 
-      onCreateWebpackConfig({ actions: actions, getConfig: getConfig }, options);
-
-      expect(actions.setWebpackConfig).toHaveBeenCalledTimes(1);
-
-      expect(actions.setWebpackConfig).toHaveBeenCalledWith(
-        expect.objectContaining({
-          devtool: expected.devtool,
-          plugins: expect.arrayContaining([expect.any(Object)]),
-        }),
-      );
+      onCreateWebpackConfig({ actions, getConfig, stage: 'build-javascript' }, { ...flatOptions, sourcemaps });
 
       expect(sentryWebpackPlugin).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sourcemaps: expect.objectContaining({
-            assets: ['./public/**'],
-            filesToDeleteAfterUpload: expected.deleteSourceMaps ? ['./public/**/*.map'] : undefined,
-          }),
-        }),
+        expect.objectContaining({ sourcemaps: expect.objectContaining({ deleteSourcemapsAfterUpload: deletes }) }),
       );
     });
   });

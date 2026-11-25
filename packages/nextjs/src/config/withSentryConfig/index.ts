@@ -1,4 +1,4 @@
-import { isThenable, warnOnRemovedBuildOptions } from '@sentry/core';
+import { isThenable, warnOnConflictingSourceMapOptions, warnOnRemovedBuildOptions } from '@sentry/core';
 import { getBuildLogger } from '../buildLogger';
 import type { ExportedNextConfig as NextConfig, NextConfigFunction, SentryBuildOptions } from '../types';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from './constants';
@@ -19,6 +19,8 @@ export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBu
   const logWarning = (message: string): void => getBuildLogger(sentryBuildOptions.silent).warn(message);
   warnOnRemovedBuildOptions(sentryBuildOptions, ['unstable_sentryWebpackPluginOptions'], logWarning);
   warnOnRemovedBuildOptions(sentryBuildOptions.webpack, ['unstable_sentryWebpackPluginOptions'], logWarning);
+  // The bundler plugin does not get `sourcemaps.delete` or the user's `deleteSourcemapsAfterUpload`.
+  warnOnConflictingSourceMapOptions(sentryBuildOptions.sourcemaps, logWarning);
 
   const castNextConfig = (nextConfig as NextConfig) || {};
   if (typeof castNextConfig === 'function') {

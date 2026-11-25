@@ -1,10 +1,7 @@
-import { _INTERNAL_getActiveClient as getActiveClient, applySdkMetadata, consoleSandbox, debug } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata, consoleSandbox, debug, getClient } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import {
-  _INTERNAL_installTunnelHooks as installTunnelHooks,
-  getDefaultIntegrations as getDefaultNodeIntegrations,
-  init as initNodeSdk,
-} from '@sentry/node';
+import { getDefaultIntegrations as getDefaultNodeIntegrations, init as initNodeSdk } from '@sentry/node';
+import { instrumentTunnelServers } from '@sentry/server-utils';
 
 /**
  * Initializes the server side of the TanStack Start React SDK
@@ -18,7 +15,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   // The Nitro server build also runs `instrument.server` when it starts, so a `node --import` preload of it or an
   // import of it in the server entry initializes the SDK a second time. The first init wins.
-  const activeClient = getActiveClient<NodeClient>();
+  const activeClient = getClient<NodeClient>();
   if (activeClient) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
@@ -31,7 +28,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   const sentryOptions: NodeOptions = {
     defaultIntegrations: [...getDefaultNodeIntegrations(options)],
-    ...options,
+    ..._INTERNAL_captureOptionsSetByUser(options),
   };
 
   applySdkMetadata(sentryOptions, 'tanstackstart-react', ['tanstackstart-react', 'node']);
@@ -47,7 +44,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   const client = initNodeSdk(sentryOptions);
   // `tunnelRoute` enables the tunnel when the server entry loads, after this preload, so the servers must be ready to
   // answer it already.
-  installTunnelHooks();
+  instrumentTunnelServers();
 
   return client;
 }

@@ -8,7 +8,7 @@ describe('getFinalOptions', () => {
 
     const result = getFinalOptions(userOptions, env);
 
-    expect(result).toEqual(userOptions);
+    expect(result).toEqual({ ...userOptions, _metadata: { optionsSetByUser: ['dsn', 'release'] } });
   });
 
   it('returns user options when env is null', () => {

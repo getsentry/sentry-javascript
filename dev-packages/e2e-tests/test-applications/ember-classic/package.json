@@ -29,7 +29,7 @@
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
     "@sentry/ember": "file:../../packed/sentry-ember-packed.tgz",
     "@tsconfig/ember": "~3.0.6",
-    "@tsconfig/node18": "18.2.4",
+    "@tsconfig/node18": "18.2.8",
     "@types/ember": "~4.0.11",
     "@types/ember-resolver": "~9.0.0",
     "@types/ember__application": "~4.0.11",
@@ -67,7 +67,7 @@
     "ember-resolver": "~8.0.3",
     "ember-source": "~4.8.0",
     "loader.js": "~4.7.0",
-    "ts-node": "10.9.1",
+    "ts-node": "10.9.2",
     "typescript": "~5.4.5",
     "webpack": "~5.104.1"
   },

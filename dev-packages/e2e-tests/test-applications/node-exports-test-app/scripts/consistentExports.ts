@@ -22,8 +22,6 @@ const NODE_EXPORTS_IGNORE = [
   'experimentalReportSdkConfigIntegration',
   // Internal helper only needed within integrations (e.g. bunRuntimeMetricsIntegration)
   '_INTERNAL_normalizeCollectionInterval',
-  // Only needed by framework SDKs that enable the managed tunnel after `init`
-  '_INTERNAL_installTunnelHooks',
   // Only needed by framework SDKs that send the request trace to the browser
   'addServerTimingTraceHeader',
   // not exported by bun

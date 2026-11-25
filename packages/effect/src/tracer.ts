@@ -20,6 +20,7 @@ import type * as EffectLayer from 'effect/Layer';
 import { succeed as succeedLayer } from 'effect/Layer';
 import * as Option from 'effect/Option';
 import * as EffectTracer from 'effect/Tracer';
+import { contextExports, isEffectV4, layerExports } from './compat';
 
 const EFFECT_SPAN_SYMBOL = Symbol.for('@sentry/effect.EffectSpan');
 
@@ -213,34 +214,7 @@ class SentrySpanWrapper implements SentrySpanLike {
  */
 export type StartInactiveSpan = (options: StartSpanOptions) => Span;
 
-// Check if we're running Effect v4 by checking the Exit/Cause structure
-// In v4, causes have a 'reasons' array
-// In v3, causes have '_tag' directly on the cause object
-const isEffectV4 = (() => {
-  try {
-    const testExit = Exit.fail('test') as unknown as { cause?: unknown };
-    const cause = testExit.cause;
-    // v4 causes have 'reasons' array, v3 causes have '_tag' directly
-    if (isObjectLike(cause) && 'reasons' in cause) {
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-})();
-
 const EXTERNAL_SPAN_KEY = '@sentry/effect/ExternalSpan';
-
-interface ContextExports {
-  Reference: typeof Context.Reference;
-  /** Only Effect v3 exports it. */
-  GenericTag<Identifier, Service>(key: string): Context.Key<Identifier, Service>;
-}
-
-// Effect v4 has no `Context.GenericTag` and Effect v3 before 3.11 has no `Context.Reference`. Both are read
-// through a separate binding because bundlers fail the build on a namespace member the installed version lacks.
-const contextExports = Context as unknown as ContextExports;
 
 /**
  * Whether the tracer continues the trace of a `Tracer.externalSpan` parent. Effect v4 has no `FiberRef`
@@ -256,10 +230,18 @@ const ExternalSpanFlag = (
 
 /**
  * Makes the tracer continue the trace of a `Tracer.externalSpan` parent instead of ignoring it. Provide it
- * next to the tracer layer to continue every external span in the runtime, or provide it to a single
+ * next to `layerTracer` to continue every external span in the runtime, or provide it to a single
  * effect with `Effect.provide` to continue only that one.
  */
-export const SentryEffectExternalSpanLayer: EffectLayer.Layer<never> = succeedLayer(ExternalSpanFlag, true);
+export const layerExternalSpan: EffectLayer.Layer<never> = succeedLayer(ExternalSpanFlag, true);
+
+/**
+ * Makes Effect record its spans with `tracer`. Effect v3 reads the tracer from its default services, which a
+ * `Tracer.Tracer` service does not change, so v3 needs `Layer.setTracer`.
+ */
+export function makeTracerLayer(tracer: EffectTracer.Tracer): EffectLayer.Layer<never> {
+  return isEffectV4 ? succeedLayer(EffectTracer.Tracer, tracer) : layerExports.setTracer(tracer);
+}
 
 interface FiberLike {
   /** The span the fiber runs in. Only Effect v3 fibers have it. */
@@ -313,7 +295,7 @@ function withFiberContext<X>(fiber: FiberLike, execution: () => X): X {
  * - A parent this tracer created becomes the Sentry parent.
  * - Any other parent (`Tracer.externalSpan` bridging a trace this SDK did not start, such as an
  *   OpenTelemetry span of another app in the same process or persisted trace state) is ignored unless
- *   {@link SentryEffectExternalSpanLayer} is provided, so a span joins a foreign trace only when the user
+ *   {@link layerExternalSpan} is provided, so a span joins a foreign trace only when the user
  *   asked for it. The span then nests where Effect would have put it without the `parent` option: under
  *   the fiber's current span, or parentless. With the layer, the span continues that trace: it is a root
  *   span whose `parent_span_id` is the external span. No dynamic sampling context is frozen, so the SDK
@@ -460,7 +442,7 @@ const makeSentryTracerV4 = (
 /**
  * Creates an Effect `Tracer` that records Effect spans as Sentry spans.
  *
- * Use the `SentryEffectTracer` exported from `@sentry/effect` rather than calling this directly — the
+ * Use the `Tracer` exported from `@sentry/effect` rather than calling this directly — the
  * client and server entries each bind the right `startInactiveSpan` for their platform.
  *
  * `newTraceForRootSpans` is the one behavioural difference between the platforms: Effect gives every

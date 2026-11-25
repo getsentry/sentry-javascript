@@ -23,7 +23,7 @@ import {
 } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/core/browser';
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, XhrHint } from '@sentry/browser-utils';
-import { filterCollectedUrl, filterCollectedUrlQuery } from '@sentry/core';
+import { filterCollectedUrl, filterCollectedUrlFragment, filterCollectedUrlQuery } from '@sentry/core';
 import {
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
@@ -428,7 +428,7 @@ function xhrCallback(
             [URL_PATH]: host ? parsedUrl?.path || '/' : undefined,
             [URL_SCHEME]: host ? parsedUrl?.protocol : undefined,
             [URL_QUERY]: filterCollectedUrlQuery(getUrlQuery(parsedUrl?.search)),
-            [URL_FRAGMENT]: getUrlFragment(parsedUrl?.hash),
+            [URL_FRAGMENT]: filterCollectedUrlFragment(getUrlFragment(parsedUrl?.hash)),
           },
         })
       : new SentryNonRecordingSpan();

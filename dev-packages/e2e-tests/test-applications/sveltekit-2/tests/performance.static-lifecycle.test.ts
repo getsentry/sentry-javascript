@@ -194,12 +194,16 @@ test.describe('performance events', () => {
   });
 
   test('captures a navigation transaction directly after pageload', async ({ page }) => {
-    const clientPageloadTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
-      return txnEvent?.contexts?.trace?.op === 'pageload';
+    const traceHeaderPromise = page.locator('meta[name="sentry-trace"]').getAttribute('content');
+    const clientPageloadTxnPromise = waitForTransaction('sveltekit-2', async txnEvent => {
+      return (
+        txnEvent?.contexts?.trace?.op === 'pageload' &&
+        txnEvent.contexts.trace.trace_id === (await traceHeaderPromise)?.split('-')[0]
+      );
     });
 
     const clientNavigationTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
-      return txnEvent?.contexts?.trace?.op === 'navigation';
+      return txnEvent?.contexts?.trace?.op === 'navigation' && String(txnEvent.request?.url).endsWith('/users/123abc');
     });
 
     await waitForInitialPageload(page, { route: '/' });

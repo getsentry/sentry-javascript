@@ -112,6 +112,12 @@ describe('browserTracingIntegration', () => {
     });
   });
 
+  it('records the options the user passed, not the ones it forces on the original integration', () => {
+    const integration = browserTracingIntegration({ instrumentNavigation: true, idleTimeout: 2000 });
+
+    expect(integration._options).toEqual({ instrumentNavigation: true, idleTimeout: 2000 });
+  });
+
   it("starts a pageload span when it's called with default params", async () => {
     const integration = browserTracingIntegration();
     // @ts-expect-error - the fakeClient doesn't satisfy Client but that's fine

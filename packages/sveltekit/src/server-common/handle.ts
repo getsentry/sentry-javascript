@@ -26,8 +26,8 @@ import {
   _INTERNAL_getCacheOriginMetaTags,
   _INTERNAL_getReleaseMetaTag as renderReleaseMetaTag,
   _INTERNAL_getRootSpanSentryTrace,
-  _INTERNAL_handleServedTunnelRequest as handleServedTunnelRequest,
-  _INTERNAL_setTunnelDefaults as setTunnelDefaults,
+  handleServedTunnelRequest,
+  setTunnelDefaults,
 } from '@sentry/core/server';
 import { getTunnelBasePath } from '../common/tunnel';
 import type { GlobalWithSentryValues } from '../vite/injectGlobalValues';

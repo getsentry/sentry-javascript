@@ -1,5 +1,5 @@
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
-import { warnOnRemovedBuildOptions } from '@sentry/core';
+import { warnOnConflictingSourceMapOptions, warnOnRemovedBuildOptions } from '@sentry/core';
 import { type Plugin } from 'vite';
 import type { SentryReactRouterBuildOptions } from './types';
 
@@ -8,6 +8,8 @@ import type { SentryReactRouterBuildOptions } from './types';
  */
 export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuildOptions): Promise<Plugin[]> {
   warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
+  // The Vite plugin does not get the user's source map options.
+  warnOnConflictingSourceMapOptions(options.sourcemaps);
 
   const {
     debug,
@@ -42,8 +44,8 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
     release: { ...release, inject: false },
     silent,
     telemetry: telemetry ?? true,
-    // Release creation runs in the plugin's `writeBundle` even with `sourcemaps.disable` set below,
-    // so the plugin needs its own URL rather than relying on the `sentryOnBuildEnd` CLI instance.
+    // Release creation runs in the plugin's `writeBundle` even with the source map handling switched
+    // off below, so the plugin needs its own URL rather than relying on the `sentryOnBuildEnd` CLI instance.
     url: sentryUrl,
     _metaOptions: {
       telemetry: {
@@ -54,9 +56,10 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
       // Debug ID injection and upload are handled by the `sentryOnBuildEnd` hook, so the Vite plugin
       // must never do it as well - that would inject a second debug ID per chunk and break source
       // map resolution.
-      disable: true,
-      // The plugin deletes these in a `finally` block that runs regardless of `disable`, which would
-      // remove the maps before `sentryOnBuildEnd` gets to upload them. Deletion happens there instead.
+      upload: false,
+      injectDebugIds: false,
+      // The plugin deletes these in a `finally` block that runs regardless of the options above, which
+      // would remove the maps before `sentryOnBuildEnd` gets to upload them. Deletion happens there instead.
       filesToDeleteAfterUpload: undefined,
     },
   }) as Plugin[];

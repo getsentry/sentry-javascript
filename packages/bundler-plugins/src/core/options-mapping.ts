@@ -1,4 +1,4 @@
-import { getVercelEnv } from '@sentry/core';
+import { getVercelEnv, warnOnConflictingSourceMapOptions } from '@sentry/core';
 import type { Logger } from './logger';
 import type {
   InternalOptions as UserOptions,
@@ -163,9 +163,13 @@ export function normalizeUserOptions(userOptions: UserOptions): NormalizedOption
         ignoreEmpty: true,
         ignoreMissing: true,
       };
-    } else if (process.env['VERCEL'] && vercelEnv !== 'production' && !canAutoDetectRepository()) {
-      // Vercel's own builders have no git remote and no other CI variables, so `--auto` can only fail there.
-      // Builds that have either, such as `vercel build` in GitHub Actions, keep `--auto` below.
+    } else if (
+      process.env['VERCEL'] &&
+      vercelEnv !== 'production' &&
+      !canAutoDetectRepository(options.release.vcsRemote)
+    ) {
+      // Vercel's own builders have no git remote and no other CI variables, so commit association can only fail there.
+      // Builds that have either, such as `vercel build` in GitHub Actions, keep `auto: true` below.
       options.release.setCommits = false;
     } else {
       options.release.setCommits = {
@@ -218,32 +222,7 @@ export function validateOptions(options: NormalizedOptions, logger: Logger): boo
     }
   }
 
-  const sourcemaps = options.sourcemaps;
-  const usesFeatureOptions = sourcemaps?.upload !== undefined || sourcemaps?.injectDebugIds !== undefined;
-  if (usesFeatureOptions && sourcemaps?.disable !== undefined) {
-    logger.warn(
-      '`sourcemaps.disable` is ignored because `sourcemaps.upload` or `sourcemaps.injectDebugIds` is set.',
-      'Please remove `sourcemaps.disable`.',
-    );
-  }
-  if (sourcemaps?.injectDebugIds === false && sourcemaps.upload === true) {
-    logger.warn(
-      '`sourcemaps.upload` is set, but `sourcemaps.injectDebugIds` is `false`.',
-      'Source maps are not uploaded, because the upload matches files by debug ID.',
-    );
-  }
-  if (sourcemaps?.delete !== undefined && sourcemaps.deleteSourcemapsAfterUpload !== undefined) {
-    logger.warn(
-      '`sourcemaps.deleteSourcemapsAfterUpload` is ignored because `sourcemaps.delete` is set.',
-      'Please remove `sourcemaps.deleteSourcemapsAfterUpload`.',
-    );
-  }
-  if (sourcemaps?.delete === false && sourcemaps.filesToDeleteAfterUpload !== undefined) {
-    logger.warn(
-      '`sourcemaps.filesToDeleteAfterUpload` still deletes the files it matches, although `sourcemaps.delete` is `false`.',
-      'Remove `sourcemaps.filesToDeleteAfterUpload` to keep the source maps.',
-    );
-  }
+  warnOnConflictingSourceMapOptions(options.sourcemaps, message => logger.warn(message));
 
   if (options.release?.deploy && typeof options.release.deploy === 'object' && !options.release.deploy.env) {
     logger.error(

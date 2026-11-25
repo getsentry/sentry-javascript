@@ -1,0 +1,10 @@
+{
+  "name": "esm-app",
+  "private": true,
+  "dependencies": {
+    "esm-app-dependency": "^1.0.0"
+  },
+  "devDependencies": {
+    "esm-app-missing-dependency": "^2.0.0"
+  }
+}

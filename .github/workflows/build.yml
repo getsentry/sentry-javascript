@@ -228,9 +228,7 @@ jobs:
   job_build_layer:
     name: Build Lambda layer
     needs: [job_get_metadata, job_build]
-    if:
-      needs.job_build.outputs.changed_aws_serverless == 'true' || contains(needs.job_build.outputs.e2e-matrix-aws-layer,
-      'aws-serverless-layer') || github.event_name != 'pull_request'
+    if: needs.job_get_metadata.outputs.is_release == 'true'
     timeout-minutes: 10
     runs-on: ubuntu-24.04
     steps:
@@ -308,7 +306,7 @@ jobs:
         uses: ./dev-packages/size-limit-gh-action
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Only run comparison against develop if this is a PR
+          # Only compare on PRs. Other runs only store their results as a baseline.
           comparison_branch: ${{ (github.event_name == 'pull_request' && github.base_ref) ||  ''}}
 
   job_lint:
@@ -349,6 +347,8 @@ jobs:
                 echo "::error::All @playwright/test dependencies must be pinned to $version (from @sentry-internal/test-utils)."
                 exit 1
               fi
+          - name: Test repo scripts
+            run: pnpm run test:scripts
 
   job_check_lockfile:
     name: Check lockfile
@@ -626,11 +626,15 @@ jobs:
           - bundle: bundle_tracing_replay_feedback_logs_metrics_min
             project: 'webkit'
             shard: 1
-            shards: 2
+            shards: 3
           - bundle: bundle_tracing_replay_feedback_logs_metrics_min
             project: 'webkit'
             shard: 2
-            shards: 2
+            shards: 3
+          - bundle: bundle_tracing_replay_feedback_logs_metrics_min
+            project: 'webkit'
+            shard: 3
+            shards: 3
           - bundle: bundle_tracing_replay_feedback_logs_metrics_min
             project: 'firefox'
           - bundle: esm
@@ -1011,7 +1015,7 @@ jobs:
         run: pnpm run test --shard=${{ matrix.shard }}/6
 
   job_deno_integration_tests:
-    name: Deno Integration Tests (${{ matrix.shard }}/4)
+    name: Deno Integration Tests (${{ matrix.shard }}/6)
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-arm
@@ -1019,7 +1023,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v7
@@ -1048,7 +1052,7 @@ jobs:
       - name: Run shared Node integration tests
         working-directory: dev-packages/deno-integration-tests
         # Tedious runs in the dedicated SQL Server job because its database container requires x86.
-        run: pnpm run test:node-suites --shard=${{ matrix.shard }}/4 --exclude '**/tracing/tedious/**'
+        run: pnpm run test:node-suites --shard=${{ matrix.shard }}/6 --exclude '**/tracing/tedious/**'
 
   # GitHub Actions allows at most 256 jobs in one matrix, so the E2E tests are split into two jobs that share `env`
   # and `steps`.
@@ -1084,6 +1088,8 @@ jobs:
         uses: ./.github/actions/prepare-e2e-test
         with:
           test-application: ${{ matrix.test-application }}
+          build-lambda-layer: ${{ matrix.test-application == 'aws-serverless-layer' }}
+          dependency-cache-key: ${{ needs.job_build.outputs.dependency_cache_key }}
           runtime: ${{ matrix.runtime }}
           bun-version: ${{ matrix.bun-version }}
           deno-version: ${{ matrix.deno-version }}
@@ -1146,10 +1152,10 @@ jobs:
 
   job_e2e_aws_layer_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
-    needs: [job_get_metadata, job_build, job_build_layer]
+    needs: [job_get_metadata, job_build]
     if: >-
-      always() && needs.job_build.result == 'success' && needs.job_build_layer.result == 'success' &&
-      needs.job_build.outputs.e2e-matrix-aws-layer != '{"include":[]}'
+      always() && needs.job_build.result == 'success' && needs.job_build.outputs.e2e-matrix-aws-layer !=
+      '{"include":[]}'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env: *e2e-env

@@ -3,7 +3,7 @@ import { SENTRY_SEGMENT_NAME_SOURCE, HTTP_ROUTE } from '@sentry/conventions/attr
 import { getCapturedScopesOnSpan, getRootSpan, getSpanDescendants, spanIsSampled, spanToJSON } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { NodeClient, serveTunnelIntegration, setCurrentClient } from '@sentry/node';
-import { _INTERNAL_resetTunnelDefaults } from '@sentry/core/server';
+import { resetTunnelDefaults } from '@sentry/core/server';
 import { TUNNEL_BASE_PATH_GLOBAL } from '../../src/common/tunnel';
 import type { Handle } from '../../src/server-common/handleTypes';
 import { redirect } from '@sveltejs/kit';
@@ -168,7 +168,7 @@ describe('sentryHandle with the managed tunnel', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    _INTERNAL_resetTunnelDefaults();
+    resetTunnelDefaults();
   });
 
   it('answers tunnel requests without resolving the route', async () => {
@@ -336,9 +336,10 @@ describe('sentryHandle', () => {
       );
     });
 
-    it("starts a span from sentry-trace header but doesn't populate a new DSC", async () => {
+    it('starts a span from sentry-trace header and creates the DSC from it', async () => {
       const event = mockEvent({
         request: {
+          method: 'GET',
           headers: {
             get: (key: string) => {
               if (key === 'sentry-trace') {
@@ -377,11 +378,17 @@ describe('sentryHandle', () => {
       expect(_span!.spanContext().traceId).toEqual('1234567890abcdef1234567890abcdef');
       expect(spanToJSON(_span!).parent_span_id).toEqual('1234567890abcdef');
       expect(spanIsSampled(_span!)).toEqual(true);
-      // Continuing a trace without incoming baggage does not populate a new DSC, but the scope's
-      // `sample_rand` is still propagated so downstream sampling decisions stay consistent. Assert it
-      // matches the scope value rather than just any number, so a freshly-minted rand would fail.
+      // Assert the scope's `sample_rand` rather than just any number, so a freshly-minted rand would fail.
       const scopeSampleRand = getCapturedScopesOnSpan(_span!).scope!.getPropagationContext().sampleRand;
-      expect(envelopeHeaders!.trace).toEqual({ sample_rand: scopeSampleRand.toString() });
+      expect(envelopeHeaders!.trace).toEqual({
+        environment: 'production',
+        public_key: 'examplePublicKey',
+        trace_id: '1234567890abcdef1234567890abcdef',
+        transaction: 'GET /users/[id]',
+        sampled: 'true',
+        sample_rate: '1',
+        sample_rand: scopeSampleRand.toString(),
+      });
     });
 
     it('creates a transaction with dynamic sampling context from baggage header', async () => {

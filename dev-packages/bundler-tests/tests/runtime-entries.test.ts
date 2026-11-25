@@ -85,6 +85,10 @@ const CASES: Case[] = [
   { specifier: '@sentry/nextjs/orchestrion-runtime/index', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/nextjs/orchestrion-runtime/register', conditions: NODE, formats: BOTH },
 
+  // The root entry also exports config-time code (`withSentryConfig`).
+  { specifier: '@sentry/nitro', conditions: NODE, formats: ESM, knownViolation: true },
+  { specifier: '@sentry/nitro/import', conditions: NODE, formats: ESM },
+
   { specifier: '@sentry/nuxt', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/nuxt/module/plugins', conditions: NODE, formats: ESM },
 
@@ -119,6 +123,8 @@ const CASES: Case[] = [
   { specifier: '@sentry/solidstart', conditions: NODE, formats: BOTH, knownViolation: true },
 
   { specifier: '@sentry/solid/solid2', conditions: NODE, formats: BOTH },
+  { specifier: '@sentry/solid/solid2', conditions: WORKERD, formats: BOTH },
+  { specifier: '@sentry/solid/solid2/cloudflare', conditions: WORKERD, formats: BOTH },
 
   { specifier: '@sentry/tanstackstart-react', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/tanstackstart-react/import', conditions: NODE, formats: ESM },
