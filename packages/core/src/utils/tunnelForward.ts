@@ -1,4 +1,5 @@
 /* oxlint-disable max-lines */
+// oxlint-disable sdk/no-unguarded-debug-logs -- server-only, never part of a browser bundle
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
 import { getClient } from '../currentScopes';
 import { suppressTracing } from '../tracing/trace';
@@ -325,7 +326,7 @@ async function forwardEnvelope(request: Request, allowedDsns: Array<string>): Pr
       } as RequestInit),
     );
   } catch (error) {
-    DEBUG_BUILD && debug.error('Sentry tunnel: failed to forward envelope', error);
+    debug.error('Sentry tunnel: failed to forward envelope', error);
     return new Response('Failed to forward envelope to Sentry', { status: 500 });
   }
 }
@@ -356,13 +357,13 @@ function resolveIngestUrl(headerLine: Uint8Array, allowedDsns: Array<string>): s
   const isAllowed = allowedDsns.some(allowed => allowed === dsn);
 
   if (!isAllowed) {
-    DEBUG_BUILD && debug.warn(`Sentry tunnel: rejected request with unauthorized DSN (${dsn})`);
+    debug.warn(`Sentry tunnel: rejected request with unauthorized DSN (${dsn})`);
     return new Response('DSN not allowed', { status: 403 });
   }
 
   const dsnComponents = makeDsn(dsn);
   if (!dsnComponents) {
-    DEBUG_BUILD && debug.warn(`Could not extract DSN Components from: ${dsn}`);
+    debug.warn(`Could not extract DSN Components from: ${dsn}`);
     return new Response('Invalid DSN', { status: 403 });
   }
 
