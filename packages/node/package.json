@@ -74,8 +74,8 @@
     },
     "./nitro": {
       "import": {
-        "types": "./build/types/nitro/index.d.ts",
-        "default": "./build/esm/nitro/index.js"
+        "types": "./build/types/nitro.d.ts",
+        "default": "./build/esm/nitro.js"
       }
     }
   },
