@@ -55,13 +55,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.1",
     "@sentry/browser": "11.17.0",
     "@sentry/conventions": "^0.36.0",
     "@sentry/core": "11.17.0",
     "@sentry/node": "11.17.0",
     "@sentry/react": "11.17.0",
-    "@sentry/server-runtime-injection": "11.17.0",
     "@sentry/server-utils": "11.17.0",
     "@sentry/bundler-plugins": "11.17.0",
     "sentry": "^0.50.0"
