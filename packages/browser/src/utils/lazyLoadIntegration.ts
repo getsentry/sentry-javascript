@@ -6,7 +6,8 @@ import { WINDOW } from '../helpers';
 // Single source of truth: as const array provides both the runtime list and the type.
 // Bundle file names are derived: strip 'Integration' suffix, lowercase.
 // Exceptions (hyphenated bundle names) are listed in HYPHENATED_BUNDLES.
-const LAZY_LOADABLE_NAMES = [
+/** Exported only for tests. */
+export const LAZY_LOADABLE_NAMES = [
   'replayIntegration',
   'replayCanvasIntegration',
   'feedbackIntegration',
