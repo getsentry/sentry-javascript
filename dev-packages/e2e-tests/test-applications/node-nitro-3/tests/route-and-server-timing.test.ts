@@ -4,7 +4,7 @@ import { collectStreamedSpansUntilSegment, getSpanOp, waitForStreamedSpan } from
 import { HTTP_ROUTE, SENTRY_ORIGIN, SENTRY_SEGMENT_NAME_SOURCE, URL_PATH } from '@sentry/conventions/attributes';
 import { HANDLER } from '@sentry/conventions/op';
 
-const APP_NAME = 'nitro-3-orchestrion';
+const APP_NAME = 'node-nitro-3';
 
 function getServerTimingEntries(response: APIResponse, name: string): string[] {
   const serverTiming = response

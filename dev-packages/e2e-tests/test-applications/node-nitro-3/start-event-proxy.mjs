@@ -2,5 +2,5 @@ import { startEventProxyServer } from '@sentry-internal/test-utils';
 
 startEventProxyServer({
   port: 3031,
-  proxyServerName: 'nitro-3-orchestrion',
+  proxyServerName: 'node-nitro-3',
 });

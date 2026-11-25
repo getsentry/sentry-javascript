@@ -1,5 +1,5 @@
 {
-  "name": "nitro-3-orchestrion",
+  "name": "node-nitro-3",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -34,28 +34,28 @@
     "baseVariant": {
       "build-command": "pnpm test:build",
       "assert-command": "pnpm test:prod",
-      "label": "nitro-3-orchestrion (vite, production)"
+      "label": "node-nitro-3 (vite, production)"
     },
     "variants": [
       {
         "build-command": "pnpm install",
         "assert-command": "pnpm test:dev",
-        "label": "nitro-3-orchestrion (vite, development)"
+        "label": "node-nitro-3 (vite, development)"
       },
       {
         "build-command": "pnpm test:build:nitro",
         "assert-command": "pnpm test:nitro-prod",
-        "label": "nitro-3-orchestrion (nitro, production)"
+        "label": "node-nitro-3 (nitro, production)"
       },
       {
         "build-command": "pnpm install",
         "assert-command": "pnpm test:nitro-dev",
-        "label": "nitro-3-orchestrion (nitro, development)"
+        "label": "node-nitro-3 (nitro, development)"
       },
       {
         "build-command": "pnpm test:build:tracing-channel",
         "assert-command": "pnpm test:prod:tracing-channel",
-        "label": "nitro-3-orchestrion (vite, production, tracing channel)"
+        "label": "node-nitro-3 (vite, production, tracing channel)"
       }
     ]
   }
