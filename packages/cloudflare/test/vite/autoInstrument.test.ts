@@ -255,11 +255,11 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
       [
         "import * as __SENTRY__ from '@sentry/cloudflare';",
         "import { WorkerEntrypoint } from 'cloudflare:workers';",
+        'export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };',
         'class AdminEntry extends WorkerEntrypoint {',
         '  fetch() { return new Response("admin"); }',
         '}',
         'const __SENTRY_WRAPPED_AdminEntry__ = __SENTRY__.withSentry(() => undefined, AdminEntry);',
-        'export { __SENTRY_WRAPPED_AdminEntry__ as AdminEntry };',
         '',
       ].join('\n'),
     );
