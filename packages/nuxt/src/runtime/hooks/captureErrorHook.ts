@@ -1,4 +1,4 @@
-import { captureException, getClient, getCurrentScope } from '@sentry/core';
+import { captureException, getClient, withScope } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
 import type { CapturedErrorContext } from 'nitropack/types';
 import { extractErrorContext, getEventRequestInfo } from '../utils';
@@ -60,16 +60,18 @@ export async function sentryCaptureErrorHook(error: Error, errorContext: Capture
   }
 
   const { method = '', path } = getEventRequestInfo(errorContext.event);
-
-  if (path) {
-    getCurrentScope().setTransactionName(`${method} ${path}`);
-  }
-
   const structuredContext = extractErrorContext(errorContext);
 
-  captureException(error, {
-    captureContext: { contexts: { nuxt: structuredContext } },
-    mechanism: { handled: false, type: 'auto.function.nuxt.nitro' },
+  // On the current scope, the name would also apply to every later event of that scope.
+  withScope(scope => {
+    if (path) {
+      scope.setTransactionName(`${method} ${path}`);
+    }
+
+    captureException(error, {
+      captureContext: { contexts: { nuxt: structuredContext } },
+      mechanism: { handled: false, type: 'auto.function.nuxt.nitro' },
+    });
   });
 
   await flushIfServerless();

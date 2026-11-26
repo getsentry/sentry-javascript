@@ -1,5 +1,12 @@
 import type { ClientOptions, Context, SerializedTraceData } from '@sentry/core';
-import { captureException, debug, getClient, getTraceMetaTags, isObjectLike } from '@sentry/core';
+import {
+  captureException,
+  debug,
+  getClient,
+  getTraceMetaTags,
+  isObjectLike,
+  stripUrlQueryAndFragment,
+} from '@sentry/core';
 import type { CapturedErrorContext } from 'nitropack/types';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import type { ComponentPublicInstance } from 'vue';
@@ -22,7 +29,9 @@ export function getEventRequestInfo(event: unknown): { method?: string; path?: s
     url?: { pathname?: string };
   };
 
-  return { method: method ?? req?.method, path: path ?? url?.pathname };
+  const rawPath = path ?? url?.pathname;
+
+  return { method: method ?? req?.method, path: rawPath && stripUrlQueryAndFragment(rawPath) };
 }
 
 /**
