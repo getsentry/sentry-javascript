@@ -1232,7 +1232,7 @@ importers:
         specifier: ^1.9.1
         version: 1.10.0
       '@sentry/bundler-plugins':
-        specifier: 11.18.0
+        specifier: 11.20.0
         version: link:../bundler-plugins
       '@sentry/conventions':
         specifier: ^0.36.0
