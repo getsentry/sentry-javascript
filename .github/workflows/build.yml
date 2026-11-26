@@ -225,7 +225,7 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-24.04-arm
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (github.event_name == 'pull_request' ||
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (github.event_name == 'pull_request' ||
       needs.job_plan_ci.outputs.is_base_branch == 'true' || needs.job_plan_ci.outputs.is_release == 'true')
     steps:
       - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
@@ -249,7 +249,7 @@ jobs:
     # Even though the linter only checks source code, not built code, it needs the built code in order check that all
     # inter-package dependencies resolve cleanly.
     needs: job_plan_ci
-    if: needs.job_plan_ci.outputs.tests_planned == 'true'
+    if: needs.job_plan_ci.outputs.should_run_tests == 'true'
     timeout-minutes: 10
     runs-on: ubuntu-24.04-arm
     steps:
@@ -395,7 +395,7 @@ jobs:
   job_browser_unit_tests:
     name: Browser Unit Tests
     needs: job_plan_ci
-    if: needs.job_plan_ci.outputs.tests_planned == 'true'
+    if: needs.job_plan_ci.outputs.should_run_tests == 'true'
     timeout-minutes: 10
     runs-on: ubuntu-24.04
     steps:
@@ -431,7 +431,7 @@ jobs:
     name: Bun (${{ matrix.bun }}) Unit Tests
     needs: job_plan_ci
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_bun == 'true' ||
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (needs.job_plan_ci.outputs.changed_bun == 'true' ||
       github.event_name != 'pull_request')
     timeout-minutes: 10
     runs-on: ubuntu-24.04-arm
@@ -461,7 +461,7 @@ jobs:
     name: Deno Unit Tests
     needs: job_plan_ci
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_deno == 'true' ||
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (needs.job_plan_ci.outputs.changed_deno == 'true' ||
       github.event_name != 'pull_request')
     timeout-minutes: 10
     runs-on: ubuntu-24.04-arm
@@ -485,7 +485,7 @@ jobs:
   job_node_unit_tests:
     name: Node (${{ matrix.node }}) Unit Tests (${{ matrix.shard }}/2)
     needs: job_plan_ci
-    if: needs.job_plan_ci.outputs.tests_planned == 'true'
+    if: needs.job_plan_ci.outputs.should_run_tests == 'true'
     timeout-minutes: 10
     runs-on: ubuntu-24.04-arm
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
@@ -546,7 +546,7 @@ jobs:
       matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
     needs: job_plan_ci
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_browser_integration ==
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (needs.job_plan_ci.outputs.changed_browser_integration ==
       'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04-large-js
     timeout-minutes: 25
@@ -672,7 +672,7 @@ jobs:
     name: PW ${{ matrix.bundle }} Tests
     needs: job_plan_ci
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_browser_integration ==
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (needs.job_plan_ci.outputs.changed_browser_integration ==
       'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -726,7 +726,7 @@ jobs:
     name: Minimum Chromium Version Tests
     needs: job_plan_ci
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_browser_integration ==
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (needs.job_plan_ci.outputs.changed_browser_integration ==
       'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -753,8 +753,8 @@ jobs:
     name: Node (${{ matrix.node }}) Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
     needs: job_plan_ci
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_node_integration == 'true'
-      || github.event_name != 'pull_request')
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (needs.job_plan_ci.outputs.changed_node_integration ==
+      'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
@@ -806,8 +806,8 @@ jobs:
     name: SQL Server Integration Tests (Node 24)
     needs: job_plan_ci
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_node_integration == 'true'
-      || needs.job_plan_ci.outputs.changed_bun_integration == 'true' ||
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (needs.job_plan_ci.outputs.changed_node_integration ==
+      'true' || needs.job_plan_ci.outputs.changed_bun_integration == 'true' ||
       needs.job_plan_ci.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -833,8 +833,8 @@ jobs:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
     needs: job_plan_ci
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_cloudflare_integration ==
-      'true' || github.event_name != 'pull_request')
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (needs.job_plan_ci.outputs.changed_cloudflare_integration
+      == 'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
@@ -872,7 +872,7 @@ jobs:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/2, latest wrangler) (optional)
     needs: job_plan_ci
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.is_release != 'true' &&
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (needs.job_plan_ci.outputs.is_release != 'true' &&
       (needs.job_plan_ci.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'))
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
@@ -888,8 +888,8 @@ jobs:
     name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
     needs: job_plan_ci
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_bundler_plugin_integration
-      == 'true' || github.event_name != 'pull_request')
+      needs.job_plan_ci.outputs.should_run_tests == 'true' &&
+      (needs.job_plan_ci.outputs.changed_bundler_plugin_integration == 'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
@@ -920,8 +920,8 @@ jobs:
     name: Bun (${{ matrix.bun }}) Integration Tests (${{ matrix.shard }}/6)
     needs: job_plan_ci
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_bun_integration == 'true'
-      || github.event_name != 'pull_request')
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (needs.job_plan_ci.outputs.changed_bun_integration ==
+      'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
@@ -952,8 +952,8 @@ jobs:
     name: Deno Integration Tests (${{ matrix.shard }}/6)
     needs: job_plan_ci
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_deno_integration == 'true'
-      || github.event_name != 'pull_request')
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (needs.job_plan_ci.outputs.changed_deno_integration ==
+      'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
@@ -990,7 +990,7 @@ jobs:
   job_e2e_tests_1:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (always() && needs.job_plan_ci.result == 'success' &&
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (always() && needs.job_plan_ci.result == 'success' &&
       needs.job_plan_ci.outputs.e2e-matrix-1 != '{"include":[]}')
     needs: job_plan_ci
     runs-on: ubuntu-24.04
@@ -1079,7 +1079,7 @@ jobs:
   job_e2e_tests_2:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (always() && needs.job_plan_ci.result == 'success' &&
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (always() && needs.job_plan_ci.result == 'success' &&
       needs.job_plan_ci.outputs.e2e-matrix-2 != '{"include":[]}')
     needs: job_plan_ci
     runs-on: ubuntu-24.04
@@ -1094,7 +1094,7 @@ jobs:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     needs: job_plan_ci
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (always() && needs.job_plan_ci.result == 'success' &&
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (always() && needs.job_plan_ci.result == 'success' &&
       needs.job_plan_ci.outputs.e2e-matrix-aws-layer != '{"include":[]}')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -1109,10 +1109,10 @@ jobs:
   job_e2e_tests_with_secrets:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (always() && needs.job_plan_ci.outputs.is_release != 'true'
-      && needs.job_plan_ci.result == 'success' && needs.job_plan_ci.outputs.e2e-matrix-with-secrets != '{"include":[]}'
-      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-      github.actor != 'dependabot[bot]')
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (always() && needs.job_plan_ci.outputs.is_release !=
+      'true' && needs.job_plan_ci.result == 'success' && needs.job_plan_ci.outputs.e2e-matrix-with-secrets !=
+      '{"include":[]}' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name ==
+      github.repository) && github.actor != 'dependabot[bot]')
     needs: job_plan_ci
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -1147,10 +1147,10 @@ jobs:
     name: E2E Tests (optional)
     # A PR from a fork cannot dispatch optional-e2e.yml, see job_optional_e2e_tests_without_secrets.
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (always() && needs.job_plan_ci.outputs.is_release != 'true'
-      && needs.job_plan_ci.result == 'success' && needs.job_plan_ci.outputs.e2e-matrix-optional != '{"include":[]}' &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-      github.actor != 'dependabot[bot]')
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (always() && needs.job_plan_ci.outputs.is_release !=
+      'true' && needs.job_plan_ci.result == 'success' && needs.job_plan_ci.outputs.e2e-matrix-optional !=
+      '{"include":[]}' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name ==
+      github.repository) && github.actor != 'dependabot[bot]')
     needs: job_plan_ci
     # This job only waits for optional-e2e.yml, which can take most of an hour.
     runs-on: ubuntu-24.04
@@ -1180,9 +1180,9 @@ jobs:
   job_optional_e2e_tests_without_secrets:
     name: E2E ${{ matrix.label || matrix.test-application }} Test (optional)
     if: >-
-      needs.job_plan_ci.outputs.tests_planned == 'true' && (always() && needs.job_plan_ci.outputs.is_release != 'true'
-      && needs.job_plan_ci.result == 'success' && needs.job_plan_ci.outputs.e2e-matrix-optional-without-secrets !=
-      '{"include":[]}' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name !=
+      needs.job_plan_ci.outputs.should_run_tests == 'true' && (always() && needs.job_plan_ci.outputs.is_release !=
+      'true' && needs.job_plan_ci.result == 'success' && needs.job_plan_ci.outputs.e2e-matrix-optional-without-secrets
+      != '{"include":[]}' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name !=
       github.repository)
     needs: job_plan_ci
     runs-on: ubuntu-24.04
