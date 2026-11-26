@@ -1,4 +1,5 @@
 import { captureException, getClient } from '@sentry/core';
+import type { CapturedErrorContext } from 'nitropack/types';
 import { afterEach, beforeEach, describe, expect, it, type Mock, test, vi } from 'vitest';
 import type { ComponentPublicInstance } from 'vue';
 import { extractErrorContext, reportNuxtError } from '../../src/runtime/utils';
@@ -35,6 +36,17 @@ describe('extractErrorContext', () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     expect(extractErrorContext(partialContext)).toEqual({ path: '/test' });
+  });
+
+  it('filters sensitive query params in the path of an h3 v1 (Nitro v2) event', () => {
+    const context = {
+      event: { method: 'GET', path: '/users/42?include=profile&token=abc123' },
+    } as unknown as CapturedErrorContext;
+
+    expect(extractErrorContext(context)).toEqual({
+      method: 'GET',
+      path: '/users/42?include=profile&token=[Filtered]',
+    });
   });
 
   it('reads method and path from an h3 v2 (Nitro v3) event, which has no `method`/`path` getters', () => {
@@ -115,8 +127,6 @@ describe('reportNuxtError', () => {
   };
 
   beforeEach(() => {
-    // Using fake timers as setTimeout is used in `reportNuxtError`
-    vi.useFakeTimers();
     vi.clearAllMocks();
     (getClient as Mock).mockReturnValue(mockClient);
   });
@@ -127,7 +137,6 @@ describe('reportNuxtError', () => {
 
   test('captures exception with correct error and metadata', () => {
     reportNuxtError({ error: mockError });
-    vi.runAllTimers();
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: undefined } } },
@@ -137,7 +146,6 @@ describe('reportNuxtError', () => {
 
   test('includes instance props if attachProps is not explicitly defined', () => {
     reportNuxtError({ error: mockError, instance: mockInstance });
-    vi.runAllTimers();
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: undefined, propsData: { foo: 'bar' } } } },
@@ -149,7 +157,6 @@ describe('reportNuxtError', () => {
     mockClient.getOptions.mockReturnValue({ attachProps: false });
 
     reportNuxtError({ error: mockError, instance: mockInstance });
-    vi.runAllTimers();
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: undefined } } },
@@ -159,7 +166,6 @@ describe('reportNuxtError', () => {
 
   test('handles absence of instance correctly', () => {
     reportNuxtError({ error: mockError, info: 'Some info' });
-    vi.runAllTimers();
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: 'Some info' } } },

@@ -120,6 +120,10 @@ export default defineNuxtModule<ModuleOptions>({
       addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/route-detector-legacy.server'), mode: 'server' });
     }
 
+    if ((nuxt.options.experimental as { ssrErrorBoundary?: boolean }).ssrErrorBoundary) {
+      addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/error-boundary.server'), mode: 'server' });
+    }
+
     if (clientConfigFile || serverConfigFile || cloudflareOptionsFile) {
       // The bundler plugins do not get `sourcemaps.delete`.
       warnOnConflictingSourceMapOptions(moduleOptions.sourcemaps);

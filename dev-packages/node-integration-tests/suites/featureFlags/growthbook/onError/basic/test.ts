@@ -1,5 +1,5 @@
-import { _INTERNAL_FLAG_BUFFER_SIZE as FLAG_BUFFER_SIZE } from '@sentry/core';
 import { afterAll, test } from 'vitest';
+import { FLAG_BUFFER_SIZE } from '@sentry-internal/node-integration-tests';
 import { cleanupChildProcesses, createRunner } from '../../../../../utils/runner';
 
 afterAll(() => {

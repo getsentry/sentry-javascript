@@ -1,6 +1,5 @@
 /* oxlint-disable max-lines */
 import { closeSession, DEFAULT_ENVIRONMENT, makeSession, setMeasurement, startSpan } from '@sentry/core';
-import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -24,6 +23,7 @@ import type { SourceMapDecision, SourceMapKind } from './sourcemap-settings';
 import { decideSourceMapHandling, getSourceMapFeatures } from './sourcemap-settings';
 import type { UploadFilter } from './upload-filter';
 import { createUploadFilter } from './upload-filter';
+import { getMissingUploadCredential, readSentryBuildPluginEnvFile } from './upload-credentials';
 import { LIB_VERSION } from './version';
 
 // Module-level guard to prevent duplicate deploy records when multiple bundler plugin
@@ -205,21 +205,13 @@ export function createSentryBuildPluginManager(
     debug: userOptions.debug ?? false,
   });
 
-  try {
-    const dotenvFile = fs.readFileSync(path.join(process.cwd(), '.env.sentry-build-plugin'), 'utf-8');
-    // NOTE: Do not use the dotenv.config API directly to read the dotenv file! For some ungodly reason, it falls back to reading `${process.cwd()}/.env` which is absolutely not what we want.
-    const dotenvResult = dotenv.parse(dotenvFile);
-
+  const dotenvResult = readSentryBuildPluginEnvFile();
+  if (dotenvResult) {
     // Vite has a bug/behaviour where spreading into process.env will cause it to crash
     // https://github.com/vitest-dev/vitest/issues/1870#issuecomment-1501140251
     Object.assign(process.env, dotenvResult);
 
     logger.info('Using environment variables configured in ".env.sentry-build-plugin".');
-  } catch (e: unknown) {
-    // Ignore "file not found" errors but throw all others
-    if (typeof e === 'object' && e && 'code' in e && e.code !== 'ENOENT') {
-      throw e;
-    }
   }
 
   const options = normalizeUserOptions(userOptions);
@@ -1065,16 +1057,7 @@ function getSourceMapUploadBlocker(options: NormalizedOptions, isDevMode: boolea
   if (isDevMode) {
     return 'dev-mode';
   }
-  if (!options.authToken) {
-    return 'no-auth-token';
-  }
-  if (!options.org && !options.authToken.startsWith('sntrys_')) {
-    return 'no-org';
-  }
-  if (!getProjects(options.project)?.[0]) {
-    return 'no-project';
-  }
-  return undefined;
+  return getMissingUploadCredential(options);
 }
 
 function canUploadSourceMaps(options: NormalizedOptions, logger: Logger, isDevMode: boolean): boolean {

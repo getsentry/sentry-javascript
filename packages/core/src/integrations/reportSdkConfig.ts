@@ -1,7 +1,7 @@
 import type { Client } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
-import { _INTERNAL_flushMetricsBuffer } from '../metrics/internal';
+import { flushMetricsBuffer } from '../metrics/internal';
 import { count } from '../metrics/public-api';
 import { Scope } from '../scope';
 import type { Integration, IntegrationFn } from '../types/integration';
@@ -39,7 +39,7 @@ const _experimentalReportSdkConfigIntegration = (() => ({
     client.on('flush', () => {
       report();
       // Capturing can register the metrics flusher too late for this flush, or after an existing flusher.
-      _INTERNAL_flushMetricsBuffer(client);
+      flushMetricsBuffer(client);
     });
   },
 })) satisfies IntegrationFn;
@@ -58,9 +58,14 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
     return `[Function:${fnv1a32(Function.prototype.toString.call(value))}]`;
   }
 
-  // initialScope extras can contain bigints or symbols; JSON throws on bigints and omits symbols.
+  // JSON throws on bigints and omits symbols.
   if (typeof value === 'bigint' || typeof value === 'symbol') {
     return `[${typeof value}:${fnv1a32(String(value))}]`;
+  }
+
+  // JSON turns these into null, which would make them look like an explicit null.
+  if (typeof value === 'number' && !Number.isFinite(value)) {
+    return `[${value}]`;
   }
 
   // Pass through primitives and null unchanged.
@@ -96,7 +101,7 @@ function serialize(value: unknown, ancestors = new Set<object>()): unknown {
 }
 
 // Integrations hold the SDK defaults by the time the client has them; serverName would split configurations by host.
-const EXCLUDED_OPTIONS = new Set(['dist', 'dsn', 'integrations', 'release', 'serverName']);
+const EXCLUDED_OPTIONS = new Set(['dist', 'dsn', 'environment', 'integrations', 'release', 'serverName']);
 
 function buildConfigAttributes(client: Client): Record<string, string> {
   const {
@@ -106,7 +111,6 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     removedDefaultIntegrations,
   } = client.getSdkMetadata() || {};
   const clientOptions = client.getOptions();
-  const { environment } = clientOptions;
   // Server clients set their runtime as an option; browser clients have none.
   const runtime = 'runtime' in clientOptions ? clientOptions.runtime : isBrowser() ? { name: 'browser' } : undefined;
 
@@ -123,6 +127,10 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     });
   }
 
+  if (isPlainObject(options.initialScope)) {
+    options.initialScope = describeShape(options.initialScope);
+  }
+
   if (Array.isArray(options.defaultIntegrations)) {
     // `getIntegrationsToSetup` flags these as default instances, but the user passed them.
     options.defaultIntegrations = options.defaultIntegrations.map((integration: Integration) =>
@@ -132,10 +140,9 @@ function buildConfigAttributes(client: Client): Record<string, string> {
 
   // The hash covers the whole payload, so a payload cached by its hash is never stale.
   const payload = JSON.stringify({
-    version: 3,
+    version: 4,
     sdk: serialize(sdk),
     runtime: serialize(runtime),
-    environment,
     // Not an init() option, so it stays out of `options`.
     ...(removedDefaultIntegrations && { removed_default_integrations: removedDefaultIntegrations }),
     options: serialize(options),
@@ -145,6 +152,25 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     'sentry.sdk_config.hash': fnv1a32(payload),
     'sentry.sdk_config.payload': payload,
   };
+}
+
+/**
+ * Keeps the keys of nested plain objects and replaces every value with a placeholder.
+ * `initialScope` holds data such as the user's ID, which would make the hash unique per user.
+ */
+function describeShape(value: unknown, ancestors = new Set<object>()): unknown {
+  if (!isPlainObject(value) || ancestors.has(value)) {
+    return '[value]';
+  }
+
+  const nextAncestors = new Set(ancestors).add(value);
+
+  const shape: Record<string, unknown> = {};
+  for (const key of Object.keys(value)) {
+    shape[key] = describeShape(value[key], nextAncestors);
+  }
+
+  return shape;
 }
 
 function describeIntegration(name: string, options: unknown): { name: string; options?: unknown } {

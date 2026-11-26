@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
-  "extends": ["../../.oxlintrc.base.json"],
+  "extends": ["../../.oxlintrc.base.json", "../../.oxlintrc.no-node-builtins.json"],
   "env": {
     "browser": true
   },
@@ -8,8 +8,7 @@
     {
       "files": ["src/metrics/**"],
       "rules": {
-        "typescript/explicit-function-return-type": "off",
-        "typescript/no-non-null-assertion": "off"
+        "typescript/explicit-function-return-type": "off"
       }
     }
   ]

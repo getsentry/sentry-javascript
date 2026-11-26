@@ -41,18 +41,16 @@
         "build-command": "pnpm test:build:observe",
         "assert-command": "pnpm test:prod",
         "label": "solid-2-ssr (observe build)"
+      },
+      {
+        "runtime": "cloudflare",
+        "label": "solid-2-ssr (cloudflare)"
       }
     ],
     "baseVariant": {
       "build-command": "pnpm test:build",
       "assert-command": "pnpm test:prod",
       "label": "solid-2-ssr (production)"
-    },
-    "optionalVariants": [
-      {
-        "runtime": "cloudflare",
-        "label": "solid-2-ssr (cloudflare)"
-      }
-    ]
+    }
   }
 }

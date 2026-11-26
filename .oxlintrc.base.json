@@ -83,16 +83,18 @@
       // Type-only imports are erased at build time, so they cannot cause load-order bugs.
       "files": ["**/src/**"],
       "rules": {
-        "import/no-cycle": ["error", { "ignoreTypes": true }]
+        "import/no-cycle": ["error", { "ignoreTypes": true }],
+        "typescript/no-non-null-assertion": "error"
       }
     },
     {
-      // The rule itself decides which files are browser-facing (see `no-unguarded-span-apis.js`);
+      // The rules themselves decide which files are browser-facing (see `utils/browser-facing.js`);
       // oxlint resolves `files` globs relative to each package's own config, so scoping it to
       // individual packages here is not possible.
       "files": ["**/src/**/*.ts", "**/src/**/*.tsx", "**/addon/**/*.ts"],
       "rules": {
-        "sdk/no-unguarded-span-apis": "error"
+        "sdk/no-unguarded-span-apis": "error",
+        "sdk/no-unguarded-debug-logs": "error"
       }
     },
     {
@@ -254,7 +256,10 @@
     {
       "files": ["**/src/**"],
       "rules": {
-        "no-restricted-globals": ["error", "window", "document", "location", "navigator"]
+        "no-restricted-globals": ["error", "window", "document", "location", "navigator"],
+        "no-eval": "error",
+        "no-new-func": "error",
+        "sdk/no-unsafe-html-writes": "error"
       }
     },
     {

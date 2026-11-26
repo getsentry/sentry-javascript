@@ -1,6 +1,6 @@
 {
   "name": "@sentry/astro",
-  "version": "11.17.0",
+  "version": "11.18.0",
   "description": "Official Sentry SDK for Astro",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/astro",
@@ -35,6 +35,14 @@
         "import": "./build/esm/index.worker.js",
         "require": "./build/cjs/index.worker.js"
       },
+      "bun": {
+        "import": "./build/esm/index.bun.js",
+        "require": "./build/cjs/index.bun.js"
+      },
+      "deno": {
+        "import": "./build/esm/index.deno.js",
+        "require": "./build/cjs/index.deno.js"
+      },
       "node": "./build/esm/index.server.js",
       "browser": "./build/esm/index.client.js",
       "import": "./build/esm/index.client.js",
@@ -62,20 +70,32 @@
     "access": "public"
   },
   "peerDependencies": {
+    "@sentry/bun": "11.18.0",
+    "@sentry/deno": "11.18.0",
     "astro": ">=4.0.0-beta || >=7.0.0-beta"
   },
+  "peerDependenciesMeta": {
+    "@sentry/bun": {
+      "optional": true
+    },
+    "@sentry/deno": {
+      "optional": true
+    }
+  },
   "dependencies": {
-    "@sentry/browser": "11.17.0",
-    "@sentry/cloudflare": "11.17.0",
-    "@sentry/core": "11.17.0",
+    "@sentry/browser": "11.18.0",
+    "@sentry/cloudflare": "11.18.0",
+    "@sentry/core": "11.18.0",
     "@sentry/conventions": "^0.36.0",
-    "@sentry/node": "11.17.0",
-    "@sentry/server-runtime-injection": "11.17.0",
-    "@sentry/server-utils": "11.17.0",
-    "@sentry/bundler-plugins": "11.17.0"
+    "@sentry/node": "11.18.0",
+    "@sentry/server-runtime-injection": "11.18.0",
+    "@sentry/server-utils": "11.18.0",
+    "@sentry/bundler-plugins": "11.18.0"
   },
   "devDependencies": {
-    "@sentry-internal/rollup-utils": "11.17.0",
+    "@sentry-internal/rollup-utils": "11.18.0",
+    "@sentry/bun": "11.18.0",
+    "@sentry/deno": "11.18.0",
     "astro": "^4.16.19",
     "vite": "^8.3.6"
   },

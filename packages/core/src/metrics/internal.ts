@@ -49,7 +49,8 @@ function setMetricAttribute(
 }
 
 /**
- * Captures a serialized metric event and adds it to the metric buffer for the given client.
+ * Adds an already serialized metric to the metric buffer for the given client.
+ * It skips enrichment and `beforeSendMetric`, so the metric must be fully processed.
  *
  * @param client - A client. Uses the current client if not provided.
  * @param serializedMetric - The serialized metric event to capture.
@@ -57,9 +58,9 @@ function setMetricAttribute(
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function _INTERNAL_captureSerializedMetric(client: Client, serializedMetric: SerializedMetric): void {
+export function bufferSerializedMetric(client: Client, serializedMetric: SerializedMetric): void {
   const bufferMap = _getBufferMap();
-  const metricBuffer = _INTERNAL_getMetricBuffer(client);
+  const metricBuffer = getMetricBuffer(client);
 
   if (metricBuffer === undefined) {
     // Set up flushing on the first metric, so apps that never capture metrics don't bundle the flush code.
@@ -68,18 +69,24 @@ export function _INTERNAL_captureSerializedMetric(client: Client, serializedMetr
       'afterCaptureMetric',
       'flushMetrics',
       estimateMetricSizeInBytes,
-      _INTERNAL_flushMetricsBuffer,
+      flushMetricsBuffer,
     );
     bufferMap.set(client, [serializedMetric]);
   } else {
     if (metricBuffer.length >= MAX_METRIC_BUFFER_SIZE) {
-      _INTERNAL_flushMetricsBuffer(client, metricBuffer);
+      flushMetricsBuffer(client, metricBuffer);
       bufferMap.set(client, [serializedMetric]);
     } else {
       bufferMap.set(client, [...metricBuffer, serializedMetric]);
     }
   }
 }
+
+/**
+ * @deprecated Use `bufferSerializedMetric` instead.
+ */
+// TODO(v12): Remove once the Electron SDK no longer uses it.
+export const _INTERNAL_captureSerializedMetric = bufferSerializedMetric;
 
 /**
  * Options for capturing a metric internally.
@@ -184,9 +191,9 @@ function _buildSerializedMetric(
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: InternalCaptureMetricOptions): void {
+export function captureMetricEvent(beforeMetric: Metric, options?: InternalCaptureMetricOptions): void {
   const currentScope = options?.scope ?? getCurrentScope();
-  const captureSerializedMetric = options?.captureSerializedMetric ?? _INTERNAL_captureSerializedMetric;
+  const captureSerializedMetric = options?.captureSerializedMetric ?? bufferSerializedMetric;
   const client = currentScope?.getClient() ?? getClient();
   if (!client) {
     DEBUG_BUILD && debug.warn('No client available to capture metric.');
@@ -230,6 +237,12 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
 }
 
 /**
+ * @deprecated Use `captureMetricEvent` instead.
+ */
+// TODO(v12): Remove once the Electron SDK no longer uses it.
+export const _INTERNAL_captureMetric = captureMetricEvent;
+
+/**
  * Flushes the metrics buffer to Sentry.
  *
  * @param client - A client.
@@ -238,8 +251,8 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
  * @experimental This method will experience breaking changes. This is not yet part of
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
-export function _INTERNAL_flushMetricsBuffer(client: Client, maybeMetricBuffer?: Array<SerializedMetric>): void {
-  const metricBuffer = maybeMetricBuffer ?? _INTERNAL_getMetricBuffer(client) ?? [];
+export function flushMetricsBuffer(client: Client, maybeMetricBuffer?: Array<SerializedMetric>): void {
+  const metricBuffer = maybeMetricBuffer ?? getMetricBuffer(client) ?? [];
   if (metricBuffer.length === 0) {
     return;
   }
@@ -264,6 +277,12 @@ export function _INTERNAL_flushMetricsBuffer(client: Client, maybeMetricBuffer?:
 }
 
 /**
+ * @deprecated Use `flushMetricsBuffer` instead.
+ */
+// TODO(v12): Remove.
+export const _INTERNAL_flushMetricsBuffer = flushMetricsBuffer;
+
+/**
  * Returns the metric buffer for a given client.
  *
  * Exported for testing purposes.
@@ -271,7 +290,7 @@ export function _INTERNAL_flushMetricsBuffer(client: Client, maybeMetricBuffer?:
  * @param client - The client to get the metric buffer for.
  * @returns The metric buffer for the given client.
  */
-export function _INTERNAL_getMetricBuffer(client: Client): Array<SerializedMetric> | undefined {
+export function getMetricBuffer(client: Client): Array<SerializedMetric> | undefined {
   return _getBufferMap().get(client);
 }
 

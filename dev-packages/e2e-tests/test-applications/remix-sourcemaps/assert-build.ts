@@ -46,8 +46,7 @@ for (const chunk of chunks) {
 }
 console.log(`no client chunk carries more than one debug ID (${chunks.length} chunks)\n`);
 
-// The SDK turns on hidden source maps when the app sets none, and asks the bundler plugin to
-// remove them from both the client and the SSR output, also when no upload runs.
+// Without an auth token the SDK turns no source maps on, so the build writes none.
 if (process.env.E2E_NO_UPLOAD) {
   // The mock server only writes its results file when a request reaches it.
   const requests = fs.existsSync('.tmp_mock_uploads.json') ? loadMockServerResults() : [];

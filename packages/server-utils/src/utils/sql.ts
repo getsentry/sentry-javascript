@@ -157,8 +157,9 @@ function extractTableNames(sql: string): string[] {
   let match: RegExpExecArray | null;
 
   while ((match = TOKEN_RE.exec(sql)) !== null) {
-    if (match[1] || match[2]) {
-      tables.push((match[1] || match[2])!);
+    const table = match[1] || match[2];
+    if (table) {
+      tables.push(table);
       continue;
     }
 
@@ -336,7 +337,7 @@ function stripLiteralsAndComments(sql: string, dialect: SqlDialect | SqlLexerRul
   let i = 0;
 
   while (i < sql.length) {
-    const char = sql[i]!;
+    const char = sql.charAt(i);
     const next = sql[i + 1];
 
     if ((char === '-' && next === '-') || ((isMysql || rules.hashComments) && char === '#')) {

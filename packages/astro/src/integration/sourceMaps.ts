@@ -1,3 +1,4 @@
+import { hasSourceMapUploadCredentials } from '@sentry/bundler-plugins/core';
 import { resolveSourceMapsFeatures } from '@sentry/core';
 import type { AstroConfig, AstroIntegrationLogger } from 'astro';
 import type { SentryOptions } from './types';
@@ -81,7 +82,7 @@ export function _getUpdatedSourceMapSettings(
     // Astro fixes the setting of the client build before the bundler plugin can turn source maps on.
     // TODO(v12): Remove the `disable-upload` case along with `sourcemaps.disable`.
     if (
-      (upload && hasUploadCredentials(sentryOptions)) ||
+      (upload && hasSourceMapUploadCredentials(sentryOptions)) ||
       legacyDisable === 'disable-upload' ||
       (sourcemaps?.delete === false && injectDebugIds)
     ) {
@@ -129,17 +130,4 @@ function getOutputSourceMapSettings(
     .flat()
     .map(output => output.sourcemap)
     .filter(setting => setting !== undefined);
-}
-
-/**
- * The credentials checks of the Sentry plugin, which uploads nothing without them. The plugin is created
- * before this runs, so `process.env` also holds the values of `.env.sentry-build-plugin`.
- */
-function hasUploadCredentials(sentryOptions: SentryOptions | undefined): boolean {
-  const authToken = sentryOptions?.authToken ?? process.env.SENTRY_AUTH_TOKEN;
-  const org = sentryOptions?.org ?? process.env.SENTRY_ORG;
-  const project = sentryOptions?.project ?? process.env.SENTRY_PROJECT;
-  return (
-    !!authToken && (!!org || authToken.startsWith('sntrys_')) && (Array.isArray(project) ? !!project[0] : !!project)
-  );
 }

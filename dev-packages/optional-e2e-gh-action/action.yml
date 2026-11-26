@@ -11,7 +11,7 @@ inputs:
     description: '`dispatch` to run the tests and wait for them, `report` to report the current run in a PR comment'
   commit:
     required: false
-    description: 'The commit that the tarballs were built from (dispatch mode)'
+    description: 'The commit to build and test (dispatch mode)'
   matrix:
     required: false
     description: 'The optional E2E test matrix as JSON (dispatch mode)'

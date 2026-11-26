@@ -1,3 +1,4 @@
+// oxlint-disable sdk/no-unguarded-debug-logs -- server-only, never part of a browser bundle
 import { getIsolationScope } from '../currentScopes';
 import { getDefaultIsolationScope } from '../defaultScopes';
 import { flush } from '../exports';

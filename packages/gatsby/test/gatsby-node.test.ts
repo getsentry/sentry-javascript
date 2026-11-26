@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { onCreateWebpackConfig } from '../gatsby-node';
 
 vi.hoisted(
@@ -107,6 +107,29 @@ describe('onCreateWebpackConfig', () => {
   });
 
   describe('source maps', () => {
+    beforeEach(() => {
+      vi.stubEnv('SENTRY_AUTH_TOKEN', 'token');
+      vi.stubEnv('SENTRY_ORG', 'org');
+      vi.stubEnv('SENTRY_PROJECT', 'project');
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it.each([
+      [{}, undefined],
+      [{ sourcemaps: { delete: false } }, 'hidden-source-map'],
+    ])('without upload credentials, with the options %j it sets devtool %s', (options, devtool) => {
+      vi.stubEnv('SENTRY_AUTH_TOKEN', '');
+      vi.spyOn(console, 'log').mockImplementation(() => undefined);
+      const actions = { setWebpackConfig: vi.fn() };
+
+      onCreateWebpackConfig({ actions, getConfig: () => ({}), stage: 'build-javascript' }, options);
+
+      expect(actions.setWebpackConfig).toHaveBeenCalledWith(expect.objectContaining({ devtool }));
+    });
+
     it.each([
       {
         name: 'build-javascript, devtool unset: enables hidden source maps and passes delete options',

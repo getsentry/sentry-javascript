@@ -42,7 +42,7 @@
     "node": "24.x"
   },
   "sentryTest": {
-    "optional": true,
+    "needsSecrets": true,
     "optionalVariants": [
       {
         "build-command": "pnpm test:build-0.x",

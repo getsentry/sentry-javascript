@@ -42,13 +42,15 @@
     "wrangler": "^4.86.0"
   },
   "sentryTest": {
-    "optional": true,
-    "optionalVariants": [
+    "needsSecrets": true,
+    "variants": [
       {
         "build-command": "pnpm test:build:cloudflare",
         "assert-command": "pnpm test:assert:cloudflare",
         "label": "gen-ai-libraries (cloudflare)"
-      },
+      }
+    ],
+    "optionalVariants": [
       {
         "build-command": "pnpm test:build-latest",
         "label": "gen-ai-libraries (latest)"

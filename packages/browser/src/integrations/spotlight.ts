@@ -45,7 +45,8 @@ function setupSidecarForwarding(client: Client, sidecarUrl: string): void {
 
   client.on('beforeEnvelope', (envelope: Envelope) => {
     if (failCount > 3) {
-      debug.warn('[Spotlight] Disabled Sentry -> Spotlight integration due to too many failed requests:', failCount);
+      DEBUG_BUILD &&
+        debug.warn('[Spotlight] Disabled Sentry -> Spotlight integration due to too many failed requests:', failCount);
       return;
     }
 
@@ -65,10 +66,11 @@ function setupSidecarForwarding(client: Client, sidecarUrl: string): void {
       },
       err => {
         failCount++;
-        debug.error(
-          "Sentry SDK can't connect to Sidecar is it running? See: https://spotlightjs.com/sidecar/npx/",
-          err,
-        );
+        DEBUG_BUILD &&
+          debug.error(
+            "Sentry SDK can't connect to Sidecar is it running? See: https://spotlightjs.com/sidecar/npx/",
+            err,
+          );
       },
     );
   });

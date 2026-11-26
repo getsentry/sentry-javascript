@@ -11,7 +11,8 @@ import {
 } from '../../src/config/handleRunAfterProductionCompile';
 import type { SentryBuildOptions } from '../../src/config/types';
 
-vi.mock('@sentry/core/server', () => ({
+vi.mock('@sentry/core/server', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   loadModule: vi.fn(),
 }));
 

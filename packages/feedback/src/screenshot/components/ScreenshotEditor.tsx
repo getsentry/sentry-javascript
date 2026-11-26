@@ -4,7 +4,7 @@ import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-
 import type * as Hooks from 'preact/hooks';
 import { DOCUMENT, WINDOW } from '../../constants';
 import IconCloseFactory from './IconClose';
-import { createScreenshotInputStyles } from './ScreenshotInput.css';
+import { createScreenshotInputStyles } from './ScreenshotInput.styles';
 import ToolbarFactory from './Toolbar';
 import { useTakeScreenshotFactory } from './useTakeScreenshot';
 

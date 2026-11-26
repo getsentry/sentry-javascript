@@ -1,8 +1,8 @@
 import type { CheckIn, ClientOptions, MonitorConfig, Options, Scope, TracePropagationTargets } from '@sentry/core';
 import {
   _INTERNAL_clearAiProviderSkips,
-  _INTERNAL_flushLogsBuffer,
-  _INTERNAL_flushMetricsBuffer,
+  flushLogsBuffer,
+  flushMetricsBuffer,
   applySdkMetadata,
   debug,
   GLOBAL_OBJ,
@@ -338,8 +338,8 @@ export class CloudflareClient extends ServerRuntimeClient {
       const traceId = span.spanContext().traceId;
       this._eagerDrain(() => this.emit('flushTraceSpans', traceId));
     });
-    this.on('afterCaptureLog', () => this._eagerDrain(() => _INTERNAL_flushLogsBuffer(this)));
-    this.on('afterCaptureMetric', () => this._eagerDrain(() => _INTERNAL_flushMetricsBuffer(this)));
+    this.on('afterCaptureLog', () => this._eagerDrain(() => flushLogsBuffer(this)));
+    this.on('afterCaptureMetric', () => this._eagerDrain(() => flushMetricsBuffer(this)));
   }
 
   /**

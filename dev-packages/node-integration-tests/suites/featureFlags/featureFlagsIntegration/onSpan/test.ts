@@ -1,5 +1,5 @@
-import { _INTERNAL_MAX_FLAGS_PER_SPAN as MAX_FLAGS_PER_SPAN } from '@sentry/core';
 import { afterAll, expect, test } from 'vitest';
+import { MAX_FLAGS_PER_SPAN } from '@sentry-internal/node-integration-tests';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {

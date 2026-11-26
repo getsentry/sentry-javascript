@@ -5,6 +5,7 @@ import { debug } from './debug-logger';
 import { isMatchingPattern } from './string';
 
 function logIgnoredSpan(droppedSpan: Pick<SpanJSON, 'description' | 'op'>): void {
+  // oxlint-disable-next-line sdk/no-unguarded-debug-logs -- every caller already gates this with `DEBUG_BUILD &&`
   debug.log(`Ignoring span ${droppedSpan.op} - ${droppedSpan.description} because it matches \`ignoreSpans\`.`);
 }
 

@@ -557,8 +557,15 @@ describe('withSentryConfig', () => {
   describe('turbopack sourcemap configuration', () => {
     const originalTurbopack = process.env.TURBOPACK;
 
+    beforeEach(() => {
+      vi.stubEnv('SENTRY_AUTH_TOKEN', 'token');
+      vi.stubEnv('SENTRY_ORG', 'org');
+      vi.stubEnv('SENTRY_PROJECT', 'project');
+    });
+
     afterEach(() => {
       vi.restoreAllMocks();
+      vi.unstubAllEnvs();
       process.env.TURBOPACK = originalTurbopack;
     });
 

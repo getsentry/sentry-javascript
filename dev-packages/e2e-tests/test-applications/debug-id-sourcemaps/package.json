@@ -18,6 +18,7 @@
     "@sentry/rollup-plugin": "^5.4.1"
   },
   "sentryTest": {
-    "optional": true
+    "optional": true,
+    "needsSecrets": true
   }
 }

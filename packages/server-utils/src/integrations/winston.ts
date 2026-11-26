@@ -1,7 +1,7 @@
 import { SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { LogSeverityLevel } from '@sentry/core';
-import { _INTERNAL_captureLog, debug, isObjectLike } from '@sentry/core';
+import { captureLogEvent, debug, isObjectLike } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
 const DEFAULT_CAPTURED_LEVELS: Array<LogSeverityLevel> = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
@@ -107,7 +107,7 @@ export function createSentryWinstonTransport<TransportStreamInstance extends obj
         const logSeverityLevel = customLevel ?? winstonLogLevel ?? 'info';
 
         if (this._levels.has(logSeverityLevel)) {
-          _INTERNAL_captureLog({
+          captureLogEvent({
             level: logSeverityLevel,
             message: message as string,
             attributes: {

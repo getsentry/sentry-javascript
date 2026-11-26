@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,8 +22,10 @@ const VARIANT_FIELDS = {
  * If no `--base=xxx` is provided, it will output all test applications.
  *
  * `--variant` selects which matrix to generate:
- * - not set: the required test applications and their `variants`
- * - `optional`: the optional test applications and the `optionalVariants` of all test applications
+ * - not set: the required test applications and their `variants`. Rows that need secrets go into
+ *   `matrix-with-secrets=...`, because PRs from forks cannot run them.
+ * - `optional`: the optional test applications and the `optionalVariants` of all test applications. Also prints
+ *   `matrix-without-secrets=...`, the rows that PRs from forks can run.
  * - `canary`: only the `canaryVariants` of all test applications
  *
  * `--shards=N` splits the matrix into N parts (`matrix-1=...` to `matrix-N=...`), because GitHub Actions allows at
@@ -68,6 +70,17 @@ function run() {
   includedTestApplications.forEach(testApp => {
     addIncludesForTestApp(testApp, includes, { variant });
   });
+
+  if (variant === 'required') {
+    const includesWithSecrets = includes.filter(row => row['needs-secrets']);
+    includes = includes.filter(row => !row['needs-secrets']);
+    process.stdout.write(`matrix-with-secrets=${JSON.stringify({ include: includesWithSecrets })}\n`);
+  }
+
+  if (variant === 'optional') {
+    const includesWithoutSecrets = includes.filter(row => !row['needs-secrets']);
+    process.stdout.write(`matrix-without-secrets=${JSON.stringify({ include: includesWithoutSecrets })}\n`);
+  }
 
   if (values['separate-aws-layer']) {
     const layerIncludes = includes.filter(row => row['test-application'] === 'aws-serverless-layer');
@@ -115,7 +128,10 @@ function addIncludesForTestApp(testApp, includes, { variant }) {
   const shouldSkip = packageJson.sentryTest?.skip || false;
   const isOptional = packageJson.sentryTest?.optional || false;
   const variants = packageJson.sentryTest?.[VARIANT_FIELDS[variant]] || [];
-  const baseInclude = { 'test-application': testApp };
+  const baseInclude = {
+    'test-application': testApp,
+    ...(packageJson.sentryTest?.needsSecrets ? { 'needs-secrets': true } : {}),
+  };
 
   if (shouldSkip) {
     return;
@@ -192,7 +208,13 @@ function getAffectedTestApplications(testApplications, { base = 'develop', head 
 
   let affectedProjects = [];
   try {
-    affectedProjects = execSync(`pnpm --silent exec nx show projects --affected ${additionalArgs.join(' ')}`)
+    affectedProjects = execFileSync(process.execPath, [
+      path.resolve(__dirname, '../../../node_modules/nx/dist/bin/nx.js'),
+      'show',
+      'projects',
+      '--affected',
+      ...additionalArgs,
+    ])
       .toString()
       .split('\n')
       .map(line => line.trim())

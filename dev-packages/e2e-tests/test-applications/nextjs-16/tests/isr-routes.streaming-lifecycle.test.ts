@@ -76,6 +76,9 @@ test.describe('prerendered ISR pages', () => {
 });
 
 test('should create unique traces for ISR pages on each visit', async ({ page, baseURL }) => {
+  // The 5 page loads need about 17 s on an idle webpack dev server, and more while it compiles routes for other workers
+  test.slow();
+
   const traceIds: string[] = [];
   const url = '/isr-test/laptop?test=unique-isr-traces';
 

@@ -1,8 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
-
-const APP_NAME = 'astro-6';
+import { APP_NAME, BROWSER_ACCEPT_ENCODING, RUNTIME } from './constants';
 
 function isSegmentNamed(op: string, name: string): (span: SerializedStreamedSpan) => boolean {
   return span => getSpanOp(span) === op && span.is_segment && span.name === name;
@@ -58,11 +57,14 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
       'sentry.sample_rate': { value: 1, type: 'integer' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'sentry.environment': { value: 'qa', type: 'string' },
-      'sentry.sdk.name': { value: 'sentry.javascript.astro', type: 'string' },
+      'sentry.sdk.name': {
+        value: 'sentry.javascript.astro',
+        type: 'string',
+      },
       'url.full': { value: expect.stringContaining('/test-ssr'), type: 'string' },
       // demonstrates that the request data integration can extract headers
       'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
-      'http.request.header.accept-encoding': { value: ['gzip, deflate, br, zstd'], type: 'array' },
+      'http.request.header.accept-encoding': { value: [BROWSER_ACCEPT_ENCODING], type: 'array' },
       'http.request.header.accept-language': { value: ['en-US'], type: 'array' },
       'http.request.header.sec-fetch-mode': { value: ['navigate'], type: 'array' },
       'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
@@ -153,7 +155,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'url.full': { value: expect.stringContaining('/user-page/myUsername123'), type: 'string' },
       'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
-      'http.request.header.accept-encoding': { value: ['gzip, deflate, br, zstd'], type: 'array' },
+      'http.request.header.accept-encoding': { value: [BROWSER_ACCEPT_ENCODING], type: 'array' },
       'http.request.header.accept-language': { value: ['en-US'], type: 'array' },
       'http.request.header.sec-fetch-mode': { value: ['navigate'], type: 'array' },
       'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
@@ -162,11 +164,16 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     // HTTP client span - with span streaming only the domain is kept in the name, the URL lives in
     // the attributes
     expect(serverRequestHTTPClientSpan.name).toBe('GET localhost');
+    // The undici instrumentation of Node sets `url.path`, the `fetch` instrumentation of the other runtimes does not.
     expect(serverRequestHTTPClientSpan.attributes).toMatchObject({
       'sentry.op': { value: 'http.client', type: 'string' },
-      'sentry.origin': { value: 'auto.http.node_fetch', type: 'string' },
       'url.full': { value: expect.stringContaining('/api/user/myUsername123.json'), type: 'string' },
-      'url.path': { value: '/api/user/myUsername123.json', type: 'string' },
+      ...(RUNTIME === 'node'
+        ? {
+            'sentry.origin': { value: 'auto.http.node_fetch', type: 'string' },
+            'url.path': { value: '/api/user/myUsername123.json', type: 'string' },
+          }
+        : { 'sentry.origin': { value: 'auto.http.fetch', type: 'string' } }),
     });
 
     // Server HTTP request span
@@ -175,12 +182,18 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       'sentry.origin': { value: 'auto.http.astro', type: 'string' },
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'url.full': { value: expect.stringContaining('/api/user/myUsername123.json'), type: 'string' },
-      'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
-      'http.request.header.accept-encoding': { value: ['gzip, deflate'], type: 'array' },
-      'http.request.header.accept-language': { value: ['*'], type: 'array' },
-      'http.request.header.sec-fetch-mode': { value: ['cors'], type: 'array' },
-      'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
+      'http.request.header.accept-encoding': { value: [expect.any(String)], type: 'array' },
     });
+    // The `fetch` of each runtime sends its own default headers.
+    if (RUNTIME === 'node') {
+      expect(serverHTTPServerRequestSpan.attributes).toMatchObject({
+        'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
+        'http.request.header.accept-encoding': { value: ['gzip, deflate'], type: 'array' },
+        'http.request.header.accept-language': { value: ['*'], type: 'array' },
+        'http.request.header.sec-fetch-mode': { value: ['cors'], type: 'array' },
+        'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
+      });
+    }
   });
 
   test('sends parametrized pageload and server span names for catch-all routes', async ({ page }) => {
@@ -217,7 +230,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'url.full': { value: expect.stringContaining('/catchAll/hell0/whatever-do'), type: 'string' },
       'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
-      'http.request.header.accept-encoding': { value: ['gzip, deflate, br, zstd'], type: 'array' },
+      'http.request.header.accept-encoding': { value: [BROWSER_ACCEPT_ENCODING], type: 'array' },
       'http.request.header.accept-language': { value: ['en-US'], type: 'array' },
       'http.request.header.sec-fetch-mode': { value: ['navigate'], type: 'array' },
       'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },
@@ -255,7 +268,7 @@ test.describe('parametrized vs static paths', () => {
       'sentry.segment.name.source': { value: 'route', type: 'string' },
       'url.full': { value: expect.stringContaining('/user-page/settings'), type: 'string' },
       'http.request.header.accept': { value: [expect.any(String)], type: 'array' },
-      'http.request.header.accept-encoding': { value: ['gzip, deflate, br, zstd'], type: 'array' },
+      'http.request.header.accept-encoding': { value: [BROWSER_ACCEPT_ENCODING], type: 'array' },
       'http.request.header.accept-language': { value: ['en-US'], type: 'array' },
       'http.request.header.sec-fetch-mode': { value: ['navigate'], type: 'array' },
       'http.request.header.user-agent': { value: [expect.any(String)], type: 'array' },

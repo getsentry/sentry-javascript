@@ -1,4 +1,5 @@
 /* oxlint-disable max-lines */
+// oxlint-disable sdk/no-unguarded-debug-logs -- server-only, never part of a browser bundle
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
 import { getClient } from '../currentScopes';
 import { suppressTracing } from '../tracing/trace';

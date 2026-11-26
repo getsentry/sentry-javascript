@@ -6,15 +6,12 @@ import type { CapturedErrorContext } from 'nitropack/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryCaptureErrorHook } from '../../../src/runtime/hooks/captureErrorHook';
 
-const setTransactionName = vi.fn();
-
 vi.mock('@sentry/core', async importOriginal => {
   const mod = await importOriginal();
   return {
     ...(mod as any),
     captureException: vi.fn(),
     getClient: vi.fn(),
-    getCurrentScope: vi.fn(() => ({ setTransactionName })),
   };
 });
 
@@ -41,12 +38,15 @@ const h3Majors = [
       error.statusCode = statusCode;
       return error;
     },
-    event: { method: 'GET', path: '/test-path' },
+    event: { method: 'GET', path: '/users/42?include=profile' },
   },
   {
     name: 'h3 v2 (Nitro v3)',
     httpError: (message: string, statusCode: number): Error => new HTTPError({ message, status: statusCode }),
-    event: { req: new Request('http://localhost/test-path'), url: new URL('http://localhost/test-path') },
+    event: {
+      req: new Request('http://localhost/users/42?include=profile'),
+      url: new URL('http://localhost/users/42?include=profile'),
+    },
   },
 ];
 
@@ -54,6 +54,16 @@ const h3Majors = [
 // object), so it is set directly: what is under test is how the hook reads `cause`, not h3.
 function withCause(error: Error, cause: unknown): Error {
   return Object.defineProperty(error, 'cause', { value: cause, configurable: true });
+}
+
+/** The transaction name that the next captured event gets from the scope that is current during the capture. */
+function recordTransactionNameOfNextCapture(): Array<string | undefined> {
+  const transactionNames: Array<string | undefined> = [];
+  vi.mocked(SentryCore.captureException).mockImplementationOnce(() => {
+    transactionNames.push(SentryCore.getCurrentScope().getScopeData().transactionName);
+    return '4c79f60c11214eb38604f4ae0781bfb2';
+  });
+  return transactionNames;
 }
 
 describe.each(h3Majors)('sentryCaptureErrorHook - $name', ({ httpError, event }) => {
@@ -80,10 +90,18 @@ describe.each(h3Majors)('sentryCaptureErrorHook - $name', ({ httpError, event })
     );
   });
 
-  it('sets the transaction name from the request method and path', async () => {
+  it('names the captured event after the request method and path, without the query string', async () => {
+    const transactionNames = recordTransactionNameOfNextCapture();
+
     await sentryCaptureErrorHook(new Error('Test error'), mockErrorContext);
 
-    expect(setTransactionName).toHaveBeenCalledWith('GET /test-path');
+    expect(transactionNames).toEqual(['GET /users/42']);
+  });
+
+  it('leaves the transaction name of the current scope unchanged', async () => {
+    await sentryCaptureErrorHook(new Error('Test error'), mockErrorContext);
+
+    expect(SentryCore.getCurrentScope().getScopeData().transactionName).toBeUndefined();
   });
 
   it('should skip HTTP errors with 4xx status codes', async () => {
@@ -171,6 +189,22 @@ describe.each(h3Majors)('sentryCaptureErrorHook - $name', ({ httpError, event })
     await sentryCaptureErrorHook(new Error('Test error'), mockErrorContext);
 
     expect(SentryCore.captureException).not.toHaveBeenCalled();
+  });
+});
+
+describe('sentryCaptureErrorHook - request without a pathname', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (SentryCore.getClient as any).mockReturnValue({ getOptions: () => ({}) });
+  });
+
+  it('does not name the event when the h3 v1 path has only a query string', async () => {
+    const transactionNames = recordTransactionNameOfNextCapture();
+    const errorContext = { event: { method: 'GET', path: '?page=2' } } as unknown as CapturedErrorContext;
+
+    await sentryCaptureErrorHook(new Error('Test error'), errorContext);
+
+    expect(transactionNames).toEqual([undefined]);
   });
 });
 

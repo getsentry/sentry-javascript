@@ -9,6 +9,7 @@ import { spanIsNonRecordingSpan } from '../tracing/sentryNonRecordingSpan';
 import type { Span } from '../types/span';
 import type { SerializedTraceData } from '../types/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from './baggage';
+import { DEBUG_BUILD } from '../debug-build';
 import { debug } from './debug-logger';
 import { hasSpansEnabled } from './hasSpansEnabled';
 import { getActiveSpan, spanToTraceHeader, spanToTraceparentHeader } from './spanUtils';
@@ -68,7 +69,7 @@ export function getTraceData(
 
   const isValidSentryTraceHeader = TRACEPARENT_REGEXP.test(sentryTrace);
   if (!isValidSentryTraceHeader) {
-    debug.warn('Invalid sentry-trace data. Cannot generate trace data');
+    DEBUG_BUILD && debug.warn('Invalid sentry-trace data. Cannot generate trace data');
     return {};
   }
 

@@ -444,17 +444,14 @@ export function extractLlmResponseAttributes(
   if (Array.isArray(llmResult.generations)) {
     const finishReasons = llmResult.generations
       .flat()
-      .map(g => {
-        // v1 uses generationInfo.finish_reason
-        if (g.generationInfo?.finish_reason) {
-          return g.generationInfo.finish_reason;
-        }
-        // v0.3+ uses generation_info.finish_reason
-        if (g.generation_info?.finish_reason) {
-          return g.generation_info.finish_reason;
-        }
-        return null;
-      })
+      .map(
+        g =>
+          // v1 uses generationInfo, v0.3+ uses generation_info. The OpenAI Responses API sets neither and only
+          // reports it on the message.
+          g.generationInfo?.finish_reason ||
+          g.generation_info?.finish_reason ||
+          g.message?.response_metadata?.finish_reason,
+      )
       .filter((r): r is string => typeof r === 'string');
 
     if (finishReasons.length > 0) {
