@@ -3,6 +3,7 @@ import type { Integration } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { createRoutesFromChildren, matchRoutes, useLocation, useNavigationType } from 'react-router';
 import type { ReactRouterOptions } from './reactrouter-compat-utils';
+import { REACT_ROUTER_LIBRARY_OPTIONS } from './reactrouter-compat-utils';
 import { reactRouterBrowserTracingIntegration as reactRouterBrowserTracingIntegrationBase } from './reactrouter.compat';
 
 // The routing wrappers (`wrapReactRouterRouting`, `wrapUseRoutes`, `wrapCreateBrowserRouter`,
@@ -50,4 +51,5 @@ function _reactRouterBrowserTracingIntegration(
  */
 export const reactRouterBrowserTracingIntegration: typeof _reactRouterBrowserTracingIntegration = defineIntegration(
   _reactRouterBrowserTracingIntegration,
+  { libraryOptions: REACT_ROUTER_LIBRARY_OPTIONS },
 );

@@ -22,3 +22,4 @@ Add `vX` to the `branches` filters of the workflows that gate on maintained majo
 
 - `.github/workflows/build.yml` — `push.branches`
 - `.github/workflows/enforce-license-compliance.yml` — `push.branches` **and** `pull_request.branches`
+- `.github/workflows/ci-metadata.yml` — the `is_base_branch` check
