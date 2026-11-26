@@ -134,6 +134,12 @@
         "label": "nextjs-16 (turbopack, production, static trace lifecycle)"
       },
       {
+        "runtime": "bun",
+        "build-command": "pnpm install",
+        "assert-command": "pnpm test:dev",
+        "label": "nextjs-16 (bun, turbopack, development)"
+      },
+      {
         "runtime": "cloudflare",
         "build-command": "pnpm test:build-latest:cloudflare",
         "assert-command": "pnpm test:prod",
