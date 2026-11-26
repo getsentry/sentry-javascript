@@ -5,8 +5,9 @@ import {
   HTTP_ROUTE,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  URL_FULL,
 } from '@sentry/conventions/attributes';
-import { MIDDLEWARE } from '@sentry/conventions/op';
+import { HTTP_CLIENT, MIDDLEWARE } from '@sentry/conventions/op';
 import type { Client, Options, Span } from '@sentry/core';
 import {
   getIsolationScope,
@@ -49,6 +50,15 @@ export const NEXTJS_SERVER_IGNORE_SPANS: NonNullable<Options['ignoreSpans']> = [
   // Spans flagged via TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION
   // (set in `dropMiddlewareTunnelRequests` during `spanStart`)
   { attributes: { [TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]: true } },
+  // Requests that `next dev` sends on its own, for its telemetry and its version check. They are not part of a
+  // request, so with span streaming they would each become a root span.
+  {
+    op: HTTP_CLIENT,
+    attributes: {
+      [URL_FULL]:
+        /^https:\/\/(telemetry\.nextjs\.org\/api\/v1\/record|registry\.npmjs\.org\/-\/package\/next\/dist-tags)$/,
+    },
+  },
 ];
 
 /**

@@ -468,6 +468,18 @@ describe('Server init()', () => {
       });
     });
 
+    it('ignores the telemetry and version check requests of `next dev`', () => {
+      init({});
+      const isIgnored = (url: string, op = 'http.client'): boolean =>
+        shouldIgnoreSpan({ description: 'GET', op, attributes: { 'url.full': url } }, getIgnoreSpans());
+
+      expect(isIgnored('https://telemetry.nextjs.org/api/v1/record')).toBe(true);
+      expect(isIgnored('https://registry.npmjs.org/-/package/next/dist-tags')).toBe(true);
+      expect(isIgnored('https://registry.npmjs.org/-/package/react/dist-tags')).toBe(false);
+      expect(isIgnored('https://example.com/?u=https://telemetry.nextjs.org/api/v1/record')).toBe(false);
+      expect(isIgnored('https://telemetry.nextjs.org/api/v1/record', 'http.server')).toBe(false);
+    });
+
     it('preserves user-provided ignoreSpans entries', () => {
       init({ ignoreSpans: ['user-pattern', /custom-regex/] });
       const patterns = getIgnoreSpans();
