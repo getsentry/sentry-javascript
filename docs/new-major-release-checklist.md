@@ -15,7 +15,7 @@ In this page, `vN` is the new major and `vN-1` is the previous major (e.g. `v11`
       [#22056](https://github.com/getsentry/sentry-javascript/issues/22056)).
 - [ ] Tell the company in a Vanguard post that we intend to ship a new major (e.g. https://vanguard.getsentry.net/p/i58qqnlqusz61lla86djbaly)
 - [ ] Make sure that the wizard installs `^N-1` and not the latest major, so that it does not install a prerelease
-      or an untested major.
+      or an untested major (e.g. [getsentry/sentry-wizard#1303](https://github.com/getsentry/sentry-wizard/pull/1303)).
 - [ ] Ship all deprecations in a `vN-1` minor before we remove the APIs in `vN`.
 
 ## Starting the Major on `develop`
@@ -38,7 +38,9 @@ In this page, `vN` is the new major and `vN-1` is the previous major (e.g. `v11`
   - [ ] https://github.com/getsentry/chartcuterie
 - [ ] Prepare (but do not merge) these PRs:
   - `sentry-docs`: the migration guide, setup guides, option changes and the new Lambda layer ARN.
-  - `sentry-wizard`: change the installed SDK range to `^N` and update the wizard for the new APIs if applicable.
+  - `sentry-wizard`: change the installed SDK range to `^N` (e.g.
+    [getsentry/sentry-wizard#1344](https://github.com/getsentry/sentry-wizard/pull/1344)) and update the wizard for the
+    new APIs if applicable (e.g. [getsentry/sentry-wizard#1346](https://github.com/getsentry/sentry-wizard/pull/1346)).
   - `sentry`: the in-product onboarding snippets.
   - `sentry` (loader frontend): make the loader settings UI support `vN` (e.g.
     [getsentry/sentry#123892](https://github.com/getsentry/sentry/pull/123892)).
