@@ -64,7 +64,6 @@ jobs:
     name: Plan CI jobs
     with:
       head_commit: ${{ github.event.inputs.commit || github.sha }}
-      plan_tests: true
     permissions:
       pull-requests: read
 

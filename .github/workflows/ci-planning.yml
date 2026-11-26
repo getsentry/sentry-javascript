@@ -6,10 +6,6 @@ on:
         description: 'The commit SHA to check out and test'
         type: string
         required: true
-      plan_tests:
-        description: 'Also select affected projects and generate test matrices in the metadata job'
-        type: boolean
-        default: false
     outputs:
       commit_label:
         description: 'Short SHA + commit message for display'
@@ -92,8 +88,8 @@ on:
 
 jobs:
   plan_ci:
-    name: ${{ inputs.plan_tests && 'Plan CI jobs' || 'Get Metadata' }}
-    runs-on: ${{ inputs.plan_tests && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    name: Plan CI jobs
+    runs-on: ubuntu-24.04-arm
     env:
       CACHED_DEPENDENCY_PATHS: |
         ${{ github.workspace }}/node_modules
@@ -139,12 +135,11 @@ jobs:
 
       - name: Determine whether tests need planning
         id: plan
-        if: inputs.plan_tests
         env:
           ENABLED: >-
-            ${{ inputs.plan_tests && (steps.changed.outputs.any_code == 'true' || github.ref == 'refs/heads/develop' ||
-            github.ref == 'refs/heads/v10' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8' ||
-            startsWith(github.ref, 'refs/heads/release/')) }}
+            ${{ steps.changed.outputs.any_code == 'true' || github.ref == 'refs/heads/develop' || github.ref ==
+            'refs/heads/v10' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8' || startsWith(github.ref,
+            'refs/heads/release/') }}
         run: echo "enabled=$ENABLED" >> "$GITHUB_OUTPUT"
 
       - name: Set up Node
