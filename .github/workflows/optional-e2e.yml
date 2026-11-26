@@ -8,10 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       commit:
-        description: The commit that the tarballs were built from
-        required: true
-      build_run_id:
-        description: The build.yml run that uploaded the tarball artifacts
+        description: The commit to build and test
         required: true
       matrix:
         description: The optional E2E test matrix as JSON
@@ -31,6 +28,12 @@ concurrency:
 env:
   HEAD_COMMIT: ${{ inputs.commit }}
 
+  CACHED_DEPENDENCY_PATHS: |
+    ${{ github.workspace }}/node_modules
+    ${{ github.workspace }}/packages/*/node_modules
+    ${{ github.workspace }}/dev-packages/*/node_modules
+    ~/.cache/mongodb-binaries/
+
   # See build.yml
   DISABLE_V8_COMPILE_CACHE: '1'
 
@@ -41,7 +44,6 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      # To download the artifacts of the build.yml run
       actions: read
     # Keep the secrets the same as in job_e2e_tests_with_secrets (build.yml).
     env:
@@ -76,6 +78,11 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - name: Build SDK packages locally
+        uses: ./.github/actions/build-local-sdk
+        with:
+          package-path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+          targets: build:tarball
       - name: Prepare E2E test application
         uses: ./.github/actions/prepare-e2e-test
         with:
@@ -83,8 +90,7 @@ jobs:
           runtime: ${{ matrix.runtime }}
           bun-version: ${{ matrix.bun-version }}
           deno-version: ${{ matrix.deno-version }}
-          artifacts-run-id: ${{ inputs.build_run_id }}
-          github-token: ${{ github.token }}
+          download-artifacts: 'false'
 
       - name: Start E2E databases
         background: true
