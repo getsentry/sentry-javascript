@@ -175,8 +175,7 @@ describe('decideSourceMapHandling', () => {
         removeAllSourceMaps: true,
         log: {
           level: 'info',
-          message:
-            'Source maps are not uploaded. They are removed from the build output, because the Sentry SDK turned them on.',
+          message: 'Source maps are not uploaded, but the Sentry SDK removes them from the build output.',
         },
       });
     });

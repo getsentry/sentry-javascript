@@ -104,8 +104,8 @@ export function decideSourceMapHandling(
     if (deleteOption !== true || (kind !== 'hidden' && kind !== 'visible')) {
       return NO_CHANGE;
     }
-    // Users switch the upload off to upload the maps themselves. Maps the
-    // SDK turned on are still removed, as the SDKs' own globs did.
+    // Users switch the upload off to upload the maps themselves. The SDK's
+    // deletion still runs, as the SDKs' own globs did.
     if (!features.upload && !sdkRemovesAll) {
       return {
         ...NO_CHANGE,
@@ -131,8 +131,7 @@ export function decideSourceMapHandling(
           }
         : {
             level: 'info',
-            message:
-              'Source maps are not uploaded. They are removed from the build output, because the Sentry SDK turned them on.',
+            message: 'Source maps are not uploaded, but the Sentry SDK removes them from the build output.',
           },
     };
   }
