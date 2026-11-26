@@ -1,7 +1,7 @@
 import { tracingChannel } from 'node:diagnostics_channel';
 import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { HANDLER, HTTP_SERVER } from '@sentry/conventions/op';
-import type { SpanJSON } from '@sentry/core';
+import type { StreamedSpanJSON } from '@sentry/core';
 import {
   createTransport,
   getActiveSpan,
@@ -29,7 +29,7 @@ function createH3Event(): H3TracingRequestEvent['event'] {
 }
 
 /** Publishes an `h3.request` event like h3's `tracingPlugin`, and returns the span that is active inside it. */
-function traceH3Request(type: H3TracingRequestEvent['type']): Promise<SpanJSON | undefined> {
+function traceH3Request(type: H3TracingRequestEvent['type']): Promise<StreamedSpanJSON | undefined> {
   return startSpan({ name: 'GET /api/users/42', op: HTTP_SERVER }, () =>
     h3RequestChannel.tracePromise(
       async () => {

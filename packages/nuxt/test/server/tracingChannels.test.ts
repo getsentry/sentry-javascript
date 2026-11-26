@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { CACHE_GET, CACHE_PUT, CACHE_REMOVE, HANDLER, HTTP_SERVER, MIDDLEWARE } from '@sentry/conventions/op';
-import type { Client, SpanJSON } from '@sentry/core';
+import type { Client, StreamedSpanJSON } from '@sentry/core';
 import { createTransport, getCurrentScope, spanToJSON, startNewTrace, startSpan } from '@sentry/core';
 import { defineHandler, H3 } from 'nitro/h3';
 import type { Driver, Storage } from 'unstorage';
@@ -30,7 +30,7 @@ interface SpanSummary {
   parentOp: unknown;
 }
 
-function summarize(span: SpanJSON, spans: SpanJSON[]): SpanSummary {
+function summarize(span: StreamedSpanJSON, spans: StreamedSpanJSON[]): SpanSummary {
   const parent = spans.find(candidate => candidate.span_id === span.parent_span_id);
   return {
     op: span.attributes[SENTRY_OP],
@@ -45,7 +45,7 @@ function summarize(span: SpanJSON, spans: SpanJSON[]): SpanSummary {
 describe('Nuxt server SDK with the Nitro v3 tracing channels on', () => {
   let client: Client;
   let app: H3;
-  const endedSpans: SpanJSON[] = [];
+  const endedSpans: StreamedSpanJSON[] = [];
 
   /** Makes the `http.server` root span, as the HTTP integration of the runtime does in a real server. */
   async function request(path: string): Promise<{ response: Response; spans: SpanSummary[] }> {
