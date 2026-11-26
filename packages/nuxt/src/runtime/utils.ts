@@ -2,10 +2,10 @@ import type { ClientOptions, Context, SerializedTraceData } from '@sentry/core';
 import {
   captureException,
   debug,
+  filterCollectedUrl,
   getClient,
   getTraceMetaTags,
   isObjectLike,
-  stripUrlQueryAndFragment,
 } from '@sentry/core';
 import type { CapturedErrorContext } from 'nitropack/types';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -29,9 +29,7 @@ export function getEventRequestInfo(event: unknown): { method?: string; path?: s
     url?: { pathname?: string };
   };
 
-  const rawPath = path ?? url?.pathname;
-
-  return { method: method ?? req?.method, path: rawPath && stripUrlQueryAndFragment(rawPath) };
+  return { method: method ?? req?.method, path: path ?? url?.pathname };
 }
 
 /**
@@ -48,7 +46,8 @@ export function extractErrorContext(errorContext: CapturedErrorContext | undefin
   if (errorContext.event) {
     const { method, path } = getEventRequestInfo(errorContext.event);
     ctx.method = method;
-    ctx.path = path;
+    // The h3 v1 path has the query string.
+    ctx.path = filterCollectedUrl(path);
   }
 
   if (Array.isArray(errorContext.tags)) {

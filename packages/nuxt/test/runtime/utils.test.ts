@@ -38,10 +38,15 @@ describe('extractErrorContext', () => {
     expect(extractErrorContext(partialContext)).toEqual({ path: '/test' });
   });
 
-  it('leaves the query string out of the path of an h3 v1 (Nitro v2) event', () => {
-    const context = { event: { method: 'GET', path: '/users/42?include=profile' } } as unknown as CapturedErrorContext;
+  it('filters sensitive query params in the path of an h3 v1 (Nitro v2) event', () => {
+    const context = {
+      event: { method: 'GET', path: '/users/42?include=profile&token=abc123' },
+    } as unknown as CapturedErrorContext;
 
-    expect(extractErrorContext(context)).toEqual({ method: 'GET', path: '/users/42' });
+    expect(extractErrorContext(context)).toEqual({
+      method: 'GET',
+      path: '/users/42?include=profile&token=[Filtered]',
+    });
   });
 
   it('reads method and path from an h3 v2 (Nitro v3) event, which has no `method`/`path` getters', () => {

@@ -107,7 +107,7 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
       );
     });
 
-    test('keeps a secret of the query string out of the error event', async ({ request }) => {
+    test('filters a secret of the query string in the error event', async ({ request }) => {
       const errorPromise = waitForError('nuxt-4', errorEvent => {
         return (
           errorEvent?.exception?.values?.[0]?.value === 'Nuxt 4 Server error' &&
@@ -121,6 +121,7 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
       const error = await errorPromise;
 
       expect(error.transaction).toBe(`GET ${apiPrefix}/server-error`);
+      expect(error.contexts?.nuxt?.path).toBe(`${apiPrefix}/server-error?include=profile&auth=[Filtered]`);
       expect(JSON.stringify(error)).not.toContain('very-secret');
     });
   });
