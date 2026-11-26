@@ -61,7 +61,7 @@ We raised the minimum supported versions of several frameworks and libraries:
 ### AWS Lambda Layer Changes
 
 A new AWS Lambda Layer for version 11 will be published as `SentryNodeServerlessSDKv11`.
-The ARN will be published in the [Sentry docs](https://docs.sentry.io/platforms/javascript/guides/aws-lambda/install/cjs-layer/) once available.
+The ARN will be published in the [Sentry docs](https://docs.sentry.io/platforms/javascript/guides/aws-lambda/install/layer/) once available.
 
 The layer is compatible with the `nodejs20.x`, `nodejs22.x` and `nodejs24.x` runtimes. Functions still on `nodejs18.x` need to move to a newer runtime before upgrading.
 
