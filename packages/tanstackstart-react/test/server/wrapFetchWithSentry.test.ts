@@ -1,3 +1,5 @@
+import type { Client } from '@sentry/core';
+import { getCurrentScope, SDK_VERSION } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const flushIfServerlessSpy = vi.fn().mockResolvedValue(undefined);
@@ -40,6 +42,29 @@ const { wrapFetchWithSentry } = await import('../../src/server/wrapFetchWithSent
 describe('wrapFetchWithSentry', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    getCurrentScope().setClient(undefined);
+  });
+
+  it('sets the TanStack Start SDK name on a client that another SDK inited', async () => {
+    const sdk = {
+      name: 'sentry.javascript.cloudflare',
+      packages: [{ name: 'npm:@sentry/cloudflare', version: SDK_VERSION }],
+      version: SDK_VERSION,
+    };
+    getCurrentScope().setClient({ getOptions: () => ({ _metadata: { sdk } }) } as unknown as Client);
+    const serverEntry = wrapFetchWithSentry({ fetch: () => new Response('ok') });
+
+    await serverEntry.fetch(new Request('http://localhost:3000/page'));
+    await serverEntry.fetch(new Request('http://localhost:3000/_serverFn/abc123'));
+
+    expect(sdk).toEqual({
+      name: 'sentry.javascript.tanstackstart-react',
+      packages: [
+        { name: 'npm:@sentry/tanstackstart-react', version: SDK_VERSION },
+        { name: 'npm:@sentry/cloudflare', version: SDK_VERSION },
+      ],
+      version: SDK_VERSION,
+    });
   });
 
   it('calls flushIfServerless after a regular request', async () => {
