@@ -93,19 +93,6 @@ export function getProviderMetadataAttributes(providerMetadata: unknown): Record
 }
 
 /**
- * Usage attributes derived from `providerMetadata`, which describes only the last step of a call.
- * They must not be written onto a span that reports usage aggregated across steps
- * (`gen_ai.invoke_agent`), where they would replace the aggregate with one step's figures.
- */
-export const LAST_STEP_ONLY_USAGE_KEYS = new Set<string>([
-  GEN_AI_USAGE_OUTPUT_TOKENS,
-  GEN_AI_USAGE_TOTAL_TOKENS,
-  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
-  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
-  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
-]);
-
-/**
  * Sets an attribute only if the value is not null or undefined.
  */
 function setAttributeIfDefined(

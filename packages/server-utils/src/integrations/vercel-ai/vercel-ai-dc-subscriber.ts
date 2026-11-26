@@ -69,7 +69,7 @@ import {
   getEvaluationOutputMessages,
   resolveRecordingOption,
 } from '../../ai/core/utils';
-import { getProviderMetadataAttributes, LAST_STEP_ONLY_USAGE_KEYS } from '../../ai/vercel-ai';
+import { getProviderMetadataAttributes } from '../../ai/vercel-ai';
 import { WORKERS_AI_INTEGRATION_NAME } from '../../ai/workers-ai/constants';
 import { bindTracingChannelToSpan } from '../../tracing-channel';
 import { toExtractAnswers, toExtractFields, toExtractState } from './extract';
@@ -214,21 +214,20 @@ function getActiveSpanConversationId(): string | undefined {
 }
 
 /**
- * `providerMetadata` is last-step only; drop derived usage on spans that report an aggregate.
- * `setUsageReasoningTokens` writes the aggregate reasoning count instead.
+ * The `providerMetadata` attributes that the token counts don't cover. Its cost covers only the last
+ * provider call of a partial-cost operation, whose cost the `generate_content` spans carry.
  */
-function dropLastStepOnlyUsage(providerAttributes: Record<string, number | string>, type: ChannelEventType): void {
-  if (!ROOT_OPERATION_TYPES.has(type)) {
-    return;
-  }
-  for (const key of LAST_STEP_ONLY_USAGE_KEYS) {
+function getProviderOnlyAttributes(providerMetadata: unknown, type: ChannelEventType): Record<string, number | string> {
+  const attributes = getProviderMetadataAttributes(providerMetadata);
+  for (const key of Object.values(TOKEN_ATTRIBUTES)) {
     // oxlint-disable-next-line typescript/no-dynamic-delete
-    delete providerAttributes[key];
+    delete attributes[key];
   }
   if (PARTIAL_COST_OPERATION_TYPES.has(type)) {
     // oxlint-disable-next-line typescript/no-dynamic-delete
-    delete providerAttributes[GEN_AI_COST_TOTAL_TOKENS];
+    delete attributes[GEN_AI_COST_TOTAL_TOKENS];
   }
+  return attributes;
 }
 
 /** Record tool name → description from an event's `tools`, so tool spans can backfill the description. */
@@ -462,17 +461,9 @@ export function streamedResultToChannelResult(final: StreamedModelCallResult): R
  * because the operation's completion promise settles only after every model-call stream has drained.
  */
 function enrichInvokeAgentFromStream(span: Span, final: StreamedModelCallResult, recordOutputs: boolean): void {
-  const usage = isObjectLike(final.usage) ? final.usage : undefined;
-  if (usage) {
-    const input = tokenCount(usage.inputTokens) ?? tokenCount(usage.promptTokens) ?? tokenCount(usage.tokens);
-    const { output, reasoning } = modelCallTokens(usage, final.providerMetadata);
-    addTokensToSpan(span, GEN_AI_USAGE_INPUT_TOKENS, input);
-    addTokensToSpan(span, GEN_AI_USAGE_OUTPUT_TOKENS, output);
-    addTokensToSpan(span, GEN_AI_USAGE_TOTAL_TOKENS, tokenCount(usage.totalTokens) ?? sum(input, output));
-    const { cacheRead, cacheWrite } = cacheTokens(usage);
-    addTokensToSpan(span, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheRead);
-    addTokensToSpan(span, GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWrite);
-    addTokensToSpan(span, GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, reasoning);
+  const usage = modelCallUsage(final.usage, final.providerMetadata);
+  for (const key of TOKEN_KEYS) {
+    addTokensToSpan(span, TOKEN_ATTRIBUTES[key], usage[key]);
   }
 
   if (recordOutputs) {
@@ -781,29 +772,15 @@ export function enrichSpanOnEnd(span: Span, data: VercelAiChannelMessage): void 
     return;
   }
 
-  // `languageModelCall` results report usage as `{ total }` objects; top-level/step results report
-  // flat numbers. `tokenCount` handles both. v4 names tokens `promptTokens`/`completionTokens`
-  // (v5+ uses `inputTokens`/`outputTokens`); the fallbacks are `undefined`-inert on v5+.
-  // A v5/v6 `generateText` result's `usage` is its last step's; `totalUsage` sums every step.
-  const usage = isObjectLike(result.totalUsage)
-    ? result.totalUsage
-    : isObjectLike(result.usage)
-      ? result.usage
-      : undefined;
-  if (usage) {
-    const inputTokens = tokenCount(usage.inputTokens) ?? tokenCount(usage.promptTokens) ?? tokenCount(usage.tokens);
-    const outputTokens = tokenCount(usage.outputTokens) ?? tokenCount(usage.completionTokens);
-    const totalTokens = tokenCount(usage.totalTokens) ?? sum(inputTokens, outputTokens);
-    if (inputTokens !== undefined) {
-      span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS, inputTokens);
+  const providerMetadata = result.providerMetadata;
+  const usage = ROOT_OPERATION_TYPES.has(type)
+    ? operationUsage(result, providerMetadata)
+    : modelCallUsage(result.usage, providerMetadata);
+  for (const key of TOKEN_KEYS) {
+    const value = usage[key];
+    if (value !== undefined) {
+      span.setAttribute(TOKEN_ATTRIBUTES[key], value);
     }
-    if (outputTokens !== undefined) {
-      span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS, outputTokens);
-    }
-    if (totalTokens !== undefined) {
-      span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS, totalTokens);
-    }
-    setCacheTokens(span, usage);
   }
 
   // Match the OTel integration: finish reasons live on the model-call (`generate_content`) span, not
@@ -823,21 +800,7 @@ export function enrichSpanOnEnd(span: Span, data: VercelAiChannelMessage): void 
     span.setAttribute(GEN_AI_RESPONSE_MODEL, responseModel);
   }
 
-  // Provider-specific cache/reasoning/prediction token breakdowns. The channel exposes `providerMetadata`
-  // as an object (the OTel path parses it from a string); both share `getProviderMetadataAttributes` so
-  // the emitted shape is identical.
-  const providerMetadata = (result as { providerMetadata?: unknown }).providerMetadata;
-  const providerAttributes = getProviderMetadataAttributes(providerMetadata);
-  dropLastStepOnlyUsage(providerAttributes, type);
-  span.setAttributes(providerAttributes);
-  if (ROOT_OPERATION_TYPES.has(type)) {
-    setOperationTokens(span, result, usage, providerMetadata);
-  } else {
-    const { reasoning } = modelCallTokens(usage, providerMetadata);
-    if (reasoning !== undefined) {
-      span.setAttribute(GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, reasoning);
-    }
-  }
+  span.setAttributes(getProviderOnlyAttributes(providerMetadata, type));
 
   if (recordOutputs) {
     const outputMessages = getOutputMessages(type, result, finishReason, data.event);
@@ -935,64 +898,74 @@ function reasoningTokens(usage: Record<string, unknown>, providerMetadata: unkno
   return metadata?.openai || metadata?.azure ? asNumber(usage.reasoningTokens) : undefined;
 }
 
-/** Output and reasoning tokens of one model call, as its `generate_content` span records them. */
-function modelCallTokens(
-  usage: Record<string, unknown> | undefined,
-  providerMetadata: unknown,
-): { output?: number; reasoning?: number } {
+interface TokenUsage {
+  input?: number;
+  output?: number;
+  total?: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+  reasoning?: number;
+}
+
+const TOKEN_ATTRIBUTES: Record<keyof TokenUsage, string> = {
+  input: GEN_AI_USAGE_INPUT_TOKENS,
+  output: GEN_AI_USAGE_OUTPUT_TOKENS,
+  total: GEN_AI_USAGE_TOTAL_TOKENS,
+  cacheRead: GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS,
+  cacheWrite: GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+  reasoning: GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
+};
+
+const TOKEN_KEYS = Object.keys(TOKEN_ATTRIBUTES) as Array<keyof TokenUsage>;
+
+/**
+ * One model call's token counts: the SDK's usage, corrected by the call's `providerMetadata`.
+ * `languageModelCall` usage reports `{ total }` objects and step usage flat numbers; v4 names tokens
+ * `promptTokens`/`completionTokens`.
+ */
+function modelCallUsage(usage: unknown, providerMetadata: unknown): TokenUsage {
   const derived = getProviderMetadataAttributes(providerMetadata);
+  const counts = isObjectLike(usage) ? usage : {};
+  const input = tokenCount(counts.inputTokens) ?? tokenCount(counts.promptTokens) ?? tokenCount(counts.tokens);
+  const output =
+    asNumber(derived[GEN_AI_USAGE_OUTPUT_TOKENS]) ??
+    tokenCount(counts.outputTokens) ??
+    tokenCount(counts.completionTokens);
+  const { cacheRead, cacheWrite } = cacheTokens(counts);
   return {
-    output:
-      asNumber(derived[GEN_AI_USAGE_OUTPUT_TOKENS]) ??
-      (usage ? (tokenCount(usage.outputTokens) ?? tokenCount(usage.completionTokens)) : undefined),
-    reasoning:
-      (usage ? reasoningTokens(usage, providerMetadata) : undefined) ??
-      asNumber(derived[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]),
+    input,
+    output,
+    total: asNumber(derived[GEN_AI_USAGE_TOTAL_TOKENS]) ?? tokenCount(counts.totalTokens) ?? sum(input, output),
+    cacheRead: asNumber(derived[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]) ?? cacheRead,
+    cacheWrite: asNumber(derived[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]) ?? cacheWrite,
+    reasoning: reasoningTokens(counts, providerMetadata) ?? asNumber(derived[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]),
   };
 }
 
 /**
- * Sum an operation's output and reasoning over its steps, as their model-call spans record them.
- * `providerMetadata` describes one step, and steps can use different providers, so each step is read
- * on its own. An operation without `steps` is a single model call.
+ * An operation's token counts, summed over its steps so that it matches its model-call spans.
+ * `providerMetadata` describes one step, and steps can use different providers. An operation without
+ * `steps` is a single model call; a v5/v6 `generateText` result's `usage` is only its last step's.
  */
-function setOperationTokens(
-  span: Span,
-  result: Record<string, unknown>,
-  usage: Record<string, unknown> | undefined,
-  providerMetadata: unknown,
-): void {
+function operationUsage(result: Record<string, unknown>, providerMetadata: unknown): TokenUsage {
   const steps = Array.isArray(result.steps) ? result.steps.filter(isObjectLike) : [];
-  const calls = steps.length
-    ? steps.map(step => modelCallTokens(isObjectLike(step.usage) ? step.usage : undefined, step.providerMetadata))
-    : [modelCallTokens(usage, providerMetadata)];
-
-  if (calls.every(call => call.output !== undefined)) {
-    span.setAttribute(
-      GEN_AI_USAGE_OUTPUT_TOKENS,
-      calls.reduce((total, call) => total + (call.output ?? 0), 0),
-    );
+  if (!steps.length) {
+    return modelCallUsage(result.totalUsage ?? result.usage, providerMetadata);
   }
-  const reasoning = calls.reduce<number | undefined>((total, call) => sum(total, call.reasoning), undefined);
-  if (reasoning !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_REASONING_OUTPUT_TOKENS, reasoning);
+  const total: TokenUsage = {};
+  for (const step of steps) {
+    const stepUsage = modelCallUsage(step.usage, step.providerMetadata);
+    for (const key of TOKEN_KEYS) {
+      total[key] = sum(total[key], stepUsage[key]);
+    }
   }
+  return total;
 }
 
 /**
  * Cache token counts as the AI SDK normalizes them: v5 `cachedInputTokens`, v6 `inputTokenDetails`,
  * v7 `inputTokens.{cacheRead,cacheWrite}`.
  */
-function setCacheTokens(span: Span, usage: Record<string, unknown>): void {
-  const { cacheRead, cacheWrite } = cacheTokens(usage);
-  if (cacheRead !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, cacheRead);
-  }
-  if (cacheWrite !== undefined) {
-    span.setAttribute(GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, cacheWrite);
-  }
-}
-
 function cacheTokens(usage: Record<string, unknown>): { cacheRead?: number; cacheWrite?: number } {
   const inputTokens = isObjectLike(usage.inputTokens) ? usage.inputTokens : undefined;
   const inputTokenDetails = isObjectLike(usage.inputTokenDetails) ? usage.inputTokenDetails : undefined;

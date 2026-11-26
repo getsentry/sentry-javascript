@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -188,6 +189,24 @@ describe('Vercel AI Gemini reasoning tokens', () => {
         steps,
       });
 
+      expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(220);
+      expect(data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(240);
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(180);
+    });
+
+    // v4 steps report candidate-only `completionTokens` and a `totalTokens` without the reasoning.
+    it('keeps total in step with the corrected output of v4 Google steps', () => {
+      const steps = [
+        googleStep(20, 80, { promptTokens: 10, completionTokens: 20, totalTokens: 30 }),
+        googleStep(20, 100, { promptTokens: 10, completionTokens: 20, totalTokens: 30 }),
+      ];
+      const data = runSpan('generateText', {
+        usage: { promptTokens: 20, completionTokens: 40, totalTokens: 60 },
+        providerMetadata: steps[1]!.providerMetadata,
+        steps,
+      });
+
+      expect(data[GEN_AI_USAGE_INPUT_TOKENS]).toBe(20);
       expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(220);
       expect(data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(240);
       expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(180);
