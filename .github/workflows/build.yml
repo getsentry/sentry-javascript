@@ -60,7 +60,7 @@ env:
 # The central build still produces the shared release artifacts.
 jobs:
   job_plan_ci:
-    uses: ./.github/workflows/ci-metadata.yml
+    uses: ./.github/workflows/ci-planning.yml
     name: Plan CI jobs
     with:
       head_commit: ${{ github.event.inputs.commit || github.sha }}
