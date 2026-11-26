@@ -695,6 +695,37 @@ describe('startIdleSpan', () => {
     });
   });
 
+  describe('pending timers', () => {
+    it('leaves no timer behind when the span ends via idle timeout', () => {
+      const timersBefore = vi.getTimerCount();
+
+      const idleSpan = startIdleSpan({ name: 'idle span' });
+      vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
+
+      expect(spanToJSON(idleSpan).end_timestamp).toBeDefined();
+      expect(vi.getTimerCount()).toBe(timersBefore);
+    });
+
+    it('leaves no timer behind when the span is ended externally', () => {
+      const timersBefore = vi.getTimerCount();
+
+      const idleSpan = startIdleSpan({ name: 'idle span' });
+      idleSpan.end();
+
+      expect(vi.getTimerCount()).toBe(timersBefore);
+    });
+
+    it('leaves no timer behind when the span is ended externally with an open child span', () => {
+      const timersBefore = vi.getTimerCount();
+
+      const idleSpan = startIdleSpan({ name: 'idle span' });
+      startInactiveSpan({ name: 'inner' });
+      idleSpan.end();
+
+      expect(vi.getTimerCount()).toBe(timersBefore);
+    });
+  });
+
   describe('child span timeout', () => {
     it('finishes when a child span exceed timeout', () => {
       const idleSpan = startIdleSpan({ name: 'idle span' });
