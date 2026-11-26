@@ -8,6 +8,11 @@ version = 1
 failOn = "high"
 reportOn = "medium"
 
+# Max parallel code chunks Warden reviews per run, across all skills (default: 5).
+# Ignored if the org config (https://github.com/getsentry/.github/blob/main/warden.toml) sets one.
+[runner]
+concurrency = 12
+
 [[skills]]
 name = "gha-security-review"
 remote = "getsentry/skills"
