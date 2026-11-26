@@ -2,9 +2,10 @@
 import * as Sentry from '@sentry/effect';
 import * as Logger from 'effect/Logger';
 import * as Layer from 'effect/Layer';
-import * as Runtime from 'effect/Runtime';
+import * as ManagedRuntime from 'effect/ManagedRuntime';
 import * as LogLevel from 'effect/LogLevel';
 import * as Effect from 'effect/Effect';
+import * as Metric from 'effect/Metric';
 
 const LogLevelLayer = Logger.minimumLogLevel(LogLevel.Debug);
 const AppLayer = Layer.mergeAll(
@@ -18,12 +19,20 @@ const AppLayer = Layer.mergeAll(
   }),
   Sentry.layerTracer,
   Sentry.layerLogger,
+  Sentry.layerMetrics,
   LogLevelLayer,
 );
 
-const runtime = Layer.toRuntime(AppLayer).pipe(Effect.scoped, Effect.runSync);
+const ordersPlaced = Metric.counter('orders_placed').pipe(Metric.tagged('shop', 'e2e'));
+const queueDepth = Metric.gauge('queue_depth');
 
-const runEffect = fn => Runtime.runPromise(runtime)(fn());
+// ManagedRuntime keeps the layer scope open, so the `Sentry.layerMetrics` fiber keeps running
+const runtime = ManagedRuntime.make(AppLayer);
+
+// Builds the layer at page load, so Sentry is initialized before the first click
+Effect.runSync(runtime.runtimeEffect);
+
+const runEffect = fn => runtime.runPromise(fn());
 
 document.getElementById('exception-button')?.addEventListener('click', () => {
   throw new Error('I am an error!');
@@ -80,6 +89,17 @@ document.getElementById('log-context-button')?.addEventListener('click', async (
   );
   const el = document.getElementById('log-context-result');
   if (el) el.textContent = 'Log with context sent!';
+});
+
+document.getElementById('metrics-button')?.addEventListener('click', async () => {
+  await runEffect(() =>
+    Effect.gen(function* () {
+      yield* Metric.update(ordersPlaced, 1);
+      yield* Metric.update(queueDepth, 7);
+    }),
+  );
+  const el = document.getElementById('metrics-result');
+  if (el) el.textContent = 'Metrics updated!';
 });
 
 document.getElementById('navigation-link')?.addEventListener('click', () => {

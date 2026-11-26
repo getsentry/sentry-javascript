@@ -2,6 +2,7 @@
 import * as Sentry from '@sentry/effect';
 import * as Layer from 'effect/Layer';
 import * as ManagedRuntime from 'effect/ManagedRuntime';
+import * as Metric from 'effect/Metric';
 import * as References from 'effect/References';
 import * as Effect from 'effect/Effect';
 
@@ -16,8 +17,12 @@ const AppLayer = Layer.mergeAll(
   }),
   Sentry.layerLogger,
   Sentry.layerTracer,
+  Sentry.layerMetrics,
   Layer.succeed(References.MinimumLogLevel, 'Debug'),
 );
+
+const ordersPlaced = Metric.counter('orders_placed', { attributes: { shop: 'e2e' } });
+const queueDepth = Metric.gauge('queue_depth');
 
 // v4 pattern: ManagedRuntime creates a long-lived runtime from the layer
 const runtime = ManagedRuntime.make(AppLayer);
@@ -82,6 +87,17 @@ document.getElementById('log-context-button')?.addEventListener('click', async (
   );
   const el = document.getElementById('log-context-result');
   if (el) el.textContent = 'Log with context sent!';
+});
+
+document.getElementById('metrics-button')?.addEventListener('click', async () => {
+  await runEffect(() =>
+    Effect.gen(function* () {
+      yield* Metric.update(ordersPlaced, 1);
+      yield* Metric.update(queueDepth, 7);
+    }),
+  );
+  const el = document.getElementById('metrics-result');
+  if (el) el.textContent = 'Metrics updated!';
 });
 
 document.getElementById('navigation-link')?.addEventListener('click', () => {

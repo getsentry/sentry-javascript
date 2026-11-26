@@ -4,7 +4,9 @@ import * as Effect from 'effect/Effect';
 import * as Cause from 'effect/Cause';
 import * as Data from 'effect/Data';
 import * as ErrorReporter from 'effect/ErrorReporter';
+import * as Fiber from 'effect/Fiber';
 import * as Layer from 'effect/Layer';
+import * as Metric from 'effect/Metric';
 import * as Tracer from 'effect/Tracer';
 import * as References from 'effect/References';
 import { HttpRouter, HttpServerResponse } from 'effect/http';
@@ -20,8 +22,16 @@ const SentryLayer = Layer.mergeAll(
   }),
   Sentry.layerLogger,
   Sentry.layerTracer,
+  Sentry.layerMetrics,
   Layer.succeed(References.MinimumLogLevel, 'Debug'),
 );
+
+const ordersPlaced = Metric.counter('orders_placed', { attributes: { shop: 'e2e' } });
+const queueDepth = Metric.gauge('queue_depth');
+const requestDuration = Metric.histogram('request_duration_ms', {
+  boundaries: Metric.linearBoundaries({ start: 0, width: 50, count: 10 }),
+});
+const cacheLookups = Metric.frequency('cache_lookups');
 
 class NotFoundError extends Data.TaggedError('NotFoundError')<{ readonly id: string }> {
   readonly [ErrorReporter.ignore] = true;
@@ -215,6 +225,39 @@ const Routes = Layer.mergeAll(
       );
       return yield* HttpServerResponse.json({ message: 'Log with context sent' });
     }),
+  ),
+
+  HttpRouter.add(
+    'GET',
+    '/test-metric-counter',
+    Effect.gen(function* () {
+      yield* Metric.update(ordersPlaced, 1);
+      return yield* HttpServerResponse.json({ status: 'ok' });
+    }),
+  ),
+
+  HttpRouter.add(
+    'GET',
+    '/test-metrics',
+    Effect.gen(function* () {
+      yield* Metric.update(queueDepth, 7);
+      yield* Metric.update(requestDuration, 120);
+      yield* Metric.update(requestDuration, 80);
+      yield* Metric.update(cacheLookups, 'hit');
+      yield* Metric.update(cacheLookups, 'hit');
+      yield* Metric.update(cacheLookups, 'miss');
+      return yield* HttpServerResponse.json({ status: 'ok' });
+    }),
+  ),
+
+  HttpRouter.add(
+    'GET',
+    '/test-runtime-metrics',
+    Effect.gen(function* () {
+      const fiber = yield* Effect.forkChild(Effect.sleep('10 millis'));
+      yield* Fiber.join(fiber);
+      return yield* HttpServerResponse.json({ status: 'ok' });
+    }).pipe(Metric.enableRuntimeMetrics),
   ),
 );
 
