@@ -87,4 +87,4 @@ In this page, `vN` is the new major and `vN-1` is the previous major (e.g. `v11`
       release, for v11 one week.
 - [ ] Retarget remaining `TODO(vN)` comments we did not get into the `vN` major to `vN+1`.
 - [ ] Backport important fixes to the `vN-1` branch (see the `backport-pr` skill) for a certain time, decide the timespan with the team.
-- [ ] Write a shipped Vanguard and include images representing your amazing sense of humor (e.g. https://vanguard.getsentry.net/p/uf8st8ud25xsxjjum7zjkieo).
+- [ ] Write a shipped Vanguard and include images representing your amazing sense of humor.
