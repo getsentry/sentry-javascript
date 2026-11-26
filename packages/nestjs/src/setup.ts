@@ -206,12 +206,6 @@ class SentryModule {
   public static forRoot(): DynamicModule {
     return {
       module: SentryModule,
-      providers: [
-        {
-          provide: APP_INTERCEPTOR,
-          useClass: SentryTracingInterceptor,
-        },
-      ],
     };
   }
 }
