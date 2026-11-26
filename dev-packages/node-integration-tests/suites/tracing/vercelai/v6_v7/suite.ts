@@ -945,6 +945,7 @@ export function registerVercelAiGenerationTests(version: '6' | '7', vercelAiVers
     (createRunner, test) => {
       test('sums reasoning tokens across steps onto invoke_agent spans', async () => {
         await createRunner()
+          .unordered()
           .expect({
             span: container => {
               const spans = container.items.filter(

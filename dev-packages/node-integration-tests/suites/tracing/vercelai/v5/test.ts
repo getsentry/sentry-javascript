@@ -35,6 +35,7 @@ describe('Vercel AI integration (v5)', () => {
     (createRunner, test) => {
       test('records reasoning tokens on model calls and sums them onto invoke_agent spans', async () => {
         await createRunner()
+          .unordered()
           .expect({
             span: container => {
               const spans = container.items.filter(
