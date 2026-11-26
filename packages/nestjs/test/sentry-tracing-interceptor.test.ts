@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
-import { getDefaultIsolationScope, getIsolationScope, SPAN_STATUS_ERROR } from '@sentry/core';
+import { getDefaultIsolationScope, getIsolationScope, SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
 import type * as SentryCore from '@sentry/core';
 import { config, of, tap, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -163,6 +163,12 @@ describe('SentryTracingInterceptor', () => {
     interceptor.intercept(context, next).subscribe();
 
     expect(mocks.isolationScope.setTransactionName).toHaveBeenCalledWith('WS message');
+    expect(startSpanManual).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({ 'websocket.event.name': 'message', 'websocket.namespace': undefined }),
+      }),
+      expect.any(Function),
+    );
   });
 
   it('sets a transaction name without a namespace for other WebSocket adapters', () => {

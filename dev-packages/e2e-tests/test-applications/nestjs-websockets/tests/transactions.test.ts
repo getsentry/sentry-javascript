@@ -67,6 +67,8 @@ test('Names WebSocket segment spans with the Socket.IO namespace and message pat
     expect(span.is_segment).toBe(true);
     expect(getSpanOp(span)).toBe('websocket');
     expect(span.name).toBe('WS /events test-transaction');
+    expect(span.attributes['websocket.event.name']).toEqual({ type: 'string', value: 'test-transaction' });
+    expect(span.attributes['websocket.namespace']).toEqual({ type: 'string', value: '/events' });
   } finally {
     socket.disconnect();
   }

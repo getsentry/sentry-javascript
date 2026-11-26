@@ -29,6 +29,10 @@ import { instrumentObservable } from './observable';
 // `@nestjs/websockets`' metadata key for the `@WebSocketGateway()` options.
 const GATEWAY_OPTIONS = 'websockets:gateway_options';
 
+// TODO: Import these from `@sentry/conventions` once getsentry/sentry-conventions#836 is released.
+const WEBSOCKET_EVENT_NAME = 'websocket.event.name';
+const WEBSOCKET_NAMESPACE = 'websocket.namespace';
+
 /**
  * Socket.IO resolves regex and function namespaces to the concrete child namespace (e.g. `/tenant-42`),
  * which would make span names high cardinality.
@@ -104,6 +108,8 @@ class SentryTracingInterceptor implements NestInterceptor {
               attributes: {
                 [SENTRY_OP]: WEBSOCKET,
                 [SENTRY_ORIGIN]: 'auto.websocket.nestjs.interceptor',
+                [WEBSOCKET_EVENT_NAME]: pattern,
+                [WEBSOCKET_NAMESPACE]: namespace,
               },
             },
             span => {
