@@ -1,0 +1,237 @@
+name: 'Plan CI jobs'
+on:
+  workflow_call:
+    inputs:
+      head_commit:
+        description: 'The commit SHA to check out and test'
+        type: string
+        required: true
+    outputs:
+      commit_label:
+        description: 'Short SHA + commit message for display'
+        value: ${{ jobs.plan_ci.outputs.commit_label }}
+      is_base_branch:
+        description: 'Whether the ref is develop, v10, v9, or v8'
+        value: ${{ jobs.plan_ci.outputs.is_base_branch }}
+      is_release:
+        description: 'Whether the ref is a release branch'
+        value: ${{ jobs.plan_ci.outputs.is_release }}
+      changed_ci:
+        description: 'Whether .github/** files changed'
+        value: ${{ jobs.plan_ci.outputs.changed_ci }}
+      changed_any_code:
+        description: 'Whether any non-markdown files changed'
+        value: ${{ jobs.plan_ci.outputs.changed_any_code }}
+      changed_deps:
+        description: 'Whether any package.json, pnpm-lock.yaml or pnpm-workspace.yaml changed'
+        value: ${{ jobs.plan_ci.outputs.changed_deps }}
+      is_gitflow_sync:
+        description: 'Whether this is a gitflow sync (master merge)'
+        value: ${{ jobs.plan_ci.outputs.is_gitflow_sync }}
+      has_gitflow_label:
+        description: 'Whether the PR has the Gitflow label'
+        value: ${{ jobs.plan_ci.outputs.has_gitflow_label }}
+      force_skip_cache:
+        description: 'Whether to skip caching (schedule or ci-skip-cache label)'
+        value: ${{ jobs.plan_ci.outputs.force_skip_cache }}
+      should_run_tests:
+        description: 'Skip tests for Markdown-only PRs; always run on base and release branches.'
+        value: ${{ jobs.plan_ci.outputs.should_run_tests }}
+      changed_node_integration:
+        description: 'Test planning output: changed_node_integration'
+        value: ${{ jobs.plan_ci.outputs.changed_node_integration }}
+      changed_node:
+        description: 'Test planning output: changed_node'
+        value: ${{ jobs.plan_ci.outputs.changed_node }}
+      changed_deno:
+        description: 'Test planning output: changed_deno'
+        value: ${{ jobs.plan_ci.outputs.changed_deno }}
+      changed_bun:
+        description: 'Test planning output: changed_bun'
+        value: ${{ jobs.plan_ci.outputs.changed_bun }}
+      changed_bun_integration:
+        description: 'Test planning output: changed_bun_integration'
+        value: ${{ jobs.plan_ci.outputs.changed_bun_integration }}
+      changed_deno_integration:
+        description: 'Test planning output: changed_deno_integration'
+        value: ${{ jobs.plan_ci.outputs.changed_deno_integration }}
+      changed_browser_integration:
+        description: 'Test planning output: changed_browser_integration'
+        value: ${{ jobs.plan_ci.outputs.changed_browser_integration }}
+      changed_cloudflare_integration:
+        description: 'Test planning output: changed_cloudflare_integration'
+        value: ${{ jobs.plan_ci.outputs.changed_cloudflare_integration }}
+      changed_bundler_plugin_integration:
+        description: 'Test planning output: changed_bundler_plugin_integration'
+        value: ${{ jobs.plan_ci.outputs.changed_bundler_plugin_integration }}
+      changed_aws_serverless:
+        description: 'Test planning output: changed_aws_serverless'
+        value: ${{ jobs.plan_ci.outputs.changed_aws_serverless }}
+      e2e-matrix-1:
+        description: 'Test planning output: e2e-matrix-1'
+        value: ${{ jobs.plan_ci.outputs.e2e-matrix-1 }}
+      e2e-matrix-2:
+        description: 'Test planning output: e2e-matrix-2'
+        value: ${{ jobs.plan_ci.outputs.e2e-matrix-2 }}
+      e2e-matrix-aws-layer:
+        description: 'Test planning output: e2e-matrix-aws-layer'
+        value: ${{ jobs.plan_ci.outputs.e2e-matrix-aws-layer }}
+      e2e-matrix-with-secrets:
+        description: 'Test planning output: e2e-matrix-with-secrets'
+        value: ${{ jobs.plan_ci.outputs.e2e-matrix-with-secrets }}
+      e2e-matrix-optional-without-secrets:
+        description: 'Test planning output: e2e-matrix-optional-without-secrets'
+        value: ${{ jobs.plan_ci.outputs.e2e-matrix-optional-without-secrets }}
+      e2e-matrix-optional:
+        description: 'Test planning output: e2e-matrix-optional'
+        value: ${{ jobs.plan_ci.outputs.e2e-matrix-optional }}
+
+jobs:
+  plan_ci:
+    name: Plan CI jobs
+    runs-on: ubuntu-24.04-arm
+    env:
+      CACHED_DEPENDENCY_PATHS: |
+        ${{ github.workspace }}/node_modules
+        ${{ github.workspace }}/packages/*/node_modules
+        ${{ github.workspace }}/dev-packages/*/node_modules
+        ~/.cache/mongodb-binaries/
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Check out current commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.head_commit }}
+          # We need to check out not only the fake merge commit between the PR and the base branch which GH creates, but
+          # also its parents, so that we can pull the commit message from the head commit of the PR
+          fetch-depth: 2
+
+      - name: Get metadata
+        id: get_metadata
+        # We need to try a number of different options for finding the head commit, because each kind of trigger event
+        # stores it in a different location
+        env:
+          COMMIT_SHA_EXPR:
+            ${{ github.event.pull_request.head.sha || github.event.head_commit.id || inputs.head_commit }}
+        run: |
+          COMMIT_SHA=$(git rev-parse --short "$COMMIT_SHA_EXPR")
+          echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
+          echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
+
+      - name: Determine changed packages
+        uses: dorny/paths-filter@v4.0.3
+        id: changed
+        with:
+          filters: |
+            workflow:
+              - '.github/**'
+            any_code:
+              - '!**/*.md'
+            deps:
+              - '**/package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+
+      - name: Determine whether tests should run
+        id: plan
+        env:
+          ENABLED: >-
+            ${{ steps.changed.outputs.any_code == 'true' || github.ref == 'refs/heads/develop' || github.ref ==
+            'refs/heads/v10' || github.ref == 'refs/heads/v9' || github.ref == 'refs/heads/v8' || startsWith(github.ref,
+            'refs/heads/release/') }}
+        run: echo "enabled=$ENABLED" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node
+        if: steps.plan.outputs.enabled == 'true'
+        uses: ./.github/actions/setup-node
+
+      - name: Set up affected-project planner
+        if:
+          steps.plan.outputs.enabled == 'true' && github.event_name == 'pull_request' && steps.changed.outputs.workflow
+          != 'true'
+        uses: ./.github/actions/setup-nx-planner
+
+      - name: Check for Affected Nx Projects
+        uses: ./.github/actions/nx-affected-list
+        id: checkForAffected
+        if:
+          steps.plan.outputs.enabled == 'true' && github.event_name == 'pull_request' && steps.changed.outputs.workflow
+          != 'true'
+        with:
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ inputs.head_commit }}
+
+      - name: Determine which test applications should be run
+        id: matrix
+        if: steps.plan.outputs.enabled == 'true'
+        run:
+          node ./lib/getTestMatrix.mjs --shards=2 --separate-aws-layer --base=${{ (github.event_name == 'pull_request'
+          && steps.changed.outputs.workflow != 'true' && github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
+
+      - name: Determine which optional E2E test applications should be run
+        id: matrix-optional
+        if: steps.plan.outputs.enabled == 'true'
+        run:
+          node ./lib/getTestMatrix.mjs --variant=optional --base=${{ (github.event_name == 'pull_request' &&
+          steps.changed.outputs.workflow != 'true' && github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
+
+    outputs:
+      commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
+      # Note: These next three have to be checked as strings ('true'/'false')!
+      is_base_branch:
+        ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v10' || github.ref == 'refs/heads/v9' ||
+        github.ref == 'refs/heads/v8'}}
+      is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
+      changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
+      changed_any_code: ${{ steps.changed.outputs.any_code == 'true' }}
+      changed_deps: ${{ steps.changed.outputs.deps == 'true' }}
+
+      # When merging into master, or from master
+      is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
+      has_gitflow_label:
+        ${{ github.event_name == 'pull_request' && contains(toJSON(github.event.pull_request.labels.*.name), 'Gitflow')
+        }}
+      force_skip_cache:
+        ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' &&
+        contains(toJSON(github.event.pull_request.labels.*.name), 'ci-skip-cache')) }}
+      should_run_tests: ${{ steps.plan.outputs.enabled == 'true' }}
+      changed_node_integration:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/node-integration-tests') }}
+      changed_node:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/node') }}
+      changed_deno:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/deno') }}
+      changed_bun:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/bun')
+        }}
+      changed_bun_integration:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/bun-integration-tests') }}
+      changed_deno_integration:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/deno-integration-tests') }}
+      changed_browser_integration:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/browser-integration-tests') }}
+      changed_cloudflare_integration:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/cloudflare-integration-tests') }}
+      changed_bundler_plugin_integration:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/bundler-plugin-integration-tests') }}
+      changed_aws_serverless:
+        ${{ steps.changed.outputs.workflow == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry/aws-serverless') }}
+      e2e-matrix-1: ${{ steps.matrix.outputs.matrix-1 || '{"include":[]}' }}
+      e2e-matrix-2: ${{ steps.matrix.outputs.matrix-2 || '{"include":[]}' }}
+      e2e-matrix-aws-layer: ${{ steps.matrix.outputs.matrix-aws-layer || '{"include":[]}' }}
+      e2e-matrix-optional: ${{ steps.matrix-optional.outputs.matrix || '{"include":[]}' }}
+      e2e-matrix-with-secrets: ${{ steps.matrix.outputs.matrix-with-secrets || '{"include":[]}' }}
+      e2e-matrix-optional-without-secrets:
+        ${{ steps.matrix-optional.outputs.matrix-without-secrets || '{"include":[]}' }}
