@@ -10,15 +10,15 @@ const getWeather = toolDefinition({
 
 const streamed = fakeText({ model: 'fake-model' });
 streamed.setResponses([
-  { text: 'Let me check.', toolCalls: [{ id: 'call_1', name: 'get_weather', input: { city: 'Vienna' } }] },
-  { text: 'It is 21 degrees in Vienna.' },
+  { text: 'Let me check.', toolCalls: [{ id: 'call_1', name: 'get_weather', input: { city: 'Kyoto' } }] },
+  { text: 'It is 21 degrees in Kyoto.' },
 ]);
 
 const plain = fakeText({ model: 'fake-model' });
 plain.setResponses([{ text: 'Hello!' }]);
 
 const structured = fakeText({ model: 'fake-model' });
-structured.setResponses([{ text: '{"city":"Vienna"}' }]);
+structured.setResponses([{ text: '{"city":"Kyoto"}' }]);
 
 await Sentry.startSpan({ name: 'main' }, async () => {
   // The run starts only when the stream is read, here outside of the span that `chat()` was called in.
@@ -27,7 +27,7 @@ await Sentry.startSpan({ name: 'main' }, async () => {
       adapter: streamed,
       threadId: 'thread-stream',
       systemPrompts: ['You are a weather assistant.'],
-      messages: [{ role: 'user', content: 'What is the weather in Vienna?' }],
+      messages: [{ role: 'user', content: 'What is the weather in Kyoto?' }],
       tools: [getWeather],
       modelOptions: { temperature: 0.5 },
     }),

@@ -65,7 +65,7 @@ describe('TanStack AI integration', () => {
             expect(JSON.parse(String(attr(streamed.agent, GEN_AI_OUTPUT_MESSAGES)))).toEqual([
               {
                 role: 'assistant',
-                parts: [{ type: 'text', content: 'It is 21 degrees in Vienna.' }],
+                parts: [{ type: 'text', content: 'It is 21 degrees in Kyoto.' }],
                 finish_reason: 'stop',
               },
             ]);
@@ -84,14 +84,14 @@ describe('TanStack AI integration', () => {
               '[{"type":"text","content":"You are a weather assistant."}]',
             );
             expect(JSON.parse(String(attr(toolCall, GEN_AI_INPUT_MESSAGES)))).toEqual([
-              { role: 'user', parts: [{ type: 'text', content: 'What is the weather in Vienna?' }] },
+              { role: 'user', parts: [{ type: 'text', content: 'What is the weather in Kyoto?' }] },
             ]);
             expect(JSON.parse(String(attr(toolCall, GEN_AI_OUTPUT_MESSAGES)))).toEqual([
               {
                 role: 'assistant',
                 parts: [
                   { type: 'text', content: 'Let me check.' },
-                  { type: 'tool_call', id: 'call_1', name: 'get_weather', arguments: '{"city":"Vienna"}' },
+                  { type: 'tool_call', id: 'call_1', name: 'get_weather', arguments: '{"city":"Kyoto"}' },
                 ],
                 finish_reason: 'tool_calls',
               },
