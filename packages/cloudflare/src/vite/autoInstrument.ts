@@ -299,6 +299,11 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
           buildOptionsImport(entryPath, instrumentFilePath, { absolute: !!virtualEntry })
         : { optionsFn: ENV_FALLBACK_OPTIONS_FN, importStmt: undefined };
 
+      // The TanStack Start server entry shim with a release wraps the default export of the entry it re-exports
+      // (`export default addReleaseMetaTag(serverEntry, release)`). That entry is wrapped already, and a second
+      // `withSentry` would start a second trace for each request.
+      const reexportsEntry = reexportsAllFromSameFile(ast, normalizedId);
+
       // No registration import is injected here: the orchestrion plugin's
       // subscribe-injection makes each bundled package self-register its channel
       // subscriber on the global marker, so wrapping the entry with `withSentry`
@@ -311,11 +316,12 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
         sameWorkerBindings: wranglerConfig.sameWorkerBindings,
         sentryModule,
         workerInfo: { name: wranglerConfig.name, compatibilityDate: wranglerConfig.compatibilityDate },
+        wrapDefault: !reexportsEntry,
       });
 
       const wrappedClasses = result?.wrappedClasses ?? new Set<string>();
       const missing = [...classWrappers.keys()].filter(name => !wrappedClasses.has(name));
-      if (missing.length > 0 && !reexportsAllFromSameFile(ast, normalizedId)) {
+      if (missing.length > 0 && !reexportsEntry) {
         this.warn?.(
           `[sentry] Could not auto-instrument ${missing.join(', ')}. ` +
             'The worker entry has no export matching them. ' +

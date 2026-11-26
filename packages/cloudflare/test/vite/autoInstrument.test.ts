@@ -636,6 +636,35 @@ describe('sentryCloudflareAutoInstrumentPlugin', () => {
     expect(shimResult.code).toContain('_INTERNAL_wrapUnlessInstrumented(');
     expect(warnings).toEqual([]);
   });
+
+  it('wraps the default export only once when the shim wraps the default export of the entry', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'main = "index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir });
+
+    const entry = join(dir, 'index.ts').replace(/\\/g, '/');
+    const original = JSON.stringify(`${entry}?sentry-tunnel-original`);
+    const ctx = { parse: (c: string) => parseJS(c) };
+
+    const originalResult = await plugin.transform.call(
+      ctx,
+      'export default { fetch() {} };',
+      `${entry}?sentry-tunnel-original`,
+    );
+    const shimResult = await plugin.transform.call(
+      ctx,
+      [
+        `import serverEntry from ${original};`,
+        `export * from ${original};`,
+        "export default addReleaseMetaTag(serverEntry, 'release');",
+      ].join('\n'),
+      entry,
+    );
+
+    expect(originalResult.code).toContain('__SENTRY__.withSentry(');
+    expect(shimResult?.code ?? '').not.toContain('withSentry');
+    expect(shimResult?.code ?? '').not.toContain('_INTERNAL_wrapUnlessInstrumented');
+  });
 });
 
 describe('wranglerConfigPath option', () => {
