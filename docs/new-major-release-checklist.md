@@ -9,8 +9,8 @@ In this page, `vN` is the new major and `vN-1` is the previous major (e.g. `v11`
 
 - [ ] Create a Linear project `Major Release: N.0 [JavaScript]` and collect the breaking changes in it.
 - [ ] Find the new minimum versions for Node.js, TypeScript, browsers and frameworks.
-- [ ] Find all `TODO(vN)` comments in the code. Add a ticket for each breaking one. Change the non-breaking ones
-      to a plain `TODO`, because they do not need a major (e.g. [#15080](https://github.com/getsentry/sentry-javascript/pull/15080)).
+- [ ] Go through the `TODO(vN)` comments in the code and decide which ones go into `vN`. Change the others to
+      `TODO(vN+1)`.
 - [ ] Tell the company that we plan to ship `vN`, and open a public "What's coming in `vN`" GitHub issue (e.g.
       [#22056](https://github.com/getsentry/sentry-javascript/issues/22056)).
 - [ ] Tell the company in a Vanguard post that we intend to ship a new major (e.g. https://vanguard.getsentry.net/p/i58qqnlqusz61lla86djbaly)
