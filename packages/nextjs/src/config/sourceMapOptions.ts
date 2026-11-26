@@ -8,11 +8,16 @@ type SourceMapsOptions = SentryBuildOptions['sourcemaps'];
 /**
  * Whether Sentry turns source maps on that the user did not set: when it can upload them, or when
  * `sourcemaps.delete: false` keeps them for a manual upload.
+ *
+ * @param uploadStepRuns Whether a build step runs that uploads and deletes the source maps.
  */
-export function sentryEnablesSourceMaps(options: SentryBuildOptions): boolean {
+export function sentryEnablesSourceMaps(options: SentryBuildOptions, uploadStepRuns: boolean = true): boolean {
   const { sourcemaps } = options;
   const { injectDebugIds, upload } = resolveSourceMapsFeatures(sourcemaps);
-  return (upload && hasSourceMapUploadCredentials(options)) || (sourcemaps?.delete === false && injectDebugIds);
+  return (
+    (uploadStepRuns && upload && hasSourceMapUploadCredentials(options)) ||
+    (sourcemaps?.delete === false && injectDebugIds)
+  );
 }
 
 export const SDK_DELETES_SOURCE_MAPS_MESSAGE =

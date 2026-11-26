@@ -694,6 +694,50 @@ describe('withSentryConfig', () => {
       expect(getDeleteSourceMapsOption(sentryOptions)).toBeUndefined();
     });
 
+    it.each([
+      ['`useRunAfterProductionCompileHook` is `false`', { useRunAfterProductionCompileHook: false }, {}],
+      [
+        '`compiler.runAfterProductionCompile` is not a function',
+        {},
+        { compiler: { runAfterProductionCompile: 'not a function' } },
+      ],
+    ])('does not enable productionBrowserSourceMaps when %s', (_, sentryOptions: SentryBuildOptions, nextConfig) => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const cleanConfig = { ...exportedNextConfig, ...nextConfig };
+      delete cleanConfig.productionBrowserSourceMaps;
+
+      const finalConfig = materializeFinalNextConfig(
+        cleanConfig as typeof exportedNextConfig,
+        undefined,
+        sentryOptions,
+      );
+
+      // Only the hook uploads and deletes the source maps of a turbopack build. Without it they
+      // would be served publicly from `.next/static`.
+      expect(finalConfig.productionBrowserSourceMaps).toBeUndefined();
+      expect(getDeleteSourceMapsOption(sentryOptions)).toBeUndefined();
+    });
+
+    it('enables productionBrowserSourceMaps without the hook when `sourcemaps.delete` is `false`', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.productionBrowserSourceMaps;
+
+      const sentryOptions: SentryBuildOptions = {
+        useRunAfterProductionCompileHook: false,
+        sourcemaps: { delete: false },
+      };
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
+
+      expect(finalConfig.productionBrowserSourceMaps).toBe(true);
+    });
+
     it('preserves explicitly configured deleteSourcemapsAfterUpload setting', () => {
       process.env.TURBOPACK = '1';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');

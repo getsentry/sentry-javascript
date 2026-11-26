@@ -170,6 +170,8 @@ export function resolveUseRunAfterProductionCompileHookOption(
  * Hooks into Next.js' `compiler.runAfterProductionCompile` to run Sentry release/sourcemap handling.
  *
  * Note: this mutates `incomingUserNextConfigObject`.
+ *
+ * @returns Whether the hook is set up.
  */
 export function maybeSetUpRunAfterProductionCompileHook({
   incomingUserNextConfigObject,
@@ -187,13 +189,9 @@ export function maybeSetUpRunAfterProductionCompileHook({
   bundlerInfo: BundlerInfo;
   turboPackConfig: TurbopackOptions | undefined;
   shouldUseRunAfterProductionCompileHook: boolean;
-}): void {
-  if (!shouldUseRunAfterProductionCompileHook) {
-    return;
-  }
-
-  if (!supportsProductionCompileHook(nextJsVersion ?? '')) {
-    return;
+}): boolean {
+  if (!shouldUseRunAfterProductionCompileHook || !supportsProductionCompileHook(nextJsVersion ?? '')) {
+    return false;
   }
 
   if (incomingUserNextConfigObject?.compiler?.runAfterProductionCompile === undefined) {
@@ -211,7 +209,7 @@ export function maybeSetUpRunAfterProductionCompileHook({
         userSentryOptions,
       );
     };
-    return;
+    return true;
   }
 
   if (typeof incomingUserNextConfigObject.compiler.runAfterProductionCompile === 'function') {
@@ -234,27 +232,33 @@ export function maybeSetUpRunAfterProductionCompileHook({
         },
       },
     );
-    return;
+    return true;
   }
 
   getBuildLogger(userSentryOptions.silent).warn(
     '[@sentry/nextjs] The configured `compiler.runAfterProductionCompile` option is not a function. Will not run source map and release management logic.',
   );
+  return false;
 }
 
 /**
  * For supported turbopack builds, auto-enables browser sourcemaps and defaults to deleting them after upload.
  *
  * Note: this mutates `incomingUserNextConfigObject`.
+ *
+ * @param hookIsSetUp Whether the `runAfterProductionCompile` hook is set up. Only this hook uploads and
+ * deletes the source maps of a turbopack build. Without it they would stay in `.next/static`, where
+ * they are served publicly.
  */
 export function maybeEnableTurbopackSourcemaps(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
   bundlerInfo: BundlerInfo,
+  hookIsSetUp: boolean,
 ): void {
   // Enable source maps for turbopack builds
   const { isTurbopack, isTurbopackSupported } = bundlerInfo;
-  if (!isTurbopackSupported || !isTurbopack || !sentryEnablesSourceMaps(userSentryOptions)) {
+  if (!isTurbopackSupported || !isTurbopack || !sentryEnablesSourceMaps(userSentryOptions, hookIsSetUp)) {
     return;
   }
 

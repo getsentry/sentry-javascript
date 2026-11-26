@@ -116,7 +116,7 @@ describe('mergeFilesToDeleteAfterUpload', () => {
 describe('maybeEnableTurbopackSourcemaps with the new source map options', () => {
   function run(sourcemaps: NonNullable<SentryBuildOptions['sourcemaps']>, nextConfig: NextConfigObject = {}) {
     const userSentryOptions: SentryBuildOptions = { ...CREDENTIALS, sourcemaps };
-    maybeEnableTurbopackSourcemaps(nextConfig, userSentryOptions, TURBOPACK_SUPPORTED);
+    maybeEnableTurbopackSourcemaps(nextConfig, userSentryOptions, TURBOPACK_SUPPORTED, true);
     return {
       nextConfig,
       sourcemaps: userSentryOptions.sourcemaps,
@@ -154,7 +154,7 @@ describe('maybeEnableTurbopackSourcemaps with the new source map options', () =>
 
   it('turns no source maps on without upload credentials', () => {
     const nextConfig: NextConfigObject = {};
-    maybeEnableTurbopackSourcemaps(nextConfig, { sourcemaps: {} }, TURBOPACK_SUPPORTED);
+    maybeEnableTurbopackSourcemaps(nextConfig, { sourcemaps: {} }, TURBOPACK_SUPPORTED, true);
 
     expect(nextConfig.productionBrowserSourceMaps).toBeUndefined();
   });

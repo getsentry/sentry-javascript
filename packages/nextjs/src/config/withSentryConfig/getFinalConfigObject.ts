@@ -90,7 +90,7 @@ export function getFinalConfigObject(
     bundlerInfo,
   );
 
-  maybeSetUpRunAfterProductionCompileHook({
+  const runAfterProductionCompileHookIsSetUp = maybeSetUpRunAfterProductionCompileHook({
     incomingUserNextConfigObject,
     userSentryOptions,
     releaseName,
@@ -100,7 +100,12 @@ export function getFinalConfigObject(
     shouldUseRunAfterProductionCompileHook,
   });
 
-  maybeEnableTurbopackSourcemaps(incomingUserNextConfigObject, userSentryOptions, bundlerInfo);
+  maybeEnableTurbopackSourcemaps(
+    incomingUserNextConfigObject,
+    userSentryOptions,
+    bundlerInfo,
+    runAfterProductionCompileHookIsSetUp,
+  );
   maybeSetTurbopackTreeshakeDefines(incomingUserNextConfigObject, userSentryOptions, bundlerInfo);
 
   const buildTimeInstrumentation = resolveBuildTimeInstrumentationOption(userSentryOptions, bundlerInfo, nextJsVersion);
