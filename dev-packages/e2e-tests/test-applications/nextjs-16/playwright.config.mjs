@@ -28,6 +28,11 @@ const getStartCommand = () => {
   }
 
   if (testEnv === 'development') {
+    if (getRuntime() === 'bun') {
+      // Use the bin name, not its path: then Bun puts its `node` shim in PATH, which the Turbopack loader processes use.
+      return 'bun --bun next dev -p 3030 2>&1 | tee .tmp_dev_server_logs';
+    }
+
     return 'pnpm next dev -p 3030 2>&1 | tee .tmp_dev_server_logs';
   }
 
