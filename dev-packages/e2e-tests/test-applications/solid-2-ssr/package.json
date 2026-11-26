@@ -9,6 +9,7 @@
     "start": "PORT=3030 node dist/server/node.js",
     "start:cloudflare": "wrangler dev --config ./dist/server/wrangler.json --port 3030",
     "test:prod": "TEST_ENV=production playwright test",
+    "test:observe": "SOLID_OBSERVE=1 TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:build:observe": "pnpm install && pnpm build:observe",
     "test:assert": "pnpm test:prod"
@@ -39,7 +40,7 @@
     "variants": [
       {
         "build-command": "pnpm test:build:observe",
-        "assert-command": "pnpm test:prod",
+        "assert-command": "pnpm test:observe",
         "label": "solid-2-ssr (observe build)"
       },
       {

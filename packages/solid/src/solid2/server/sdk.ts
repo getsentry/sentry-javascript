@@ -7,6 +7,7 @@ import {
   init as initNodeSdk,
 } from '@sentry/node';
 import { solidServerErrorsIntegration } from './errors';
+import { solidServerObserveIntegration } from './observe';
 import { solidServerTracePropagationIntegration } from './tracePropagation';
 
 /**
@@ -34,5 +35,6 @@ export function getDefaultIntegrations(options: NodeOptions): Integration[] {
     ...getNodeDefaultIntegrations(options),
     solidServerErrorsIntegration(),
     solidServerTracePropagationIntegration(),
+    solidServerObserveIntegration(),
   ];
 }
