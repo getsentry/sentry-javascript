@@ -20,5 +20,6 @@ module.exports = {
     'no-unfiltered-url-attributes': require('./rules/no-unfiltered-url-attributes'),
     'no-unguarded-span-apis': require('./rules/no-unguarded-span-apis'),
     'no-unsafe-html-writes': require('./rules/no-unsafe-html-writes'),
+    'require-define-integration': require('./rules/require-define-integration'),
   },
 };

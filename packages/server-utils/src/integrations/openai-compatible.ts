@@ -86,6 +86,7 @@ export function createOpenAiCompatibleIntegration<T extends OpenAiCompatibleProv
   }
 
   return ((options: OpenAiOptions = {}) => {
+    // oxlint-disable-next-line sdk/require-define-integration -- callers pass the returned function to `defineIntegration`
     return {
       name: provider.integrationName,
       setup(client) {
