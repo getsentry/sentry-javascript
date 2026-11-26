@@ -1,3 +1,5 @@
+import { URL_PATH } from '@sentry/conventions/attributes';
+import { DB_QUERY } from '@sentry/conventions/op';
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 import { DB_ORIGIN, DB_SYSTEM_NAME, RUNTIME } from './runtime';
@@ -9,15 +11,19 @@ const DB_ERROR_MECHANISM =
     ? { handled: false, type: 'auto.function.nuxt.nitro', exception_id: 0 }
     : { handled: false, type: 'auto.db.nuxt' };
 
-async function collectDbSpans() {
-  const spans = await collectStreamedSpansUntilSegment(
+function collectRequestSpans() {
+  return collectStreamedSpansUntilSegment(
     'nuxt-5',
-    span => span.attributes['url.path']?.value === '/api/db-test',
-    span => getSpanOp(span) === 'db.query',
+    span => span.attributes[URL_PATH]?.value === '/api/db-test',
+    span => getSpanOp(span) === DB_QUERY,
   );
-  const rootSpan = spans.find(span => span.is_segment && span.attributes['url.path']?.value === '/api/db-test');
+}
 
-  return spans.filter(span => span.trace_id === rootSpan?.trace_id && getSpanOp(span) === 'db.query');
+async function collectDbSpans() {
+  const spans = await collectRequestSpans();
+  const rootSpan = spans.find(span => span.is_segment && span.attributes[URL_PATH]?.value === '/api/db-test');
+
+  return spans.filter(span => span.trace_id === rootSpan?.trace_id && getSpanOp(span) === DB_QUERY);
 }
 
 test.describe('database integration', () => {
@@ -206,5 +212,18 @@ test.describe('database integration', () => {
 
     expect(dbSpans.length).toBeGreaterThanOrEqual(1);
     expect(dbSpans.every(span => !span.is_segment)).toBe(true);
+  });
+
+  test('makes each db.query span a child of the request root span', async ({ request }) => {
+    const spansPromise = collectRequestSpans();
+
+    await request.get('/api/db-test?method=prepare-get');
+
+    const spans = await spansPromise;
+    const rootSpan = spans.find(span => span.is_segment);
+    const dbSpans = spans.filter(span => getSpanOp(span) === DB_QUERY);
+    const parentSpanIds = new Set(dbSpans.map(span => span.parent_span_id));
+
+    expect(parentSpanIds).toEqual(new Set([rootSpan?.span_id]));
   });
 });
