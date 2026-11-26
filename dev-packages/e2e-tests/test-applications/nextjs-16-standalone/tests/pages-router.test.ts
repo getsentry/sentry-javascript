@@ -28,19 +28,34 @@ const INJECTED_PARENT_SPAN_ID = '1234567890123456';
 test('continues the trace of injected meta tags instead of the server trace in a Pages Router page', async ({
   page,
 }) => {
-  let serverSentryTrace: string | undefined;
-
-  // Stands in for a mobile SDK that injects the tags into the document of a WebView.
-  await page.route('**/pages-router-ssr', async route => {
-    const response = await route.fetch();
-    const html = await response.text();
-    serverSentryTrace = html.match(/<meta name="sentry-trace" content="([^"]+)"/)?.[1];
-    const metaTags =
-      `<meta name="sentry-trace" content="${INJECTED_TRACE_ID}-${INJECTED_PARENT_SPAN_ID}-1">` +
-      `<meta name="baggage" content="sentry-trace_id=${INJECTED_TRACE_ID},sentry-sampled=true,sentry-sample_rate=1,sentry-environment=qa">`;
-    // After the tags Next.js renders for the request, so the order of the tags cannot decide the outcome.
-    await route.fulfill({ response, body: html.replace('</head>', `${metaTags}</head>`) });
-  });
+  // Stands in for a mobile SDK that injects the tags into the document of a WebView. They go after the tags Next.js
+  // renders for the request, so the order of the tags cannot decide the outcome. Rewriting the response instead is
+  // not an option: Chrome denies a document fulfilled by Playwright the requests to the event proxy on localhost.
+  await page.addInitScript(
+    ({ sentryTrace, baggage }) => {
+      const observer = new MutationObserver(() => {
+        const head = document.head;
+        if (!head?.querySelector('meta[name="sentry-trace"]') || !head.querySelector('meta[name="baggage"]')) {
+          return;
+        }
+        observer.disconnect();
+        for (const [name, content] of [
+          ['sentry-trace', sentryTrace],
+          ['baggage', baggage],
+        ] as const) {
+          const meta = document.createElement('meta');
+          meta.name = name;
+          meta.content = content;
+          head.appendChild(meta);
+        }
+      });
+      observer.observe(document, { childList: true, subtree: true });
+    },
+    {
+      sentryTrace: `${INJECTED_TRACE_ID}-${INJECTED_PARENT_SPAN_ID}-1`,
+      baggage: `sentry-trace_id=${INJECTED_TRACE_ID},sentry-sampled=true,sentry-sample_rate=1,sentry-environment=qa`,
+    },
+  );
 
   const pageloadSpanPromise = waitForStreamedSpan('nextjs-16-standalone', span => {
     return span.name === '/pages-router-ssr' && getSpanOp(span) === PAGELOAD && span.is_segment;
@@ -50,9 +65,13 @@ test('continues the trace of injected meta tags instead of the server trace in a
 
   const pageloadSpan = await pageloadSpanPromise;
 
-  // The document also carries the tags Next.js rendered for the request, which belong to the server trace.
-  expect(serverSentryTrace).toMatch(/^[0-9a-f]{32}-[0-9a-f]{16}/);
-  expect(serverSentryTrace).not.toContain(INJECTED_TRACE_ID);
+  const sentryTraceTags = await page
+    .locator('meta[name="sentry-trace"]')
+    .evaluateAll(tags => tags.map(tag => tag.getAttribute('content')));
+
+  expect(sentryTraceTags).toHaveLength(2);
+  expect(sentryTraceTags[0]).not.toContain(INJECTED_TRACE_ID);
+  expect(sentryTraceTags[1]).toContain(INJECTED_TRACE_ID);
   expect(pageloadSpan.trace_id).toBe(INJECTED_TRACE_ID);
   expect(pageloadSpan.parent_span_id).toBe(INJECTED_PARENT_SPAN_ID);
 });
