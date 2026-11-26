@@ -28,6 +28,12 @@ const TEMPLATE = /(?:[^`\\$]|\\.|\$(?!\{))*(?:`|\$\{|$)/y;
 const ENDS_VALUE = /(?:[\w$"'`)\]]|\+\+|--)$/;
 
 /**
+ * Matches the source text engines report for built-in and bound functions, which has no real body and is spelled
+ * differently by each engine.
+ */
+const NATIVE = /\{\s*\[native code\]\s*\}\s*$/;
+
+/**
  * Fingerprints a function with every name a minifier can rename blanked out, so that a bundler renaming identifiers
  * doesn't change the result.
  *
@@ -42,6 +48,10 @@ export function fingerprintFunction(fn: (...args: never[]) => unknown): string {
     source = Function.prototype.toString.call(fn);
   } catch {
     return 'unknown';
+  }
+
+  if (NATIVE.test(source)) {
+    return 'native';
   }
 
   return fnv1a32(tokenize(source).join(' '));

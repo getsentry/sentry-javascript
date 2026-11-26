@@ -113,6 +113,16 @@ describe('fingerprintFunction', () => {
     });
   });
 
+  it('marks built-in and bound functions as native', () => {
+    const bound = function (this: unknown): unknown {
+      return this;
+    }.bind(null);
+
+    expect(fingerprintFunction(bound)).toBe('native');
+    expect(fingerprintFunction(Math.max)).toBe('native');
+    expect(fingerprintFunction(() => '{ [native code] }'.length)).not.toBe('native');
+  });
+
   it('fingerprints functions', () => {
     expect(fingerprintFunction(e => e)).toBe(fingerprintFunction(t => t));
     expect(fingerprintFunction(() => null)).not.toBe(fingerprintFunction(e => e));
