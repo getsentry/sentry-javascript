@@ -413,6 +413,8 @@ jobs:
         uses: ./.github/actions/setup-node
       - name: Restore workspace dependencies
         uses: ./.github/actions/install-dependencies
+        with:
+          group: sdk
       - name: Build selected unit-test dependencies
         env:
           UNIT_TEST_ENV: browser
@@ -509,6 +511,8 @@ jobs:
         uses: ./.github/actions/setup-node
       - name: Restore workspace dependencies
         uses: ./.github/actions/install-dependencies
+        with:
+          group: server
       - name: Build selected unit-test dependencies
         env:
           UNIT_TEST_ENV: node

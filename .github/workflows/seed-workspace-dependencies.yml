@@ -1,0 +1,81 @@
+name: Seed workspace dependency caches
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  CACHED_DEPENDENCY_PATHS: |
+    ${{ github.workspace }}/node_modules
+    ${{ github.workspace }}/packages/*/node_modules
+    ${{ github.workspace }}/dev-packages/*/node_modules
+    ~/.cache/mongodb-binaries/
+  SKIP_PLAYWRIGHT_BROWSER_INSTALL: '1'
+  pnpm_config_verify_deps_before_run: 'false'
+jobs:
+  seed:
+    name: Seed ${{ matrix.group }} dependencies (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { group: sdk, runner: ubuntu-24.04 }
+          - { group: sdk, runner: ubuntu-24.04-arm }
+          - { group: server, runner: ubuntu-24.04 }
+          - { group: server, runner: ubuntu-24.04-arm }
+          - { group: browser, runner: ubuntu-24.04 }
+          - { group: cloudflare, runner: ubuntu-24.04-arm }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node
+      - uses: ./.github/actions/install-pnpm
+      - name: Compute cache key
+        id: key
+        env:
+          GROUP: ${{ matrix.group }}
+        run: |
+          hash=$(node scripts/dependency-hash-key.js)
+          node .github/actions/install-dependencies/groups.mjs key "$GROUP" "${hash#hash=}" >> "$GITHUB_OUTPUT"
+      - name: Restore selected dependencies
+        id: cache
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ steps.key.outputs.key }}
+      - name: Select workspace roots
+        if: steps.cache.outputs.cache-hit != 'true'
+        id: roots
+        env:
+          GROUP: ${{ matrix.group }}
+        run: node .github/actions/install-dependencies/groups.mjs roots "$GROUP" >> "$GITHUB_OUTPUT"
+      - name: Expand workspace dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        id: projects
+        env:
+          INPUT_PACKAGE_PATH: ${{ steps.roots.outputs.paths }}
+        run: node .github/actions/build-local-sdk/select-projects.mjs >> "$GITHUB_OUTPUT"
+      - name: Install selected dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          PROJECTS: ${{ steps.projects.outputs.projects }}
+        run: |
+          filters=(--filter sentry-javascript)
+          IFS=',' read -ra projects <<< "$PROJECTS"
+          for project in "${projects[@]}"; do
+            filters+=(--filter "$project")
+          done
+          pnpm "${filters[@]}" install --frozen-lockfile
+          git diff --exit-code -- pnpm-lock.yaml pnpm-workspace.yaml package.json
+      - name: Measure installation
+        run: |
+          du -sh node_modules
+          find node_modules/.pnpm -mindepth 1 -maxdepth 1 -type d | wc -l
+      - name: Save selected dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6.1.0
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ steps.key.outputs.key }}
