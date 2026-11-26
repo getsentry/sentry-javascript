@@ -952,7 +952,7 @@ export function registerVercelAiGenerationTests(version: '6' | '7', vercelAiVers
                 span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
               );
               const generateContent = spans.filter(
-                span => span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
+                span => span.attributes[SENTRY_OP]?.value === GEN_AI_GENERATE_CONTENT,
               );
               const stepReasoning = generateContent.map(
                 span => span.attributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]?.value as number,
@@ -960,7 +960,7 @@ export function registerVercelAiGenerationTests(version: '6' | '7', vercelAiVers
               expect(stepReasoning.sort((a, b) => a - b)).toEqual([80, 80, 100, 100]);
 
               // One generateText and one streamText operation, each over the same two steps.
-              const invokeAgents = spans.filter(span => span.attributes[SENTRY_OP]?.value === 'gen_ai.invoke_agent');
+              const invokeAgents = spans.filter(span => span.attributes[SENTRY_OP]?.value === GEN_AI_INVOKE_AGENT);
               expect(invokeAgents).toHaveLength(2);
               for (const invokeAgent of invokeAgents) {
                 expect(invokeAgent.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value).toBe(220);

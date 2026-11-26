@@ -19,6 +19,7 @@ import {
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_GENERATE_CONTENT, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { getStringAttributeValue } from '../../../../utils';
@@ -53,7 +54,7 @@ describe('Vercel AI integration (v5)', () => {
                   .sort((a, b) => Number(a[0]) - Number(b[0]));
 
               // Each Google step's output gains its reasoning, which `@ai-sdk/google` 2.x reports separately.
-              expect(sorted('gen_ai.generate_content')).toEqual([
+              expect(sorted(GEN_AI_GENERATE_CONTENT)).toEqual([
                 [50, 30],
                 [100, 80],
                 [100, 80],
@@ -61,7 +62,7 @@ describe('Vercel AI integration (v5)', () => {
                 [120, 100],
               ]);
               // One generateText and one streamText operation over the same two Google steps, then one OpenAI call.
-              expect(sorted('gen_ai.invoke_agent')).toEqual([
+              expect(sorted(GEN_AI_INVOKE_AGENT)).toEqual([
                 [50, 30],
                 [220, 180],
                 [220, 180],
