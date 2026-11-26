@@ -490,6 +490,15 @@ describe('load export forms', () => {
     expectWrappedLoad(result, PATH, 'wrapLoadWithSentry');
   });
 
+  it('uses a wrapper the module imports through a re-export', async () => {
+    const result = await transformPage(
+      "import { wrapLoadWithSentry } from '$lib/sentry';\nexport const load = () => {};",
+    );
+    expect(result!.code.match(/import \{ wrapLoadWithSentry \}/g)).toHaveLength(1);
+    expect(result!.code).toContain('wrapLoadWithSentry(load)');
+    expect(() => parseModule(result!.code, PATH)).not.toThrow();
+  });
+
   it.each([
     [
       'inline',

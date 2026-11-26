@@ -5,7 +5,6 @@ import {
   createCallSiteRewriter,
   exportedName,
   findNamedExports,
-  hasImport,
   type RewriteRule,
   type RuleContext,
   wrapForeignExport,
@@ -163,7 +162,8 @@ function wrapLoadExport({ ast, state }: RuleContext, wrapper: LoadWrapper): bool
 
   if (wrapped) {
     state.report.wrapped.push('load');
-    if (!hasImport(ast, '@sentry/sveltekit', wrapper)) {
+    // The module may already bind the wrapper, e.g. through a re-export.
+    if (!declaringStatements.has(wrapper)) {
       addImport(state, ast, `import { ${wrapper} } from '@sentry/sveltekit';`);
     }
   }
