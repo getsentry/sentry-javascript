@@ -94,6 +94,12 @@ jobs:
   get_metadata:
     name: ${{ inputs.plan_tests && 'Plan CI jobs' || 'Get Metadata' }}
     runs-on: ${{ inputs.plan_tests && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    env:
+      CACHED_DEPENDENCY_PATHS: |
+        ${{ github.workspace }}/node_modules
+        ${{ github.workspace }}/packages/*/node_modules
+        ${{ github.workspace }}/dev-packages/*/node_modules
+        ~/.cache/mongodb-binaries/
     permissions:
       pull-requests: read
     steps:
