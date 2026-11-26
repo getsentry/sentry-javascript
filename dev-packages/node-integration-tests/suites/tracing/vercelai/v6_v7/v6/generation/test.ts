@@ -1,11 +1,75 @@
 import { afterAll, expect, describe } from 'vitest';
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  GEN_AI_REQUEST_MODEL,
+  GEN_AI_USAGE_TOTAL_TOKENS,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../../../utils/runner';
 import { registerVercelAiGenerationTests } from '../../suite';
 import { join } from 'node:path';
 
 describe('Vercel AI integration (version 6)', () => {
   registerVercelAiGenerationTests('6', '^6.0.0');
+});
+
+describe('Vercel AI spec-v2 model (version 6)', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
+
+  createEsmAndCjsTests(
+    join(__dirname, '../..'),
+    'scenario-v2-model.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('does not crash on a spec-v2 model and still emits the model-call span', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const segment = container.items.find(span => span.is_segment && span.name === 'main');
+              expect(segment).toBeDefined();
+              // ai 6 wraps a spec-v2 model in a Proxy (`asLanguageModelV3`); patching `doGenerate`
+              // through it used to recurse until the stack overflowed (#26905), so the child process
+              // crashed and no spans arrived at all.
+              const generateContentSpans = container.items.filter(span =>
+                span.name.startsWith('generate_content mock-model'),
+              );
+              expect(generateContentSpans).toHaveLength(2);
+              const generateContentSpan = container.items.find(span => span.name === 'generate_content mock-model-id');
+              expect(generateContentSpan).toBeDefined();
+              expect(generateContentSpan?.attributes[SENTRY_OP]).toEqual({
+                type: 'string',
+                value: 'gen_ai.generate_content',
+              });
+              expect(generateContentSpan?.attributes[SENTRY_ORIGIN]).toEqual({
+                type: 'string',
+                value: 'auto.ai.vercelai',
+              });
+              expect(generateContentSpan?.attributes[GEN_AI_REQUEST_MODEL]).toEqual({
+                type: 'string',
+                value: 'mock-model-id',
+              });
+              expect(generateContentSpan?.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
+                type: 'integer',
+                value: 30,
+              });
+              // The second call swaps the model via `prepareStep`, so the operation start never sees
+              // it — its span only exists if patching through the `resolveLanguageModel` proxy works.
+              const swappedModelSpan = container.items.find(span => span.name === 'generate_content mock-model-2');
+              expect(swappedModelSpan).toBeDefined();
+              expect(swappedModelSpan?.attributes[GEN_AI_USAGE_TOTAL_TOKENS]).toEqual({
+                type: 'integer',
+                value: 11,
+              });
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    { additionalDependencies: { ai: '^6.0.0' } },
+  );
 });
 
 describe('Vercel AI telemetry metadata (v6)', () => {

@@ -72,6 +72,10 @@ interface ResolvedModel {
 
 const PATCHED = Symbol('SentryVercelAiModelPatched');
 const TOOL_PATCHED = Symbol('SentryVercelAiToolPatched');
+// Marks a wrapper `patchModelMethod` installed, so a model whose `PATCHED` flag couldn't be recorded
+// (a non-extensible model can't take the new symbol property) is still recognized as patched on the
+// next call instead of being wrapped again.
+const MODEL_METHOD_WRAPPED = Symbol('SentryVercelAiModelMethodWrapped');
 
 /** A resolved model with our patch bookkeeping (idempotency flag). */
 type PatchableModel = ResolvedModel & { [PATCHED]?: boolean };
@@ -272,12 +276,15 @@ function bindOperation(
         patchOperationTools(callOptions.tools, options);
       }
       // v4 has no `resolveLanguageModel` chokepoint — the passed `LanguageModelV1` is called directly — so
-      // patch its `doGenerate`/`doStream` here, at the operation start, instead. v5/v6 models are patched via
-      // `resolveLanguageModel`, so restricting to v4 keeps this strictly additive and avoids double-patching.
-      // Embedding models are also `'v1'` but expose no `doGenerate`/`doStream`, so the patch is a no-op for
+      // patch its `doGenerate`/`doStream` here, at the operation start, instead. v5/v6 models are normally
+      // patched via `resolveLanguageModel`, but ai 6 wraps v2 models in a Proxy there (see
+      // `patchModelMethod`), so the model passed here — the proxy's target — is patched at the operation
+      // start too, which is what keeps the model-call span working for those models. For v3 models this
+      // patches the same object `resolveLanguageModel` returns, and the `PATCHED` flag keeps the later
+      // patch a no-op. Embedding models expose no `doGenerate`/`doStream`, so the patch is a no-op for
       // `embed`/`embedMany`.
-      if (isV4) {
-        patchModelMethods(callOptions.model as PatchableModel, options);
+      if (isObjectLike(callOptions.model)) {
+        patchModelMethods(callOptions.model, options);
       }
     }
     return span;
@@ -498,21 +505,68 @@ function patchModelMethods(model: PatchableModel, options: VercelAiChannelOption
   if (model[PATCHED]) {
     return;
   }
-  model[PATCHED] = true;
-  patchModelMethod(model, 'doGenerate', options);
-  patchModelMethod(model, 'doStream', options);
+  // Only mark the model patched when a method was actually patched. A model whose methods can't be
+  // patched (see `patchModelMethod`) must stay unmarked, so its unwrapped target can still be patched
+  // at the operation start.
+  // (No `||` here: both calls must run even when the first one patches.)
+  const patchedDoGenerate = patchModelMethod(model, 'doGenerate', options);
+  const patchedDoStream = patchModelMethod(model, 'doStream', options);
+  if (patchedDoGenerate || patchedDoStream) {
+    // Best-effort: a non-extensible model can't take the new symbol property. The wrapper marker
+    // (see `patchModelMethod`) still keeps the next call from wrapping the method again.
+    try {
+      model[PATCHED] = true;
+    } catch {
+      DEBUG_BUILD && debug.log('Vercel AI model patch flag could not be set.');
+    }
+  }
 }
 
 function patchModelMethod(
   model: PatchableModel,
   method: 'doGenerate' | 'doStream',
   options: VercelAiChannelOptions,
-): void {
-  const original = model[method];
-  if (typeof original !== 'function') {
-    return;
+): boolean {
+  const read = model[method];
+  if (typeof read !== 'function') {
+    return false;
   }
-  model[method] = function (this: unknown, ...args: unknown[]): Promise<unknown> {
+  // Already our wrapper (e.g. the `PATCHED` flag couldn't be recorded on a non-extensible model) —
+  // don't wrap it again.
+  if (isWrappedMethod(read)) {
+    return false;
+  }
+  // The method the wrapper must call is the stored value, not necessarily the read. ai 6 wraps v2
+  // models in a Proxy (`asLanguageModelV3`) whose get trap returns a fresh closure forwarding to
+  // `target[method]` on every read, and which has no set trap. Capturing that closure and assigning
+  // a wrapper would land the wrapper on the target while the closure still forwards to it, and the
+  // two call each other until the stack overflows (#26905). The stored value is the real method, so
+  // the wrapper calls that instead — the SDK still invokes the closure, which forwards to the
+  // wrapper, which calls the real method. That also covers models the operation start never sees (a
+  // string model id, or a `prepareStep` replacement), where the proxy is the only handle on the model.
+  //
+  // Anything that can't take a wrapper is skipped rather than risk breaking the user's call: an
+  // accessor (assigning would throw in strict mode for a getter without a setter, or invoke an
+  // arbitrary setter), a non-writable property, a read with no stored value behind it (a purely
+  // trap-synthesized method has nothing safe to call), or an inherited method on a non-extensible
+  // model (installing it as an own property would throw; reassigning an existing own method stays
+  // allowed on such a model).
+  const descriptor = findMethodDescriptor(model, method);
+  if (!descriptor || !('value' in descriptor) || descriptor.writable === false) {
+    return false;
+  }
+  if (!Object.prototype.hasOwnProperty.call(model, method) && !Object.isExtensible(model)) {
+    return false;
+  }
+  const stored: unknown = descriptor.value;
+  if (typeof stored !== 'function' || isWrappedMethod(stored)) {
+    return false;
+  }
+  // `descriptor.value` is typed `any`, so the cast pins the stored method to the signature the
+  // wrapper calls it with.
+  const original: (...args: unknown[]) => Promise<unknown> =
+    stored !== read ? (stored as (...args: unknown[]) => Promise<unknown>) : read;
+  const wrapped: WrappedModelMethod = function (this: unknown, ...args: unknown[]): Promise<unknown> {
     const parent = resolveModelCallParent();
     // No enclosing operation span (e.g. telemetry disabled for the call) → don't open a model-call span.
     if (!parent) {
@@ -604,6 +658,46 @@ function patchModelMethod(
       return failSpan(error);
     }
   };
+  wrapped[MODEL_METHOD_WRAPPED] = true;
+  model[method] = wrapped;
+
+  return true;
+}
+
+/** A model method wrapper installed by `patchModelMethod`, marked so it is recognized on re-entry. */
+type WrappedModelMethod = ((...args: unknown[]) => Promise<unknown>) & {
+  [MODEL_METHOD_WRAPPED]?: boolean;
+};
+
+/** Whether `fn` is a wrapper `patchModelMethod` installed. */
+function isWrappedMethod(fn: unknown): fn is WrappedModelMethod {
+  return (
+    typeof fn === 'function' && (fn as unknown as Record<symbol, unknown>)[MODEL_METHOD_WRAPPED] === true
+  );
+}
+
+/**
+ * The first property descriptor for `method` up the prototype chain — for a Proxy without a
+ * descriptor trap, the target's descriptor (v2 providers define `doGenerate`/`doStream` as
+ * prototype methods). `undefined` when the method is nowhere in the chain or the lookup fails.
+ */
+function findMethodDescriptor(
+  model: PatchableModel,
+  method: 'doGenerate' | 'doStream',
+): PropertyDescriptor | undefined {
+  try {
+    let current: unknown = model;
+    while (isObjectLike(current)) {
+      const descriptor = Object.getOwnPropertyDescriptor(current, method);
+      if (descriptor) {
+        return descriptor;
+      }
+      current = Object.getPrototypeOf(current);
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
