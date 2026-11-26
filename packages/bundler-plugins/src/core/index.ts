@@ -116,8 +116,7 @@ export { createDebugIdUploadFunction, addDebugIdToEmittedArtifacts, stampDebugId
 export {
   decideSourceMapHandling,
   getDeleteOption,
-  getDeleteSourcemapsAfterUpload,
-  getSdkEnabledSourceMaps,
+  getSdkDeleteSourceMaps,
   getSourceMapFeatures,
 } from './sourcemap-settings';
 export type { SourceMapDecision, SourceMapKind } from './sourcemap-settings';

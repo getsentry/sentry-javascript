@@ -120,18 +120,14 @@ function build({
 
 /**
  * Mirrors the decision of the bundler plugin: it passes the name of an environment with its own `build.sourcemap` to
- * the function options. It removes the maps of an output with its own `sourcemap` if they are hidden, or if
- * `sdkEnabledSourceMaps` is true and they are not inline.
+ * `sdkDeleteSourceMaps`. It removes the maps of an output with its own `sourcemap` if they are hidden, or if
+ * `sdkDeleteSourceMaps` is true and they are not inline.
  */
 function isDeletedByBundlerPlugin(userConfig: UserConfig, name: string, build: BuildEnvironmentOptions): boolean {
   const environment = userConfig.environments?.[name]?.build?.sourcemap !== undefined ? name : undefined;
-  const { deleteSourcemapsAfterUpload, sdkEnabledSourceMaps } = sentryVitePluginOptions?.sourcemaps ?? {};
-  const deleteOption =
-    typeof deleteSourcemapsAfterUpload === 'function'
-      ? deleteSourcemapsAfterUpload(environment)
-      : deleteSourcemapsAfterUpload;
-  const sdkEnabled =
-    typeof sdkEnabledSourceMaps === 'function' ? sdkEnabledSourceMaps(environment) : sdkEnabledSourceMaps;
+  const { deleteSourcemapsAfterUpload, sdkDeleteSourceMaps } = sentryVitePluginOptions?.sourcemaps ?? {};
+  const sdkDelete = typeof sdkDeleteSourceMaps === 'function' ? sdkDeleteSourceMaps(environment) : sdkDeleteSourceMaps;
+  const deleteOption = deleteSourcemapsAfterUpload ?? sdkDelete;
   const outputSourceMap = getOwnOutputSourceMapSetting(build);
   if (deleteOption !== true) {
     return false;
@@ -139,7 +135,7 @@ function isDeletedByBundlerPlugin(userConfig: UserConfig, name: string, build: B
   if (outputSourceMap === undefined) {
     return build.sourcemap !== false;
   }
-  return outputSourceMap === 'hidden' || (sdkEnabled === true && outputSourceMap === true);
+  return outputSourceMap === 'hidden' || (sdkDelete === true && outputSourceMap === true);
 }
 
 describe('source map scenarios of a build with Nitro', () => {

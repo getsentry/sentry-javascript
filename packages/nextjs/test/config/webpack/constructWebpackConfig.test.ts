@@ -144,10 +144,7 @@ describe('constructWebpackConfigFunction()', () => {
 
     expect(sentryWebpackPlugin).toHaveBeenCalledWith(
       expect.objectContaining({
-        sourcemaps: expect.objectContaining({
-          deleteSourcemapsAfterUpload: deletesAll,
-          sdkEnabledSourceMaps: deletesAll,
-        }),
+        sourcemaps: expect.objectContaining({ sdkDeleteSourceMaps: deletesAll }),
       }),
     );
   });
@@ -180,8 +177,7 @@ describe('constructWebpackConfigFunction()', () => {
       expect(sentryWebpackPlugin).toHaveBeenCalledWith(
         expect.objectContaining({
           sourcemaps: expect.objectContaining({
-            deleteSourcemapsAfterUpload: deletesAll,
-            sdkEnabledSourceMaps: deletesAll,
+            sdkDeleteSourceMaps: deletesAll,
             upload: 'upload' in sourcemaps ? sourcemaps.upload : undefined,
             injectDebugIds: 'injectDebugIds' in sourcemaps ? sourcemaps.injectDebugIds : undefined,
           }),

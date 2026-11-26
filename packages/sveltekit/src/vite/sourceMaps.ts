@@ -61,9 +61,7 @@ export async function makeCustomSentryVitePlugins(
   warnOnConflictingSourceMapOptions(options?.sourcemaps);
 
   const defaultPluginOptions: SentryVitePluginOptions = {
-    release: {
-      name: releaseName,
-    },
+    release: { name: releaseName },
     _metaOptions: {
       telemetry: {
         metaFramework: 'sveltekit',
@@ -90,7 +88,8 @@ export async function makeCustomSentryVitePlugins(
       filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
       // The adapter runs after the bundler and still needs the source maps, so
       // the SDK deletes them from disk afterwards instead of the plugin.
-      deleteSourcemapsAfterUpload: false,
+      deleteSourcemapsAfterUpload: undefined,
+      sdkDeleteSourceMaps: false,
       delete: undefined,
     },
   };

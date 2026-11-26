@@ -483,7 +483,11 @@ describe('source map deletion with `sourcemaps.delete`', () => {
     // @ts-expect-error this function exists!
     await deletionPlugin.configResolved();
 
-    expect(mergedOptions.sourcemaps).toMatchObject({ deleteSourcemapsAfterUpload: false, delete: undefined });
+    expect(mergedOptions.sourcemaps).toMatchObject({
+      deleteSourcemapsAfterUpload: undefined,
+      sdkDeleteSourceMaps: false,
+      delete: undefined,
+    });
     return mergedOptions.sourcemaps?.filesToDeleteAfterUpload;
   }
 
@@ -620,7 +624,7 @@ describe('deleteFilesAfterUpload', () => {
       },
       sourcemaps: {
         filesToDeleteAfterUpload: expect.any(Promise),
-        deleteSourcemapsAfterUpload: false,
+        sdkDeleteSourceMaps: false,
       },
     });
 
@@ -700,7 +704,7 @@ describe('deleteFilesAfterUpload', () => {
         },
         sourcemaps: {
           filesToDeleteAfterUpload: expect.any(Promise),
-          deleteSourcemapsAfterUpload: false,
+          sdkDeleteSourceMaps: false,
         },
       });
 

@@ -77,7 +77,7 @@ describe('sourcemaps.disable: "disable-upload"', () => {
       plugins: [
         sentryEsbuildPlugin({
           telemetry: false,
-          sourcemaps: { disable: 'disable-upload', deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true },
+          sourcemaps: { disable: 'disable-upload', sdkDeleteSourceMaps: true },
         }),
       ],
     });

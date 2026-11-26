@@ -308,7 +308,7 @@ function resolveFilesToDeleteAfterUpload(
     3. users did not set source maps generation
       - we enable 'hidden' source maps generation when Sentry uploads the maps, or when `sourcemaps.delete: false`
         keeps them for a manual upload. Otherwise we leave it unset
-      - client with the Vite builder: pass `deleteSourcemapsAfterUpload: true`, so the maps never reach the build output
+      - client with the Vite builder: pass `sdkDeleteSourceMaps: true`, so the maps never reach the build output
       - client with another builder: configure `filesToDeleteAfterUpload` for the .map files in Nitro's public dir
       - server: configure `filesToDeleteAfterUpload` to delete the .map files after the build (we emit a log about this)
 

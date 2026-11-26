@@ -32,14 +32,14 @@ type CapturedSentryOptions = {
   applicationKey?: string;
   bundleSizeOptimizations?: { excludeTracing?: boolean };
   release?: { name?: string; inject?: boolean };
-  sourcemaps?: { deleteSourcemapsAfterUpload?: boolean | (() => boolean | undefined) };
+  sourcemaps?: { sdkDeleteSourceMaps?: boolean | (() => boolean | undefined) };
 };
 
 let capturedSentryOptions: CapturedSentryOptions | undefined;
 let deleteOptionInConfigHook: boolean | undefined | 'not called';
 
 function getDeleteOption(): boolean | undefined {
-  const value = capturedSentryOptions?.sourcemaps?.deleteSourcemapsAfterUpload;
+  const value = capturedSentryOptions?.sourcemaps?.sdkDeleteSourceMaps;
   return typeof value === 'function' ? value() : value;
 }
 
