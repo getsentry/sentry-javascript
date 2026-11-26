@@ -53,13 +53,19 @@ test('Should continue the trace of injected meta tags instead of the server trac
     );
   });
 
-  await page.goto(`/123/pages-router-client-trace-propagation`);
+  const response = await page.goto(`/123/pages-router-client-trace-propagation`);
 
   const pageloadSpan = await pageloadSpanPromise;
 
   const sentryTraceTags = await page
     .locator('meta[name="sentry-trace"]')
     .evaluateAll(tags => tags.map(tag => tag.getAttribute('content')));
+
+  // TEMPORARY diagnostic for the Turbopack variant, to be removed.
+  console.log(
+    '[injected-trace-meta-tags]',
+    JSON.stringify({ serverTiming: response?.headers()['server-timing'], sentryTraceTags }),
+  );
 
   expect(sentryTraceTags).toHaveLength(2);
   expect(sentryTraceTags[0]).not.toContain(INJECTED_TRACE_ID);
