@@ -79,6 +79,11 @@ describe('collectors', () => {
     expect(statements.get('c')).toBe(destructured.body[0]);
   });
 
+  it('skips type-only imports', () => {
+    const imports = parseModule("import type { a } from 'x';\nimport { type b, c } from 'y';", 'module.ts');
+    expect([...collectDeclaringStatements(imports).keys()]).toEqual(['c']);
+  });
+
   it('collects bindings assigned a call to a wrapper', () => {
     expect(collectManuallyWrappedLocals(ast, ['wrap'])).toEqual(new Set(['handWrapped', 'alsoHandWrapped']));
     expect(collectManuallyWrappedLocals(ast, ['other'])).toEqual(new Set());

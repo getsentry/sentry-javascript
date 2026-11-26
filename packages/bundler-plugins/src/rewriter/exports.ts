@@ -49,21 +49,26 @@ export function collectTopLevelClasses(ast: ProgramBody): Map<string, ClassDecla
   return classes;
 }
 
-/** Top-level binding name → the statement that declares it. */
+/** Top-level value binding name → the statement that declares it. */
 export function collectDeclaringStatements(ast: ProgramBody): Map<string, BaseNode> {
   const statements = new Map<string, BaseNode>();
   for (const node of ast.body) {
     const declaration = declarationOf(node);
     if (!declaration) continue;
     const names =
-      declaration.type === 'ImportDeclaration'
-        ? ((declaration as ImportDeclarationNode).specifiers ?? []).map(specifier => specifier.local?.name)
-        : (declaredNames(declaration) ?? []);
+      declaration.type === 'ImportDeclaration' ? valueImportNames(declaration) : (declaredNames(declaration) ?? []);
     for (const name of names) {
       if (name) statements.set(name, node);
     }
   }
   return statements;
+}
+
+function valueImportNames(node: ImportDeclarationNode): (string | undefined)[] {
+  if (node.importKind === 'type') return [];
+  return (node.specifiers ?? [])
+    .filter(specifier => specifier.importKind !== 'type')
+    .map(specifier => specifier.local?.name);
 }
 
 /**
