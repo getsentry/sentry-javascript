@@ -62,9 +62,33 @@ test('Should continue the trace of injected meta tags instead of the server trac
     .evaluateAll(tags => tags.map(tag => tag.getAttribute('content')));
 
   // TEMPORARY diagnostic for the Turbopack variant, to be removed.
+  const pageInfo = await page.evaluate(() => ({
+    hasNextData: !!document.getElementById('__NEXT_DATA__'),
+    nextDataTrace: document.getElementById('__NEXT_DATA__')?.innerHTML.match(/_sentryTraceData":"([^"]+)"/)?.[1],
+    serverTiming: (
+      performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
+    )?.serverTiming?.map(entry => `${entry.name}=${entry.description.slice(0, 60)}`),
+    scripts: Array.from(document.scripts).map(
+      script =>
+        `${script.async ? 'async ' : ''}${script.defer ? 'defer ' : ''}${script.src.split('/').pop() || script.id || 'inline'}`,
+    ),
+    headOrder: Array.from(document.head.children).map(
+      child => `${child.tagName}${child.getAttribute('name') ? `:${child.getAttribute('name')}` : ''}`,
+    ),
+  }));
   console.log(
     '[injected-trace-meta-tags]',
-    JSON.stringify({ serverTiming: response?.headers()['server-timing'], sentryTraceTags }),
+    JSON.stringify({
+      serverTiming: response?.headers()['server-timing']?.slice(0, 80),
+      sentryTraceTags,
+      pageInfo,
+      pageloadSpan: {
+        trace_id: pageloadSpan.trace_id,
+        parent_span_id: pageloadSpan.parent_span_id,
+        links: pageloadSpan.links,
+        attributes: pageloadSpan.attributes,
+      },
+    }),
   );
 
   expect(sentryTraceTags).toHaveLength(2);
