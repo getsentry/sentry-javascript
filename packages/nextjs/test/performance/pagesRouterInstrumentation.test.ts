@@ -58,6 +58,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
     props?: any;
     navigatableRoutes?: string[];
     hasNextData: boolean;
+    head?: string;
   }) {
     const nextDataContent: NEXT_DATA = {
       props: pageProperties.props,
@@ -73,7 +74,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
     const dom = new JSDOM(
       // Just an example of what a __NEXT_DATA__ tag might look like
       pageProperties.hasNextData
-        ? `<body><script id="__NEXT_DATA__" type="application/json">${JSON.stringify(nextDataContent)}</script></body>`
+        ? `<head>${pageProperties.head ?? ''}</head><body><script id="__NEXT_DATA__" type="application/json">${JSON.stringify(nextDataContent)}</script></body>`
         : '<body><h1>No next data :(</h1></body>',
       { url: pageProperties.url },
     );
@@ -213,6 +214,118 @@ describe('pagesRouterInstrumentPageLoad', () => {
       );
     },
   );
+
+  describe('with trace meta tags in the document', () => {
+    const SERVER_TRACE_ID = 'c82b8554881b4d28ad977de04a4fb40a';
+    const FOREIGN_TRACE_ID = '12345678901234567890123456789012';
+    const nextDataTrace = {
+      sentryTrace: `${SERVER_TRACE_ID}-a755953cd3394d5f-1`,
+      baggage: `sentry-trace_id=${SERVER_TRACE_ID},sentry-release=2.1.0,sentry-environment=myEnv`,
+    };
+    // Next.js renders these for the request, with the span that was active while the document rendered.
+    const serverMetaTags = `<meta name="sentry-trace" content="${SERVER_TRACE_ID}-b855953cd3394d5f-1"><meta name="baggage" content="sentry-trace_id=${SERVER_TRACE_ID},sentry-release=2.1.0">`;
+    const foreignTrace = {
+      sentryTrace: `${FOREIGN_TRACE_ID}-1234567890123456-1`,
+      baggage: `sentry-trace_id=${FOREIGN_TRACE_ID},sentry-release=mobile`,
+    };
+    const foreignMetaTags = `<meta name="sentry-trace" content="${foreignTrace.sentryTrace}"><meta name="baggage" content="${foreignTrace.baggage}">`;
+
+    function instrumentPageLoad(
+      head: string,
+      pageProps: Record<string, unknown> = {
+        _sentryTraceData: nextDataTrace.sentryTrace,
+        _sentryBaggage: nextDataTrace.baggage,
+      },
+      route = '/some-page',
+    ): ReturnType<typeof vi.fn> {
+      setUpNextPage({ url: 'https://example.com/some-page', route, props: { pageProps }, hasNextData: true, head });
+      const emit = vi.fn();
+      pagesRouterInstrumentPageLoad({ emit, getOptions: () => ({}) } as unknown as Client);
+      return emit;
+    }
+
+    it.each([
+      ['before the meta tags of the server', `${foreignMetaTags}${serverMetaTags}`],
+      ['after the meta tags of the server', `${serverMetaTags}${foreignMetaTags}`],
+      ['without meta tags of the server', foreignMetaTags],
+    ])('continues the trace of meta tags that belong to another trace, %s', (_, head) => {
+      const emit = instrumentPageLoad(head);
+
+      expect(emit).toHaveBeenCalledTimes(1);
+      expect(emit).toHaveBeenCalledWith(
+        'startPageLoadSpan',
+        expect.objectContaining({ name: '/some-page' }),
+        foreignTrace,
+      );
+    });
+
+    it.each([
+      ['the meta tags of the server', serverMetaTags],
+      ['an empty `sentry-trace` meta tag', '<meta name="sentry-trace" content="">'],
+      ['a `sentry-trace` meta tag without content', '<meta name="sentry-trace">'],
+      ['an invalid `sentry-trace` meta tag', '<meta name="sentry-trace" content="not-a-trace">'],
+      [
+        'a `sentry-trace` meta tag of another trace without its baggage',
+        `${serverMetaTags}<meta name="sentry-trace" content="${foreignTrace.sentryTrace}">`,
+      ],
+      ['only a `baggage` meta tag of another trace', `<meta name="baggage" content="${foreignTrace.baggage}">`],
+      ['unrelated meta tags', '<meta name="viewport" content="width=device-width">'],
+    ])('keeps the `__NEXT_DATA__` trace with %s', (_, head) => {
+      const emit = instrumentPageLoad(head);
+
+      expect(emit).toHaveBeenCalledWith('startPageLoadSpan', expect.anything(), nextDataTrace);
+    });
+
+    describe('when `__NEXT_DATA__` has no trace', () => {
+      const noTrace = { sentryTrace: undefined, baggage: undefined };
+
+      function setServerTimingTrace(sentryTrace: string): void {
+        vi.spyOn(performance, 'getEntriesByType').mockReturnValue([
+          {
+            serverTiming: [{ name: 'sentry-trace', description: sentryTrace, duration: 0 }],
+          } as unknown as PerformanceEntry,
+        ]);
+      }
+
+      afterEach(() => {
+        vi.restoreAllMocks();
+      });
+
+      it('continues the trace of meta tags that belong to another trace than the `Server-Timing` header', () => {
+        setServerTimingTrace(nextDataTrace.sentryTrace);
+        const emit = instrumentPageLoad(`${serverMetaTags}${foreignMetaTags}`, {});
+
+        expect(emit).toHaveBeenCalledWith('startPageLoadSpan', expect.anything(), foreignTrace);
+      });
+
+      it('leaves the meta tags of the server to the browser SDK', () => {
+        setServerTimingTrace(nextDataTrace.sentryTrace);
+        const emit = instrumentPageLoad(serverMetaTags, {});
+
+        expect(emit).toHaveBeenCalledWith('startPageLoadSpan', expect.anything(), noTrace);
+      });
+
+      it('leaves the meta tags to the browser SDK without a `Server-Timing` header', () => {
+        const emit = instrumentPageLoad(`${serverMetaTags}${foreignMetaTags}`, {});
+
+        expect(emit).toHaveBeenCalledWith('startPageLoadSpan', expect.anything(), noTrace);
+      });
+    });
+
+    it('still names an `/_error` pageload after the `__NEXT_DATA__` baggage', () => {
+      const emit = instrumentPageLoad(
+        foreignMetaTags,
+        { _sentryTraceData: nextDataTrace.sentryTrace, _sentryBaggage: 'sentry-transaction=GET /users/[id]' },
+        '/_error',
+      );
+
+      expect(emit).toHaveBeenCalledWith(
+        'startPageLoadSpan',
+        expect.objectContaining({ name: '/users/[id]' }),
+        foreignTrace,
+      );
+    });
+  });
 });
 
 describe('pagesRouterInstrumentNavigation', () => {
