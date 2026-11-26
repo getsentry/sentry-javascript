@@ -59,7 +59,7 @@ env:
 # Test jobs restore workspace dependencies and build their SDK outputs locally.
 # The central build still produces the shared release artifacts.
 jobs:
-  job_get_metadata:
+  job_plan_ci:
     uses: ./.github/workflows/ci-metadata.yml
     name: Plan CI jobs
     with:
@@ -70,14 +70,14 @@ jobs:
 
   job_build:
     name: Build
-    needs: job_get_metadata
+    needs: job_plan_ci
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     if: |
-      needs.job_get_metadata.outputs.changed_any_code == 'true' ||
-      needs.job_get_metadata.outputs.is_base_branch == 'true' ||
-      needs.job_get_metadata.outputs.is_release == 'true' ||
-      (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false' && needs.job_get_metadata.outputs.changed_any_code == 'true')
+      needs.job_plan_ci.outputs.changed_any_code == 'true' ||
+      needs.job_plan_ci.outputs.is_base_branch == 'true' ||
+      needs.job_plan_ci.outputs.is_release == 'true' ||
+      (needs.job_plan_ci.outputs.is_gitflow_sync == 'false' && needs.job_plan_ci.outputs.has_gitflow_label == 'false' && needs.job_plan_ci.outputs.changed_any_code == 'true')
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v7
@@ -85,7 +85,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
-      - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
+      - name: 'Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})'
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -169,12 +169,12 @@ jobs:
 
   job_build_layer:
     name: Build Lambda layer
-    needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.is_release == 'true'
+    needs: [job_plan_ci, job_build]
+    if: needs.job_plan_ci.outputs.is_release == 'true'
     timeout-minutes: 10
     runs-on: ubuntu-24.04
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -207,7 +207,7 @@ jobs:
 
   job_check_branches:
     name: Check PR branches
-    needs: job_get_metadata
+    needs: job_plan_ci
     runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request'
     permissions:
@@ -222,14 +222,14 @@ jobs:
 
   job_size_check:
     name: Size Check
-    needs: job_get_metadata
+    needs: job_plan_ci
     timeout-minutes: 15
     runs-on: ubuntu-24.04-arm
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' && (github.event_name == 'pull_request' ||
-      needs.job_get_metadata.outputs.is_base_branch == 'true' || needs.job_get_metadata.outputs.is_release == 'true')
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (github.event_name == 'pull_request' ||
+      needs.job_plan_ci.outputs.is_base_branch == 'true' || needs.job_plan_ci.outputs.is_release == 'true')
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -249,12 +249,12 @@ jobs:
     name: Lint
     # Even though the linter only checks source code, not built code, it needs the built code in order check that all
     # inter-package dependencies resolve cleanly.
-    needs: job_get_metadata
-    if: needs.job_get_metadata.outputs.tests_planned == 'true'
+    needs: job_plan_ci
+    if: needs.job_plan_ci.outputs.tests_planned == 'true'
     timeout-minutes: 10
     runs-on: ubuntu-24.04-arm
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -287,16 +287,16 @@ jobs:
 
   job_check_lockfile:
     name: Check lockfile
-    needs: [job_get_metadata]
+    needs: [job_plan_ci]
     # `pnpm dedupe` fetches metadata for every package from npm, so this job can take 8+ min on PRs.
     timeout-minutes: 20
     runs-on: ubuntu-24.04
     if: |
-      needs.job_get_metadata.outputs.changed_deps == 'true' ||
-      needs.job_get_metadata.outputs.is_base_branch == 'true' ||
-      needs.job_get_metadata.outputs.is_release == 'true'
+      needs.job_plan_ci.outputs.changed_deps == 'true' ||
+      needs.job_plan_ci.outputs.is_base_branch == 'true' ||
+      needs.job_plan_ci.outputs.is_release == 'true'
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -324,11 +324,11 @@ jobs:
 
   job_check_format:
     name: Check file formatting
-    needs: [job_get_metadata]
+    needs: [job_plan_ci]
     timeout-minutes: 10
     runs-on: ubuntu-24.04
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -344,12 +344,12 @@ jobs:
 
   job_artifacts:
     name: Upload Artifacts
-    needs: [job_get_metadata, job_build, job_build_layer]
+    needs: [job_plan_ci, job_build, job_build_layer]
     runs-on: ubuntu-24.04
     # Build artifacts are only needed for releasing workflow.
-    if: needs.job_get_metadata.outputs.is_release == 'true'
+    if: needs.job_plan_ci.outputs.is_release == 'true'
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -395,8 +395,8 @@ jobs:
 
   job_browser_unit_tests:
     name: Browser Unit Tests
-    needs: job_get_metadata
-    if: needs.job_get_metadata.outputs.tests_planned == 'true'
+    needs: job_plan_ci
+    if: needs.job_plan_ci.outputs.tests_planned == 'true'
     timeout-minutes: 10
     runs-on: ubuntu-24.04
     steps:
@@ -406,7 +406,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -430,9 +430,9 @@ jobs:
 
   job_bun_unit_tests:
     name: Bun (${{ matrix.bun }}) Unit Tests
-    needs: job_get_metadata
+    needs: job_plan_ci
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' && (needs.job_get_metadata.outputs.changed_bun == 'true' ||
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_bun == 'true' ||
       github.event_name != 'pull_request')
     timeout-minutes: 10
     runs-on: ubuntu-24.04-arm
@@ -442,7 +442,7 @@ jobs:
         # 1.3.14 is the oldest supported Bun version
         bun: ['1.3.14', '1.4']
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -460,14 +460,14 @@ jobs:
 
   job_deno_unit_tests:
     name: Deno Unit Tests
-    needs: job_get_metadata
+    needs: job_plan_ci
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' && (needs.job_get_metadata.outputs.changed_deno == 'true'
-      || github.event_name != 'pull_request')
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_deno == 'true' ||
+      github.event_name != 'pull_request')
     timeout-minutes: 10
     runs-on: ubuntu-24.04-arm
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -485,8 +485,8 @@ jobs:
 
   job_node_unit_tests:
     name: Node (${{ matrix.node }}) Unit Tests (${{ matrix.shard }}/2)
-    needs: job_get_metadata
-    if: needs.job_get_metadata.outputs.tests_planned == 'true'
+    needs: job_plan_ci
+    if: needs.job_plan_ci.outputs.tests_planned == 'true'
     timeout-minutes: 10
     runs-on: ubuntu-24.04-arm
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
@@ -502,7 +502,7 @@ jobs:
         if: github.event_name == 'pull_request'
         with:
           ref: ${{ github.event.pull_request.base.sha }}
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -545,10 +545,10 @@ jobs:
     name:
       Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}',
       matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
-    needs: job_get_metadata
+    needs: job_plan_ci
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' &&
-      (needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request')
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_browser_integration ==
+      'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04-large-js
     timeout-minutes: 25
     strategy:
@@ -634,7 +634,7 @@ jobs:
             shards: 3
 
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -671,10 +671,10 @@ jobs:
 
   job_browser_loader_tests:
     name: PW ${{ matrix.bundle }} Tests
-    needs: job_get_metadata
+    needs: job_plan_ci
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' &&
-      (needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request')
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_browser_integration ==
+      'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
@@ -690,7 +690,7 @@ jobs:
           - loader_tracing_replay
 
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -725,14 +725,14 @@ jobs:
   # Runs the CDN bundles in the oldest Chromium we support. Chromium snapshots only exist for x64.
   job_browser_min_version_tests:
     name: Minimum Chromium Version Tests
-    needs: job_get_metadata
+    needs: job_plan_ci
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' &&
-      (needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request')
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_browser_integration ==
+      'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -752,10 +752,10 @@ jobs:
 
   job_node_integration_tests:
     name: Node (${{ matrix.node }}) Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
-    needs: job_get_metadata
+    needs: job_plan_ci
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' && (needs.job_get_metadata.outputs.changed_node_integration
-      == 'true' || github.event_name != 'pull_request')
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_node_integration == 'true'
+      || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 20
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
@@ -767,7 +767,7 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6]
         shards: [6]
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -805,15 +805,15 @@ jobs:
 
   job_sql_server_integration_tests:
     name: SQL Server Integration Tests (Node 24)
-    needs: job_get_metadata
+    needs: job_plan_ci
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' && (needs.job_get_metadata.outputs.changed_node_integration
-      == 'true' || needs.job_get_metadata.outputs.changed_bun_integration == 'true' ||
-      needs.job_get_metadata.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request')
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_node_integration == 'true'
+      || needs.job_plan_ci.outputs.changed_bun_integration == 'true' ||
+      needs.job_plan_ci.outputs.changed_deno_integration == 'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -832,10 +832,10 @@ jobs:
   # Runs on the wrangler pinned in the package, so the required run stays on a fixed, older runtime.
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/${{ matrix.shards }})
-    needs: job_get_metadata
+    needs: job_plan_ci
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' &&
-      (needs.job_get_metadata.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request')
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_cloudflare_integration ==
+      'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
@@ -844,7 +844,7 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6]
         shards: [6]
     steps: &cloudflare_integration_tests_steps
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -871,10 +871,10 @@ jobs:
   # block a PR, and like the optional E2E tests it does not run on release branches.
   job_optional_cloudflare_integration_tests:
     name: Cloudflare Integration Tests (${{ matrix.shard }}/2, latest wrangler) (optional)
-    needs: job_get_metadata
+    needs: job_plan_ci
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' && (needs.job_get_metadata.outputs.is_release != 'true' &&
-      (needs.job_get_metadata.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'))
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.is_release != 'true' &&
+      (needs.job_plan_ci.outputs.changed_cloudflare_integration == 'true' || github.event_name != 'pull_request'))
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
@@ -887,11 +887,10 @@ jobs:
 
   job_bundler_plugin_integration_tests:
     name: Bundler Plugin Integration Tests (Node ${{ matrix.node }})
-    needs: job_get_metadata
+    needs: job_plan_ci
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' &&
-      (needs.job_get_metadata.outputs.changed_bundler_plugin_integration == 'true' || github.event_name !=
-      'pull_request')
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_bundler_plugin_integration
+      == 'true' || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     # Node 27 is an alpha: its ABI and APIs can change, so its failures must not fail the required checks.
@@ -901,7 +900,7 @@ jobs:
       matrix:
         node: [20.19, 22, 24, 26, '^27.0.0-0']
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -920,10 +919,10 @@ jobs:
 
   job_bun_integration_tests:
     name: Bun (${{ matrix.bun }}) Integration Tests (${{ matrix.shard }}/6)
-    needs: job_get_metadata
+    needs: job_plan_ci
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' && (needs.job_get_metadata.outputs.changed_bun_integration
-      == 'true' || github.event_name != 'pull_request')
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_bun_integration == 'true'
+      || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
@@ -933,7 +932,7 @@ jobs:
         bun: ['1.3.14', '1.4']
         shard: [1, 2, 3, 4, 5, 6]
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -952,10 +951,10 @@ jobs:
 
   job_deno_integration_tests:
     name: Deno Integration Tests (${{ matrix.shard }}/6)
-    needs: job_get_metadata
+    needs: job_plan_ci
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' && (needs.job_get_metadata.outputs.changed_deno_integration
-      == 'true' || github.event_name != 'pull_request')
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (needs.job_plan_ci.outputs.changed_deno_integration == 'true'
+      || github.event_name != 'pull_request')
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     strategy:
@@ -963,7 +962,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4, 5, 6]
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -992,9 +991,9 @@ jobs:
   job_e2e_tests_1:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' && (always() && needs.job_get_metadata.result == 'success'
-      && needs.job_get_metadata.outputs.e2e-matrix-1 != '{"include":[]}')
-    needs: job_get_metadata
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (always() && needs.job_plan_ci.result == 'success' &&
+      needs.job_plan_ci.outputs.e2e-matrix-1 != '{"include":[]}')
+    needs: job_plan_ci
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -1013,9 +1012,9 @@ jobs:
       pnpm_config_verify_deps_before_run: 'false'
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.job_get_metadata.outputs.e2e-matrix-1) }}
+      matrix: ${{ fromJson(needs.job_plan_ci.outputs.e2e-matrix-1) }}
     steps: &e2e-steps
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -1081,29 +1080,29 @@ jobs:
   job_e2e_tests_2:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' && (always() && needs.job_get_metadata.result == 'success'
-      && needs.job_get_metadata.outputs.e2e-matrix-2 != '{"include":[]}')
-    needs: job_get_metadata
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (always() && needs.job_plan_ci.result == 'success' &&
+      needs.job_plan_ci.outputs.e2e-matrix-2 != '{"include":[]}')
+    needs: job_plan_ci
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env: *e2e-env
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.job_get_metadata.outputs.e2e-matrix-2) }}
+      matrix: ${{ fromJson(needs.job_plan_ci.outputs.e2e-matrix-2) }}
     steps: *e2e-steps
 
   job_e2e_aws_layer_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
-    needs: job_get_metadata
+    needs: job_plan_ci
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' && (always() && needs.job_get_metadata.result == 'success'
-      && needs.job_get_metadata.outputs.e2e-matrix-aws-layer != '{"include":[]}')
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (always() && needs.job_plan_ci.result == 'success' &&
+      needs.job_plan_ci.outputs.e2e-matrix-aws-layer != '{"include":[]}')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env: *e2e-env
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.job_get_metadata.outputs.e2e-matrix-aws-layer) }}
+      matrix: ${{ fromJson(needs.job_plan_ci.outputs.e2e-matrix-aws-layer) }}
     steps: *e2e-steps
 
   # PRs from forks and Dependabot get no secrets, so they skip these jobs. Release branches skip them too, so that an
@@ -1111,11 +1110,11 @@ jobs:
   job_e2e_tests_with_secrets:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' && (always() && needs.job_get_metadata.outputs.is_release
-      != 'true' && needs.job_get_metadata.result == 'success' && needs.job_get_metadata.outputs.e2e-matrix-with-secrets
-      != '{"include":[]}' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name ==
-      github.repository) && github.actor != 'dependabot[bot]')
-    needs: job_get_metadata
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (always() && needs.job_plan_ci.outputs.is_release != 'true'
+      && needs.job_plan_ci.result == 'success' && needs.job_plan_ci.outputs.e2e-matrix-with-secrets != '{"include":[]}'
+      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      github.actor != 'dependabot[bot]')
+    needs: job_plan_ci
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -1139,7 +1138,7 @@ jobs:
       pnpm_config_verify_deps_before_run: 'false'
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.job_get_metadata.outputs.e2e-matrix-with-secrets) }}
+      matrix: ${{ fromJson(needs.job_plan_ci.outputs.e2e-matrix-with-secrets) }}
     steps: *e2e-steps
 
   # - We skip optional tests on release branches
@@ -1149,11 +1148,11 @@ jobs:
     name: E2E Tests (optional)
     # A PR from a fork cannot dispatch optional-e2e.yml, see job_optional_e2e_tests_without_secrets.
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' && (always() && needs.job_get_metadata.outputs.is_release
-      != 'true' && needs.job_get_metadata.result == 'success' && needs.job_get_metadata.outputs.e2e-matrix-optional !=
-      '{"include":[]}' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name ==
-      github.repository) && github.actor != 'dependabot[bot]')
-    needs: job_get_metadata
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (always() && needs.job_plan_ci.outputs.is_release != 'true'
+      && needs.job_plan_ci.result == 'success' && needs.job_plan_ci.outputs.e2e-matrix-optional != '{"include":[]}' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      github.actor != 'dependabot[bot]')
+    needs: job_plan_ci
     # This job only waits for optional-e2e.yml, which can take most of an hour.
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -1161,7 +1160,7 @@ jobs:
       contents: read
       actions: write
     steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+      - name: Check out current commit (${{ needs.job_plan_ci.outputs.commit_label }})
         uses: actions/checkout@v7
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -1177,16 +1176,16 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           commit: ${{ env.HEAD_COMMIT }}
-          matrix: ${{ needs.job_get_metadata.outputs.e2e-matrix-optional }}
+          matrix: ${{ needs.job_plan_ci.outputs.e2e-matrix-optional }}
 
   job_optional_e2e_tests_without_secrets:
     name: E2E ${{ matrix.label || matrix.test-application }} Test (optional)
     if: >-
-      needs.job_get_metadata.outputs.tests_planned == 'true' && (always() && needs.job_get_metadata.outputs.is_release
-      != 'true' && needs.job_get_metadata.result == 'success' &&
-      needs.job_get_metadata.outputs.e2e-matrix-optional-without-secrets != '{"include":[]}' && github.event_name ==
-      'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
-    needs: job_get_metadata
+      needs.job_plan_ci.outputs.tests_planned == 'true' && (always() && needs.job_plan_ci.outputs.is_release != 'true'
+      && needs.job_plan_ci.result == 'success' && needs.job_plan_ci.outputs.e2e-matrix-optional-without-secrets !=
+      '{"include":[]}' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name !=
+      github.repository)
+    needs: job_plan_ci
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -1194,7 +1193,7 @@ jobs:
     env: *e2e-env
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.job_get_metadata.outputs.e2e-matrix-optional-without-secrets) }}
+      matrix: ${{ fromJson(needs.job_plan_ci.outputs.e2e-matrix-optional-without-secrets) }}
     steps: *e2e-steps
 
   job_required_jobs_passed:
@@ -1202,7 +1201,7 @@ jobs:
     needs:
       [
         job_build,
-        job_get_metadata,
+        job_plan_ci,
         job_build_layer,
         job_browser_unit_tests,
         job_bun_unit_tests,
