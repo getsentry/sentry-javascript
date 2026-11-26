@@ -99,6 +99,13 @@ jobs:
     permissions:
       pull-requests: read
     steps:
+      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
+        uses: actions/checkout@v7
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
       - name: Check out current commit
         uses: actions/checkout@v7
         with:
