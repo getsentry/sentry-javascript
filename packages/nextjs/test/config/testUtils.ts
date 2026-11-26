@@ -78,6 +78,7 @@ export async function materializeFinalWebpackConfig(options: {
     nextJsVersion: options.nextJsVersion,
     useRunAfterProductionCompileHook:
       options.useRunAfterProductionCompileHook ?? options.sentryBuildTimeOptions?.useRunAfterProductionCompileHook,
+    sourceMapUploadStepRuns: true,
     vercelCronsConfigResult: { config: undefined, strategy: undefined },
   });
 

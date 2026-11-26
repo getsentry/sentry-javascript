@@ -194,20 +194,23 @@ export function maybeSetUpRunAfterProductionCompileHook({
     return false;
   }
 
+  const runSentryHook = (distDir: string): Promise<void> =>
+    handleRunAfterProductionCompile(
+      {
+        releaseName,
+        distDir,
+        buildTool: bundlerInfo.isTurbopack ? 'turbopack' : 'webpack',
+        usesNativeDebugIds: bundlerInfo.isTurbopack ? turboPackConfig?.debugIds : undefined,
+        sriEnabled: !!incomingUserNextConfigObject.experimental?.sri,
+      },
+      userSentryOptions,
+    );
+
   if (incomingUserNextConfigObject?.compiler?.runAfterProductionCompile === undefined) {
     incomingUserNextConfigObject.compiler ??= {};
 
     incomingUserNextConfigObject.compiler.runAfterProductionCompile = async ({ distDir }) => {
-      await handleRunAfterProductionCompile(
-        {
-          releaseName,
-          distDir,
-          buildTool: bundlerInfo.isTurbopack ? 'turbopack' : 'webpack',
-          usesNativeDebugIds: bundlerInfo.isTurbopack ? turboPackConfig?.debugIds : undefined,
-          sriEnabled: !!incomingUserNextConfigObject.experimental?.sri,
-        },
-        userSentryOptions,
-      );
+      await runSentryHook(distDir);
     };
     return true;
   }
@@ -219,16 +222,7 @@ export function maybeSetUpRunAfterProductionCompileHook({
         async apply(target, thisArg, argArray) {
           const { distDir }: { distDir: string } = argArray[0] ?? { distDir: '.next' };
           await target.apply(thisArg, argArray);
-          await handleRunAfterProductionCompile(
-            {
-              releaseName,
-              distDir,
-              buildTool: bundlerInfo.isTurbopack ? 'turbopack' : 'webpack',
-              usesNativeDebugIds: bundlerInfo.isTurbopack ? turboPackConfig?.debugIds : undefined,
-              sriEnabled: !!incomingUserNextConfigObject.experimental?.sri,
-            },
-            userSentryOptions,
-          );
+          await runSentryHook(distDir);
         },
       },
     );
@@ -338,6 +332,7 @@ export function getWebpackPatch({
   routeManifest,
   nextJsVersion,
   shouldUseRunAfterProductionCompileHook,
+  hookIsSetUp,
   bundlerInfo,
   vercelCronsConfigResult,
 }: {
@@ -347,6 +342,7 @@ export function getWebpackPatch({
   routeManifest: RouteManifest | undefined;
   nextJsVersion: string | undefined;
   shouldUseRunAfterProductionCompileHook: boolean;
+  hookIsSetUp: boolean;
   bundlerInfo: BundlerInfo;
   vercelCronsConfigResult: VercelCronsConfigResult;
 }): Partial<NextConfigObject> {
@@ -362,6 +358,8 @@ export function getWebpackPatch({
       routeManifest,
       nextJsVersion,
       useRunAfterProductionCompileHook: shouldUseRunAfterProductionCompileHook,
+      // With the hook option, the webpack plugins leave the upload and the deletion to the hook.
+      sourceMapUploadStepRuns: !shouldUseRunAfterProductionCompileHook || hookIsSetUp,
       vercelCronsConfigResult,
     }),
   };

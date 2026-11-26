@@ -120,6 +120,7 @@ export function getFinalConfigObject(
       routeManifest,
       nextJsVersion,
       shouldUseRunAfterProductionCompileHook,
+      hookIsSetUp: runAfterProductionCompileHookIsSetUp,
       bundlerInfo,
       vercelCronsConfigResult,
     }),

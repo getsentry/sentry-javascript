@@ -58,6 +58,7 @@ export function constructWebpackConfigFunction({
   routeManifest,
   nextJsVersion,
   useRunAfterProductionCompileHook,
+  sourceMapUploadStepRuns,
   vercelCronsConfigResult,
 }: {
   userNextConfig: NextConfigObject;
@@ -66,6 +67,8 @@ export function constructWebpackConfigFunction({
   routeManifest: RouteManifest | undefined;
   nextJsVersion: string | undefined;
   useRunAfterProductionCompileHook: boolean | undefined;
+  /** Whether a build step uploads and deletes the source maps. Without one, Sentry turns none on. */
+  sourceMapUploadStepRuns: boolean;
   vercelCronsConfigResult: VercelCronsConfigResult;
 }): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
@@ -367,7 +370,7 @@ export function constructWebpackConfigFunction({
         loadModule<{ sentryWebpackPlugin: any }>('@sentry/bundler-plugins/webpack', module) ?? {};
 
       if (sentryWebpackPlugin) {
-        if (sentryEnablesSourceMaps(userSentryOptions)) {
+        if (sentryEnablesSourceMaps(userSentryOptions, sourceMapUploadStepRuns)) {
           // Source maps can be configured in 3 ways:
           // 1. (next config): productionBrowserSourceMaps
           // 2. (next config): experimental.serverSourceMaps
