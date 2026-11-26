@@ -83,6 +83,9 @@ exports.onCreateWebpackConfig = ({ getConfig, actions, stage }, options) => {
           sourcemaps: {
             // Only include files from the build output directory
             assets: ['./public/**'],
+            // TODO(v12): Remove along with `sourcemaps.disable`.
+            // oxlint-disable-next-line typescript/no-deprecated
+            disable: options.sourcemaps?.disable,
             upload: options.sourcemaps?.upload,
             injectDebugIds: options.sourcemaps?.injectDebugIds,
             sdkDeleteSourceMaps: deleteSourcemapsAfterUpload,

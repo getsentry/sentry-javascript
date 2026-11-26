@@ -346,6 +346,21 @@ describe('onCreateWebpackConfig', () => {
       warnSpy.mockRestore();
     });
 
+    it.each([true, 'disable-upload'] as const)('passes `sourcemaps.disable: %j` to the plugin', disable => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const getConfig = vi.fn().mockReturnValue({ devtool: 'source-map' });
+
+      onCreateWebpackConfig(
+        { actions: { setWebpackConfig: vi.fn() }, getConfig, stage: 'build-javascript' },
+        { sourcemaps: { disable } },
+      );
+
+      expect(sentryWebpackPlugin).toHaveBeenCalledWith(
+        expect.objectContaining({ sourcemaps: expect.objectContaining({ disable }) }),
+      );
+      warnSpy.mockRestore();
+    });
+
     it.each([
       [{ delete: false }, { deleteSourcemapsAfterUpload: true }, undefined],
       [{ delete: true }, { deleteSourcemapsAfterUpload: false }, true],
