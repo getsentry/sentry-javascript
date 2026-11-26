@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "types": ["node"],
+    "esModuleInterop": true,
+    "lib": ["es2020"],
+    "strict": true,
+    "outDir": "dist",
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.bun.ts", "src/**/*.deno.ts"]
+}
