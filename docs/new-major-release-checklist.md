@@ -31,7 +31,21 @@ In this page, `vN` is the new major and `vN-1` is the previous major (e.g. `v11`
 
 - [ ] Release alphas and betas as described in [Publishing a Release](./publishing-a-release.md). Craft publishes prerelease versions with the `next` npm tag,
       so `latest` stays on `vN-1`. We do not publish Lambda layers for prereleases. The first `SentryNodeServerlessSDKvN` layer comes with `N.0.0`.
+- [ ] Do not write a full changelog for a prerelease. Use this text, and link the migration guide at the prerelease tag:
+
+  ```md
+  ## N.0.0-alpha.0
+
+  This is an alpha release of the upcoming major release of version N.
+  This release does not yet entail a comprehensive changelog as version N is not yet stable.
+
+  For this release's iteration of the migration guide, see the [Migration Guide as per `N.0.0-alpha.0`](https://github.com/getsentry/sentry-javascript/blob/N.0.0-alpha.0/MIGRATION.md#upgrading-from-n-1x-to-nx).
+
+  Please note that the migration guide is work in progress and subject to change.
+  ```
+
 - [ ] Deploy pre-releases on our dog-fooding apps
+  - [ ] https://github.com/getsentry/sentry
   - [ ] https://github.com/getsentry/gib-potato
   - [ ] https://github.com/getsentry/sentry-docs
   - [ ] https://github.com/getsentry/sentry-changelog
