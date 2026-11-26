@@ -89,6 +89,18 @@ export const Other = createFileRoute('/b')({ server: { middleware: [loggingMiddl
     expect(result!.code).toContain('middleware: wrapMiddlewaresWithSentry({ loggingMiddleware })');
   });
 
+  it('adds a value import when the module imports the wrapper only as a type', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createFileRoute } from '@tanstack/react-router';
+import type { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';
+export const Route = createFileRoute('/a')({ server: { middleware: [authMiddleware] } });
+`;
+    const result = plugin.transform(code, '/app/routes/a.ts');
+
+    expect(result!.code).toContain("import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';");
+  });
+
   it('instruments server function middlewares in a module whose id ends in a query', () => {
     const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
     const code = `
