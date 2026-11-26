@@ -4,6 +4,36 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 11.19.0
+
+- docs(aws-lambda): Fix the Lambda layer link in the v11 migration guide ([#26912](https://github.com/getsentry/sentry-javascript/pull/26912))
+- feat(solid): Turn Solid 2 observe build records into spans ([#26794](https://github.com/getsentry/sentry-javascript/pull/26794))
+- fix(cloudflare): Use the release that a Sentry bundler plugin injected ([#26914](https://github.com/getsentry/sentry-javascript/pull/26914))
+- fix(cloudflare): Wrap the TanStack Start server entry only once ([#26915](https://github.com/getsentry/sentry-javascript/pull/26915))
+- fix(nextjs): Keep the default Turbopack loader runtime in `next dev` on Bun ([#26923](https://github.com/getsentry/sentry-javascript/pull/26923))
+- fix(nuxt): Filter the query string in server error events ([#26919](https://github.com/getsentry/sentry-javascript/pull/26919))
+- fix(remix): Make `npx @sentry/remix` resolve an executable again ([#26890](https://github.com/getsentry/sentry-javascript/pull/26890))
+- fix(server-utils): Make the Flue instrumentation assignable to Flue's `instrument()` ([#26896](https://github.com/getsentry/sentry-javascript/pull/26896))
+- fix(tanstackstart-react): Instrument server function middlewares in builds without Nitro ([#26913](https://github.com/getsentry/sentry-javascript/pull/26913))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#26918](https://github.com/getsentry/sentry-javascript/pull/26918))
+- chore(ci): Raise Warden review concurrency to 12 ([#26921](https://github.com/getsentry/sentry-javascript/pull/26921))
+- fix(ci): Check out the PR base commit before planning affected projects ([#26922](https://github.com/getsentry/sentry-javascript/pull/26922))
+- fix(ci): Read remaining E2E matrices from the planning job ([#26900](https://github.com/getsentry/sentry-javascript/pull/26900))
+- perf(ci): Build SDK dependencies within CI jobs ([#26732](https://github.com/getsentry/sentry-javascript/pull/26732))
+- perf(ci): Combine metadata collection and test planning ([#26889](https://github.com/getsentry/sentry-javascript/pull/26889))
+- ref(bundler-plugins): Pass the SDK's source map deletion through one internal option ([#26903](https://github.com/getsentry/sentry-javascript/pull/26903))
+- test(e2e): Make Bun, Deno and Cloudflare framework variants required ([#26887](https://github.com/getsentry/sentry-javascript/pull/26887))
+- test(e2e): Run hapi-21 on Bun and Deno ([#26872](https://github.com/getsentry/sentry-javascript/pull/26872))
+- test(nuxt): Add baseline span tree E2E tests ([#26885](https://github.com/getsentry/sentry-javascript/pull/26885))
+
+</details>
+
+Work in this release was contributed by @Caf3z1n. Thank you for your contribution!
+
 ## 11.18.0
 
 ### Important Changes

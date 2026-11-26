@@ -64,9 +64,7 @@ exports.onCreateWebpackConfig = ({ getConfig, actions, stage }, options) => {
             assets: ['./public/**'],
             upload: options.sourcemaps?.upload,
             injectDebugIds: options.sourcemaps?.injectDebugIds,
-            deleteSourcemapsAfterUpload,
-            // Also removes CSS maps and maps of chunks that are not uploaded.
-            sdkEnabledSourceMaps: deleteSourcemapsAfterUpload,
+            sdkDeleteSourceMaps: deleteSourcemapsAfterUpload,
             // Ignore files that aren't users' source code related
             ignore: [
               'polyfill-*', // related to polyfills

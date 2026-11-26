@@ -213,27 +213,20 @@ describe('makeAddSentryVitePlugin()', () => {
     },
   );
 
-  describe('deleteSourcemapsAfterUpload', () => {
-    /** Calls the function options like the bundler plugin, which passes an environment with its own setting. */
-    function decide(environment?: string) {
-      const { deleteSourcemapsAfterUpload, sdkEnabledSourceMaps } = sentryVitePluginOptions?.sourcemaps ?? {};
-      return {
-        delete:
-          typeof deleteSourcemapsAfterUpload === 'function'
-            ? deleteSourcemapsAfterUpload(environment)
-            : deleteSourcemapsAfterUpload,
-        sdkEnabled:
-          typeof sdkEnabledSourceMaps === 'function' ? sdkEnabledSourceMaps(environment) : sdkEnabledSourceMaps,
-      };
+  describe('sdkDeleteSourceMaps', () => {
+    /** Calls the option like the bundler plugin, which passes an environment with its own setting. */
+    function decide(environment?: string): boolean | undefined {
+      const { sdkDeleteSourceMaps } = sentryVitePluginOptions?.sourcemaps ?? {};
+      return typeof sdkDeleteSourceMaps === 'function' ? sdkDeleteSourceMaps(environment) : sdkDeleteSourceMaps;
     }
 
     it('reads the state when the bundler plugin decides, not when the plugin is created', () => {
       const state = createSourceMapState();
       makeAddSentryVitePlugin({}, state);
 
-      expect(decide()).toEqual({ delete: undefined, sdkEnabled: false });
+      expect(decide()).toBeUndefined();
       state.sdkEnabledSourceMaps = true;
-      expect(decide()).toEqual({ delete: true, sdkEnabled: true });
+      expect(decide()).toBe(true);
     });
 
     it.each([
@@ -260,19 +253,14 @@ describe('makeAddSentryVitePlugin()', () => {
     ])('asks for deletion of the source maps the SDK enabled when $label', ({ state, expected }) => {
       makeAddSentryVitePlugin({}, state);
 
-      expect({ top: decide().delete, ssr: decide('ssr').delete, nitro: decide('nitro').delete }).toEqual(expected);
-      expect({
-        top: decide().sdkEnabled,
-        ssr: decide('ssr').sdkEnabled,
-        nitro: decide('nitro').sdkEnabled,
-      }).toEqual({ top: expected.top === true, ssr: false, nitro: expected.nitro === true });
+      expect({ top: decide(), ssr: decide('ssr'), nitro: decide('nitro') }).toEqual(expected);
     });
 
     // A client environment with its own setting was set by the user, because the SDK sets only the top level.
     it('keeps the source maps of an environment that the user configured', () => {
       makeAddSentryVitePlugin({}, { sdkEnabledSourceMaps: true, sdkEnabledNitroSourceMaps: true });
 
-      expect(decide('client')).toEqual({ delete: undefined, sdkEnabled: false });
+      expect(decide('client')).toBeUndefined();
     });
 
     it.each([
@@ -286,11 +274,8 @@ describe('makeAddSentryVitePlugin()', () => {
           { sdkEnabledSourceMaps: sdkEnabled, sdkEnabledNitroSourceMaps: sdkEnabled },
         );
 
-        expect([decide().delete, decide('ssr').delete, decide('nitro').delete]).toEqual([
-          expected,
-          undefined,
-          expected,
-        ]);
+        expect(sentryVitePluginOptions?.sourcemaps?.deleteSourcemapsAfterUpload).toBeUndefined();
+        expect([decide(), decide('ssr'), decide('nitro')]).toEqual([expected, undefined, expected]);
       },
     );
 
@@ -303,11 +288,12 @@ describe('makeAddSentryVitePlugin()', () => {
     });
 
     it.each([{ delete: true }, { delete: false, deleteSourcemapsAfterUpload: true }] as const)(
-      'passes no `deleteSourcemapsAfterUpload` with %j',
+      'passes no `deleteSourcemapsAfterUpload` and no `sdkDeleteSourceMaps` with %j',
       sourcemaps => {
         makeAddSentryVitePlugin({ sourcemaps }, { sdkEnabledSourceMaps: true, sdkEnabledNitroSourceMaps: true });
 
         expect(sentryVitePluginOptions?.sourcemaps?.deleteSourcemapsAfterUpload).toBeUndefined();
+        expect(sentryVitePluginOptions?.sourcemaps?.sdkDeleteSourceMaps).toBeUndefined();
       },
     );
 
@@ -320,11 +306,7 @@ describe('makeAddSentryVitePlugin()', () => {
         );
 
         expect(sentryVitePluginOptions?.sourcemaps?.filesToDeleteAfterUpload).toEqual(files);
-        expect([decide().delete, decide('ssr').delete, decide('nitro').delete]).toEqual([
-          undefined,
-          undefined,
-          undefined,
-        ]);
+        expect([decide(), decide('ssr'), decide('nitro')]).toEqual([undefined, undefined, undefined]);
       },
     );
   });

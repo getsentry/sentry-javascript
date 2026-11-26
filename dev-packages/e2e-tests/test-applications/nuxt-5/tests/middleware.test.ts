@@ -1,3 +1,4 @@
+import { MIDDLEWARE as MIDDLEWARE_OP } from '@sentry/conventions/op';
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
@@ -200,4 +201,15 @@ test.describe('Server Middleware Instrumentation (nitro hooks)', () => {
     expect(findMiddlewareSpan(spans, '05-array-hooks', 'middleware', 1)?.status).toBe('error');
     expect(errorEvent.exception?.values?.[0]?.value).toBe('OnRequest[1] hook error');
   });
+});
+
+test('creates exactly one span for each server middleware handler of a request', async ({ request }) => {
+  const spansPromise = collectRequestSpans();
+
+  await request.get('/api/middleware-test');
+
+  // No filter on the middleware name, so a `middleware` span from any other source fails the count.
+  const middlewareSpans = (await spansPromise).filter(span => getSpanOp(span) === MIDDLEWARE_OP);
+
+  expect(middlewareSpans).toHaveLength(MIDDLEWARE.nitro.spanCount + MIDDLEWARE['nuxt/server'].spanCount);
 });

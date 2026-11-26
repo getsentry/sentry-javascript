@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { GLOBAL_OBJ } from '@sentry/core';
+import { afterEach, describe, expect, it } from 'vitest';
 import { getFinalOptions } from '../src/options';
 
 describe('getFinalOptions', () => {
@@ -205,6 +206,35 @@ describe('getFinalOptions', () => {
       const result = getFinalOptions(userOptions, env);
 
       expect(result).toEqual(expect.objectContaining({ dsn: 'test-dsn', release: undefined }));
+    });
+  });
+
+  describe('injected release', () => {
+    afterEach(() => {
+      delete GLOBAL_OBJ.SENTRY_RELEASE;
+    });
+
+    it('uses the release that a bundler plugin injected', () => {
+      GLOBAL_OBJ.SENTRY_RELEASE = { id: 'injected-release' };
+
+      const result = getFinalOptions({ dsn: 'test-dsn' }, {});
+
+      expect(result).toEqual(expect.objectContaining({ dsn: 'test-dsn', release: 'injected-release' }));
+    });
+
+    it('prefers the injected release over CF_VERSION_METADATA.id', () => {
+      GLOBAL_OBJ.SENTRY_RELEASE = { id: 'injected-release' };
+
+      const result = getFinalOptions({ dsn: 'test-dsn' }, { CF_VERSION_METADATA: { id: 'version-123' } });
+
+      expect(result).toEqual(expect.objectContaining({ dsn: 'test-dsn', release: 'injected-release' }));
+    });
+
+    it('prefers SENTRY_RELEASE and the user release over the injected release', () => {
+      GLOBAL_OBJ.SENTRY_RELEASE = { id: 'injected-release' };
+
+      expect(getFinalOptions({ dsn: 'test-dsn' }, { SENTRY_RELEASE: 'env-release' }).release).toBe('env-release');
+      expect(getFinalOptions({ dsn: 'test-dsn', release: 'user-release' }, {}).release).toBe('user-release');
     });
   });
 

@@ -8,6 +8,7 @@ describe('maybeSetTurbopackPluginRuntimeStrategyOption', () => {
   afterEach(() => {
     Object.defineProperty(process, 'versions', originalVersions);
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it.each(['16.2.0', '16.3.8', '17.0.0'])(
@@ -43,6 +44,23 @@ describe('maybeSetTurbopackPluginRuntimeStrategyOption', () => {
 
     maybeSetTurbopackPluginRuntimeStrategyOption(config, '16.2.0', true, true);
 
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('keeps the Next.js default in `next dev` on Bun', () => {
+    Object.defineProperty(process, 'versions', { ...originalVersions, value: { ...process.versions, bun: '1.4.5' } });
+    vi.stubEnv('NODE_ENV', 'development');
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const defaultConfig: NextConfigObject = {};
+    const childProcessesConfig: NextConfigObject = {
+      experimental: { turbopackPluginRuntimeStrategy: 'childProcesses' },
+    };
+
+    maybeSetTurbopackPluginRuntimeStrategyOption(defaultConfig, '16.4.6', true);
+    maybeSetTurbopackPluginRuntimeStrategyOption(childProcessesConfig, '16.4.6', true);
+
+    expect(defaultConfig.experimental).toBeUndefined();
+    expect(childProcessesConfig.experimental).toEqual({ turbopackPluginRuntimeStrategy: 'childProcesses' });
     expect(warnSpy).not.toHaveBeenCalled();
   });
 

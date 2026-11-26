@@ -25,24 +25,21 @@ export type SourceMapState = {
 type SourceMapsOptions = SentrySolidStartPluginOptions['sourcemaps'];
 
 /**
- * The bundler plugin calls these when it decides, after `makeEnableSourceMapsVitePlugin` ran.
- * It passes the name of an environment with its own `build.sourcemap`, and `undefined` for the
+ * The bundler plugin calls `sdkDeleteSourceMaps` when it decides, after `makeEnableSourceMapsVitePlugin`
+ * ran. It passes the name of an environment with its own `build.sourcemap`, and `undefined` for the
  * top-level setting. The SDK only turns on the top-level maps: Nitro's environments get their
  * setting from Nitro, and `@sentry/nitro` handles their maps.
  *
  * With `keepWhenUploadDisabled`, maps the SDK turned on stay with `disable: 'disable-upload'`.
  * A user's own `filesToDeleteAfterUpload` replaces the SDK's deletion.
- *
- * With `sourcemaps.delete` the bundler plugin ignores `deleteSourcemapsAfterUpload` and warns if
- * the user set it, so it only gets the user's value then.
  */
 function makeSourceMapDeletionOptions(
   sourcemaps: SourceMapsOptions,
   state: SourceMapState,
   { keepWhenUploadDisabled }: { keepWhenUploadDisabled: boolean },
 ): {
-  deleteSourcemapsAfterUpload: boolean | undefined | ((environment?: string) => boolean | undefined);
-  sdkEnabledSourceMaps: (environment?: string) => boolean;
+  deleteSourcemapsAfterUpload: boolean | undefined;
+  sdkDeleteSourceMaps: ((environment?: string) => boolean | undefined) | undefined;
 } {
   const sdkEnabledSourceMaps = (environment?: string): boolean =>
     environment === undefined && state.sdkEnabledSourceMaps;
@@ -51,17 +48,16 @@ function makeSourceMapDeletionOptions(
   const keepSdkEnabledSourceMaps = keepWhenUploadDisabled && !!resolveSourceMapsFeatures(sourcemaps).legacyDisable;
 
   return {
-    deleteSourcemapsAfterUpload:
-      sourcemaps?.delete !== undefined
-        ? sourcemaps.deleteSourcemapsAfterUpload
-        : environment =>
-            sourcemaps?.deleteSourcemapsAfterUpload ??
-            (sdkEnabledSourceMaps(environment) &&
+    deleteSourcemapsAfterUpload: sourcemaps?.deleteSourcemapsAfterUpload,
+    sdkDeleteSourceMaps:
+      sourcemaps?.delete === undefined
+        ? environment =>
+            sdkEnabledSourceMaps(environment) &&
             !keepSdkEnabledSourceMaps &&
             sourcemaps?.filesToDeleteAfterUpload === undefined
               ? true
-              : undefined),
-    sdkEnabledSourceMaps,
+              : undefined
+        : undefined,
   };
 }
 
@@ -243,7 +239,7 @@ export function makeEnableSourceMapsVitePlugin(
  *     3. Users didn't set source maps generation
  *       - we enable 'hidden' source maps generation when Sentry uploads the maps, or when
  *         `sourcemaps.delete: false` keeps them for a manual upload. Otherwise we leave it unset
- *       - without `sourcemaps.delete` we pass `deleteSourcemapsAfterUpload: true`, so the maps never
+ *       - without `sourcemaps.delete` we pass `sdkDeleteSourceMaps: true`, so the maps never
  *         reach the build output
  *
  * --> only exported for testing

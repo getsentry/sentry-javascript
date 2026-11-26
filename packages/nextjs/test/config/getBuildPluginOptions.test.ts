@@ -498,7 +498,7 @@ describe('getBuildPluginOptions', () => {
 
       expect(result.sourcemaps).toMatchObject({
         filesToDeleteAfterUpload: undefined,
-        deleteSourcemapsAfterUpload: true,
+        sdkDeleteSourceMaps: true,
       });
     });
 
@@ -516,7 +516,7 @@ describe('getBuildPluginOptions', () => {
 
       expect(result.sourcemaps).toMatchObject({
         filesToDeleteAfterUpload: undefined,
-        deleteSourcemapsAfterUpload: false,
+        sdkDeleteSourceMaps: false,
       });
     });
 
@@ -536,7 +536,7 @@ describe('getBuildPluginOptions', () => {
       // The upload runs after the compile, and the after-production-compile options delete the maps.
       expect(result.sourcemaps).toMatchObject({
         filesToDeleteAfterUpload: undefined,
-        deleteSourcemapsAfterUpload: false,
+        sdkDeleteSourceMaps: false,
       });
     });
 
@@ -556,14 +556,13 @@ describe('getBuildPluginOptions', () => {
 
         expect(result.sourcemaps).toMatchObject({
           filesToDeleteAfterUpload: undefined,
-          deleteSourcemapsAfterUpload: false,
-          sdkEnabledSourceMaps: false,
+          sdkDeleteSourceMaps: false,
         });
       },
     );
 
     it.each(['after-production-compile-webpack', 'after-production-compile-turbopack'] as const)(
-      'leaves deleteSourcemapsAfterUpload unset for %s builds',
+      'leaves sdkDeleteSourceMaps unset for %s builds',
       buildTool => {
         const result = getBuildPluginOptions({
           sentryBuildOptions: {
@@ -577,12 +576,12 @@ describe('getBuildPluginOptions', () => {
         });
 
         expect(result.sourcemaps?.deleteSourcemapsAfterUpload).toBeUndefined();
-        expect(result.sourcemaps?.sdkEnabledSourceMaps).toBeUndefined();
+        expect(result.sourcemaps?.sdkDeleteSourceMaps).toBeUndefined();
       },
     );
 
     it.each([true, false])(
-      'sets sdkEnabledSourceMaps to the client delete option (deleteSourcemapsAfterUpload: %s)',
+      'sets sdkDeleteSourceMaps to the client delete option (deleteSourcemapsAfterUpload: %s)',
       option => {
         const result = getBuildPluginOptions({
           sentryBuildOptions: {
@@ -595,7 +594,8 @@ describe('getBuildPluginOptions', () => {
           buildTool: 'webpack-client',
         });
 
-        expect(result.sourcemaps).toMatchObject({ deleteSourcemapsAfterUpload: option, sdkEnabledSourceMaps: option });
+        expect(result.sourcemaps).toMatchObject({ sdkDeleteSourceMaps: option });
+        expect(result.sourcemaps?.deleteSourcemapsAfterUpload).toBeUndefined();
       },
     );
 
@@ -616,7 +616,7 @@ describe('getBuildPluginOptions', () => {
       });
 
       expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['.next/static/**/*.map']);
-      expect(result.sourcemaps?.deleteSourcemapsAfterUpload).toBe(false);
+      expect(result.sourcemaps?.sdkDeleteSourceMaps).toBe(false);
     });
 
     it('uses custom filesToDeleteAfterUpload array when provided', () => {
@@ -656,7 +656,7 @@ describe('getBuildPluginOptions', () => {
       });
 
       expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(['custom/**/*.map']);
-      expect(result.sourcemaps?.deleteSourcemapsAfterUpload).toBe(false);
+      expect(result.sourcemaps?.sdkDeleteSourceMaps).toBe(false);
     });
 
     it('filesToDeleteAfterUpload bypasses server build guard', () => {
@@ -816,7 +816,7 @@ describe('getBuildPluginOptions', () => {
           buildTool,
         });
 
-        expect(result.sourcemaps).toMatchObject({ deleteSourcemapsAfterUpload: false, sdkEnabledSourceMaps: false });
+        expect(result.sourcemaps).toMatchObject({ sdkDeleteSourceMaps: false });
         expect(result.sourcemaps).not.toHaveProperty('delete');
       },
     );

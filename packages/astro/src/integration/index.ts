@@ -80,15 +80,11 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             sourceMapState.sdkEnabled && !hasEnvironmentSourceMapSetting(config, environment);
           // A user's own glob replaces the SDK's deletion. Maps in a Cloudflare `_worker.js` folder
           // stay, so that wrangler can read them for `upload_source_maps`.
-          // With `sourcemaps.delete` the bundler plugin ignores this option and warns if the user set it.
-          const deleteSourcemapsAfterUpload =
-            sourcemaps?.delete !== undefined
-              ? sourcemaps.deleteSourcemapsAfterUpload
-              : (sourcemaps?.deleteSourcemapsAfterUpload ??
-                (sourcemaps?.filesToDeleteAfterUpload === undefined
-                  ? (environment?: string) =>
-                      sdkEnabledSourceMaps(environment) && !buildState.writesCloudflareWorker ? true : undefined
-                  : undefined));
+          const sdkDeleteSourceMaps =
+            sourcemaps?.delete === undefined && sourcemaps?.filesToDeleteAfterUpload === undefined
+              ? (environment?: string) =>
+                  sdkEnabledSourceMaps(environment) && !buildState.writesCloudflareWorker ? true : undefined
+              : undefined;
 
           const sentryPlugins = sentryVitePlugin({
             applicationKey,
@@ -112,8 +108,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
             sourcemaps: {
               ...sourcemaps,
               assets: sourcemaps?.assets ?? getSourcemapsAssetsGlobs(config),
-              deleteSourcemapsAfterUpload,
-              sdkEnabledSourceMaps,
+              sdkDeleteSourceMaps,
             },
             bundleSizeOptimizations: {
               ...bundleSizeOptimizations,

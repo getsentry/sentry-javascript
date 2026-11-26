@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import type { SentryBuildPluginManager, SourceMapDecision, SourceMapKind } from '../core';
-import { getDeleteOption, getSdkEnabledSourceMaps } from '../core';
+import { getDeleteOption, getSdkDeleteSourceMaps } from '../core';
 import type { OutputMatch, RollupSourceMapSetting, SourceMapHandling } from '../rollup/source-map-handling';
 import { getOutputMatch, sourceMapKindFromRollupSetting } from '../rollup/source-map-handling';
 
@@ -122,7 +122,8 @@ export function createViteSourceMapHooks(
         const deleteOption = getDeleteOption(normalizedOptions, environmentName);
         // `sourcemaps.delete: true` removes every source map, like for maps the SDK turned on.
         const removeAll =
-          normalizedOptions.sourcemaps?.delete === true || getSdkEnabledSourceMaps(normalizedOptions, environmentName);
+          normalizedOptions.sourcemaps?.delete === true ||
+          getSdkDeleteSourceMaps(normalizedOptions, environmentName) === true;
 
         for (const output of getOutputs(config.root, environment.build)) {
           // Hidden maps of an output's own setting are removed when the user

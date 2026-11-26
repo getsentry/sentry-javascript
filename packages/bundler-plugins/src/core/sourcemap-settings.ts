@@ -58,27 +58,29 @@ export function getSourceMapFeatures(options: NormalizedOptions): SourceMapFeatu
   return { injectDebugIds, upload, stampEmittedFiles: injectDebugIds && !upload };
 }
 
-/** Reads `sourcemaps.deleteSourcemapsAfterUpload`, calling the internal function form if given. */
-export function getDeleteSourcemapsAfterUpload(options: NormalizedOptions, environment?: string): boolean | undefined {
-  const value = options.sourcemaps?.deleteSourcemapsAfterUpload;
+/** Reads the internal `sourcemaps.sdkDeleteSourceMaps` option, calling its function form if given. */
+export function getSdkDeleteSourceMaps(options: NormalizedOptions, environment?: string): boolean | undefined {
+  const value = options.sourcemaps?.sdkDeleteSourceMaps;
   return typeof value === 'function' ? value(environment) : value;
 }
 
-/** Reads `sourcemaps.delete`. When it is unset, `sourcemaps.deleteSourcemapsAfterUpload` decides. */
+/**
+ * Reads `sourcemaps.delete`. When it is unset, `sourcemaps.deleteSourcemapsAfterUpload` decides, and
+ * then the SDK.
+ */
 export function getDeleteOption(options: NormalizedOptions, environment?: string): boolean | undefined {
-  return options.sourcemaps?.delete ?? getDeleteSourcemapsAfterUpload(options, environment);
-}
-
-/** Reads the internal `sourcemaps.sdkEnabledSourceMaps` option, calling its function form if given. */
-export function getSdkEnabledSourceMaps(options: NormalizedOptions, environment?: string): boolean {
-  const value = options.sourcemaps?.sdkEnabledSourceMaps;
-  return (typeof value === 'function' ? value(environment) : value) === true;
+  return (
+    options.sourcemaps?.delete ??
+    options.sourcemaps?.deleteSourcemapsAfterUpload ??
+    getSdkDeleteSourceMaps(options, environment)
+  );
 }
 
 /**
  * Decides whether the plugin turns hidden source maps on and whether it removes the maps from the
  * build output after the upload. The plugin only turns maps on when an upload can run, and only
- * removes maps it turned on itself unless `deleteSourcemapsAfterUpload` says otherwise.
+ * removes maps it turned on itself unless `deleteSourcemapsAfterUpload` or the SDK's
+ * `sdkDeleteSourceMaps` says otherwise. The user's `deleteSourcemapsAfterUpload` wins over the SDK.
  */
 export function decideSourceMapHandling(
   kind: SourceMapKind,
@@ -92,16 +94,19 @@ export function decideSourceMapHandling(
     return decideWithDeleteOption(kind, options.sourcemaps.delete, features, uploadPossible);
   }
 
-  const deleteOption = getDeleteSourcemapsAfterUpload(options, environment);
-  const sdkEnabledSourceMaps = getSdkEnabledSourceMaps(options, environment);
+  const userDeleteOption = options.sourcemaps?.deleteSourcemapsAfterUpload;
+  const sdkDeleteOption = getSdkDeleteSourceMaps(options, environment);
+  const deleteOption = userDeleteOption ?? sdkDeleteOption;
+  const sdkRemovesAll = sdkDeleteOption === true;
+  const fromUser = userDeleteOption !== undefined;
 
   if (!uploadPossible || !features.upload) {
     if (deleteOption !== true || (kind !== 'hidden' && kind !== 'visible')) {
       return NO_CHANGE;
     }
-    // Users switch the upload off to upload the maps themselves. Maps the
-    // SDK turned on are still removed, as the SDKs' own globs did.
-    if (!features.upload && !sdkEnabledSourceMaps) {
+    // Users switch the upload off to upload the maps themselves. The SDK's
+    // deletion still runs, as the SDKs' own globs did.
+    if (!features.upload && !sdkRemovesAll) {
       return {
         ...NO_CHANGE,
         log: {
@@ -117,12 +122,17 @@ export function decideSourceMapHandling(
     return {
       enableHidden: kind === 'visible',
       deleteAfterUpload: true,
-      removeAllSourceMaps: sdkEnabledSourceMaps,
-      log: {
-        level: 'warn',
-        message:
-          'Source maps are not uploaded, but they are removed from the build output because `sourcemaps.deleteSourcemapsAfterUpload` is set.',
-      },
+      removeAllSourceMaps: sdkRemovesAll,
+      log: fromUser
+        ? {
+            level: 'warn',
+            message:
+              'Source maps are not uploaded, but they are removed from the build output because `sourcemaps.deleteSourcemapsAfterUpload` is set.',
+          }
+        : {
+            level: 'info',
+            message: 'Source maps are not uploaded, but the Sentry SDK removes them from the build output.',
+          },
     };
   }
 
@@ -164,7 +174,7 @@ export function decideSourceMapHandling(
           level: 'info',
           message:
             'Enabling hidden source maps. They are uploaded to Sentry and removed from the build output. ' +
-            'Set `sourcemaps.deleteSourcemapsAfterUpload: false` to keep them.',
+            'Set `sourcemaps.delete: false` to keep them.',
         },
       };
 
@@ -172,7 +182,7 @@ export function decideSourceMapHandling(
       if (deleteOption !== true) {
         return NO_CHANGE;
       }
-      return { enableHidden: false, deleteAfterUpload: true, removeAllSourceMaps: sdkEnabledSourceMaps };
+      return { enableHidden: false, deleteAfterUpload: true, removeAllSourceMaps: sdkRemovesAll };
 
     case 'visible':
       if (deleteOption !== true) {
@@ -181,12 +191,14 @@ export function decideSourceMapHandling(
       return {
         enableHidden: true,
         deleteAfterUpload: true,
-        removeAllSourceMaps: sdkEnabledSourceMaps,
+        removeAllSourceMaps: sdkRemovesAll,
         log: {
           level: 'info',
-          message:
-            'Switching to hidden source maps because `sourcemaps.deleteSourcemapsAfterUpload` is set. ' +
-            'Without the `sourceMappingURL` comment browsers do not request the removed map files.',
+          message: fromUser
+            ? 'Switching to hidden source maps because `sourcemaps.deleteSourcemapsAfterUpload` is set. ' +
+              'Without the `sourceMappingURL` comment browsers do not request the removed map files.'
+            : 'Switching to hidden source maps, because the Sentry SDK removes them from the build output. ' +
+              'Without the `sourceMappingURL` comment browsers do not request the removed map files.',
         },
       };
   }
