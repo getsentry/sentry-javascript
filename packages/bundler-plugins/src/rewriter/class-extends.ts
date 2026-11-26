@@ -67,8 +67,9 @@ function collectBaseImports(ast: ProgramBody, base: BaseClassRef): BaseBindings 
   for (const node of ast.body) {
     if (node.type !== 'ImportDeclaration') continue;
     const importNode = node as ImportDeclarationNode;
-    if (importNode.source?.value !== base.module) continue;
+    if (importNode.source?.value !== base.module || importNode.importKind === 'type') continue;
     for (const specifier of importNode.specifiers ?? []) {
+      if (specifier.importKind === 'type') continue;
       if (specifier.type === 'ImportSpecifier' && specifier.imported?.name === base.name && specifier.local?.name) {
         named.add(specifier.local.name);
       } else if (specifier.type === 'ImportNamespaceSpecifier' && specifier.local?.name) {

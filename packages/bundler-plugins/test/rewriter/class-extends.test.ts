@@ -50,6 +50,20 @@ describe('findClassesExtending', () => {
     expect(find(code.join('\n'))).toEqual(new Set());
   });
 
+  it.each([
+    "import type { WorkerEntrypoint as WE } from 'cloudflare:workers';",
+    "import { type WorkerEntrypoint as WE } from 'cloudflare:workers';",
+    "import type * as WE from 'cloudflare:workers';",
+  ])('ignores the type-only import `%s`', typeImport => {
+    const code = [
+      typeImport,
+      'const WE = class {};',
+      'class A extends WE {}',
+      'class B extends WE.WorkerEntrypoint {}',
+    ];
+    expect(findClassesExtending(parseModule(code.join('\n'), 'module.ts'), BASE)).toEqual(new Set());
+  });
+
   it('ignores classes without the base import', () => {
     expect(find('class A extends B {}')).toEqual(new Set());
   });
