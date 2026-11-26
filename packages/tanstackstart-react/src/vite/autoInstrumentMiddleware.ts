@@ -2,10 +2,10 @@ import {
   addImport,
   type BaseNode,
   type CallExpressionNode,
+  collectDeclaringStatements,
   createCallSiteRewriter,
   createRewriteState,
   exportedName,
-  hasImport,
   isCallToMethod,
   parseModule,
   type ProgramBody,
@@ -164,7 +164,8 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
     include: { id: SOURCE_FILE_REGEX, contains },
     apply: ctx => {
       wrapSites(ctx, findSites, debug);
-      if (ctx.state.needsImport && !hasImport(ctx.ast, SENTRY_MODULE, WRAPPER)) {
+      // The module may already bind the wrapper, e.g. through a re-export.
+      if (ctx.state.needsImport && !collectDeclaringStatements(ctx.ast).has(WRAPPER)) {
         addImport(ctx.state, ctx.ast, `import { ${WRAPPER} } from '${SENTRY_MODULE}';`);
       }
     },
