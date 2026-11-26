@@ -323,7 +323,7 @@ function bindOperation(
       },
       // `streamText`/`streamObject` return synchronously, so their operation span would otherwise end
       // before the stream drains — losing the aggregate usage/output. Defer the end and await the result's
-      // completion promises (`totalUsage`/`text`/…, which resolve on drain), mirroring how v7's channel
+      // completion promises (`steps`/`text`/…, which resolve on drain), mirroring how v7's channel
       // defers the operation span on the SDK's total-usage promise.
       deferSpanEnd: ({ span, data, end }) => deferStreamTextOperationEnd(span, data, end),
     },
@@ -359,37 +359,35 @@ function deferStreamTextOperationEnd(
   const streamResult = data.result;
   void (async () => {
     try {
-      const [usage, text, objectOutcome, toolCalls, finishReason, response] = await Promise.all([
-        streamResult.totalUsage ?? streamResult.usage,
-        streamResult.text,
-        // Settle `object` into an outcome so a validation failure can't short-circuit the usage read.
-        type === 'streamObject'
-          ? Promise.resolve(streamResult.object).then(
-              value => ({ value }),
-              (error: unknown) => ({ value: undefined, error }),
-            )
-          : { value: undefined },
-        streamResult.toolCalls,
-        streamResult.finishReason,
-        streamResult.response,
-      ]);
+      const [usage, text, objectOutcome, toolCalls, finishReason, response, steps, providerMetadata] =
+        await Promise.all([
+          streamResult.usage,
+          streamResult.text,
+          // Settle `object` into an outcome so a validation failure can't short-circuit the usage read.
+          type === 'streamObject'
+            ? Promise.resolve(streamResult.object).then(
+                value => ({ value }),
+                (error: unknown) => ({ value: undefined, error }),
+              )
+            : { value: undefined },
+          streamResult.toolCalls,
+          streamResult.finishReason,
+          streamResult.response,
+          streamResult.steps,
+          streamResult.providerMetadata,
+        ]);
+      const result = { usage, toolCalls, finishReason, response, steps, providerMetadata };
       if ('error' in objectOutcome) {
         // The model call itself succeeded, so keep its usage on the span; `beforeSpanEnd` skips
         // enrichment once `end(error)` marks the payload as errored.
-        message.result = { usage, toolCalls, finishReason, response };
+        message.result = result;
         enrichSpanOnEnd(span, message);
         end(objectOutcome.error);
         return;
       }
       const object = objectOutcome.value;
       // Feed the resolved values back through the shared enrichment: `beforeSpanEnd` reads `data.result`.
-      data.result = {
-        usage,
-        text: text ?? (isObjectLike(object) ? JSON.stringify(object) : object),
-        toolCalls,
-        finishReason,
-        response,
-      };
+      data.result = { ...result, text: text ?? (isObjectLike(object) ? JSON.stringify(object) : object) };
       end();
     } catch (error) {
       end(error);
@@ -399,9 +397,12 @@ function deferStreamTextOperationEnd(
   return true;
 }
 
-/** A streamed result exposes its aggregates as promises (`totalUsage`/`usage`); a settled result does not. */
+/**
+ * A streamed result exposes its aggregates as promises; a settled result does not. Reading `totalUsage`
+ * would create a promise that rejects unobserved when the stream aborts.
+ */
 function isStreamingResult(result: unknown): result is Record<string, PromiseLike<unknown> | undefined> {
-  return isObjectLike(result) && (isThenable(result.totalUsage) || isThenable(result.usage));
+  return isObjectLike(result) && (isThenable(result.steps) || isThenable(result.usage));
 }
 
 function isThenable(value: unknown): boolean {
