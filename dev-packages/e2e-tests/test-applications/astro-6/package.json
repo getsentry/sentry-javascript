@@ -29,7 +29,7 @@
     "wrangler": "^4.72.0"
   },
   "sentryTest": {
-    "optionalVariants": [
+    "variants": [
       {
         "runtime": "bun",
         "label": "astro-6 (bun)"

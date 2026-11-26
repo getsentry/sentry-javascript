@@ -106,5 +106,23 @@ IMPORT_SURFACES.forEach(({ name, apiPrefix }) => {
         }),
       );
     });
+
+    test('filters a secret of the query string in the error event', async ({ request }) => {
+      const errorPromise = waitForError('nuxt-4', errorEvent => {
+        return (
+          errorEvent?.exception?.values?.[0]?.value === 'Nuxt 4 Server error' &&
+          errorEvent.request?.url?.includes(`${apiPrefix}/server-error`) === true &&
+          errorEvent.request?.query_string?.startsWith('include=profile') === true
+        );
+      });
+
+      await request.get(`${apiPrefix}/server-error?include=profile&auth=very-secret`);
+
+      const error = await errorPromise;
+
+      expect(error.transaction).toBe(`GET ${apiPrefix}/server-error`);
+      expect(error.contexts?.nuxt?.path).toBe(`${apiPrefix}/server-error?include=profile&auth=[Filtered]`);
+      expect(JSON.stringify(error)).not.toContain('very-secret');
+    });
   });
 });

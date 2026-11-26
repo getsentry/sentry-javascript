@@ -1,4 +1,5 @@
 import { captureException, getClient } from '@sentry/core';
+import type { CapturedErrorContext } from 'nitropack/types';
 import { afterEach, beforeEach, describe, expect, it, type Mock, test, vi } from 'vitest';
 import type { ComponentPublicInstance } from 'vue';
 import { extractErrorContext, reportNuxtError } from '../../src/runtime/utils';
@@ -35,6 +36,17 @@ describe('extractErrorContext', () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     expect(extractErrorContext(partialContext)).toEqual({ path: '/test' });
+  });
+
+  it('filters sensitive query params in the path of an h3 v1 (Nitro v2) event', () => {
+    const context = {
+      event: { method: 'GET', path: '/users/42?include=profile&token=abc123' },
+    } as unknown as CapturedErrorContext;
+
+    expect(extractErrorContext(context)).toEqual({
+      method: 'GET',
+      path: '/users/42?include=profile&token=[Filtered]',
+    });
   });
 
   it('reads method and path from an h3 v2 (Nitro v3) event, which has no `method`/`path` getters', () => {

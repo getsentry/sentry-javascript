@@ -43,12 +43,14 @@
   },
   "sentryTest": {
     "needsSecrets": true,
-    "optionalVariants": [
+    "variants": [
       {
         "build-command": "pnpm test:build:cloudflare",
         "assert-command": "pnpm test:assert:cloudflare",
         "label": "gen-ai-libraries (cloudflare)"
-      },
+      }
+    ],
+    "optionalVariants": [
       {
         "build-command": "pnpm test:build-latest",
         "label": "gen-ai-libraries (latest)"
