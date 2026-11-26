@@ -1,4 +1,4 @@
-import { _INTERNAL_captureOptionsSetByUser, isObjectLike, envToBool } from '@sentry/core';
+import { _INTERNAL_captureOptionsSetByUser, GLOBAL_OBJ, isObjectLike, envToBool } from '@sentry/core';
 import type { CloudflareOptions } from './client';
 
 /**
@@ -31,7 +31,8 @@ function getEnvVar<T extends Record<string, unknown>>(env: unknown, varName: key
  * Release is determined with the following priority (highest to lowest):
  * 1. User-provided release option
  * 2. SENTRY_RELEASE environment variable
- * 3. CF_VERSION_METADATA.id binding (if configured in the wrangler config)
+ * 3. The release that a Sentry bundler plugin injected into the build (`globalThis.SENTRY_RELEASE.id`)
+ * 4. CF_VERSION_METADATA.id binding (if configured in the wrangler config)
  *
  * @param options - The options passed in from the user.
  * @param env - The environment variables.
@@ -45,13 +46,14 @@ export function getFinalOptions(options: CloudflareOptions = {}, env: unknown): 
     return userOptions;
   }
 
-  // Priority: userOptions.release > SENTRY_RELEASE > CF_VERSION_METADATA.id
+  // Priority: userOptions.release > SENTRY_RELEASE > injected release > CF_VERSION_METADATA.id
   const release =
     'SENTRY_RELEASE' in env && typeof env.SENTRY_RELEASE === 'string'
       ? env.SENTRY_RELEASE
-      : 'CF_VERSION_METADATA' in env && isVersionMetadata(env.CF_VERSION_METADATA)
-        ? env.CF_VERSION_METADATA.id
-        : undefined;
+      : GLOBAL_OBJ.SENTRY_RELEASE?.id ||
+        ('CF_VERSION_METADATA' in env && isVersionMetadata(env.CF_VERSION_METADATA)
+          ? env.CF_VERSION_METADATA.id
+          : undefined);
 
   const tracesSampleRate =
     userOptions.tracesSampleRate ?? parseFloat(getEnvVar(env, 'SENTRY_TRACES_SAMPLE_RATE') ?? '');
