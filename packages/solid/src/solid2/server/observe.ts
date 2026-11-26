@@ -58,7 +58,8 @@ function recordInvocationSpan({ id, at, durationMs, outcome }: InvocationEvent):
  */
 function nameRequestAfterRenderRoute({ route }: RenderEvent): void {
   const activeSpan = getActiveSpan();
-  if (!route?.name || !activeSpan) {
+  // Without a matching route, the router reports the raw path as `name` and no `params`.
+  if (!route?.name || !route.params || !activeSpan) {
     return;
   }
 

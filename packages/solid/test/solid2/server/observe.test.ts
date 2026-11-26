@@ -141,7 +141,7 @@ describe('solidServerObserveIntegration', () => {
       startSpanManual(
         { name: 'GET /user/:userId', op: HTTP_SERVER, attributes: { [SENTRY_SEGMENT_NAME_SOURCE]: 'route' } },
         span => {
-          emit('render', render({ name: '/user/:id' }));
+          emit('render', render({ name: '/user/:id', params: {} }));
 
           expect(spanToJSON(span).name).toBe('GET /user/:userId');
           span.end();
@@ -151,9 +151,18 @@ describe('solidServerObserveIntegration', () => {
 
     it('leaves other spans alone', () => {
       startSpanManual({ name: 'some work', op: FUNCTION }, span => {
-        emit('render', render({ name: '/user/:id' }));
+        emit('render', render({ name: '/user/:id', params: {} }));
 
         expect(spanToJSON(span).name).toBe('some work');
+        span.end();
+      });
+    });
+
+    it('keeps the name when no route matched', () => {
+      startSpanManual({ name: 'GET /missing', op: HTTP_SERVER }, span => {
+        emit('render', render({ name: '/missing', to: '/missing' }));
+
+        expect(spanToJSON(span).name).toBe('GET /missing');
         span.end();
       });
     });
