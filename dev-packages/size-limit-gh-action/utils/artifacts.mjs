@@ -2,6 +2,8 @@ import * as core from '@actions/core';
 import { context } from '@actions/github';
 
 const MAX_COMMITS = 50;
+const SIZE_CHECK_JOB_NAME = 'Size Check';
+const POLL_INTERVAL_MS = 30_000;
 
 /**
  * Find the newest `artifactName` artifact on `branch`. This walks the branch's commits, because listing workflow runs by
@@ -28,7 +30,7 @@ export async function getArtifactForBranch(octokit, { workflow, branch, artifact
   return null;
 }
 
-async function getArtifactForCommit(octokit, { workflow, sha, artifactName }) {
+export async function getArtifactForCommit(octokit, { workflow, sha, artifactName }) {
   for (const workflowRun of await listRunsForCommit(octokit, { workflow, sha })) {
     const { data } = await octokit.rest.actions.listWorkflowRunArtifacts({ ...context.repo, run_id: workflowRun.id });
     const artifact = data.artifacts.find(({ name }) => name === artifactName);
@@ -39,6 +41,32 @@ async function getArtifactForCommit(octokit, { workflow, sha, artifactName }) {
   }
 
   return null;
+}
+
+export async function waitForSizeCheck(octokit, { workflow, sha, timeoutMs }) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const jobs = [];
+    for (const { id } of await listRunsForCommit(octokit, { workflow, sha })) {
+      const { data } = await octokit.rest.actions.listJobsForWorkflowRun({
+        ...context.repo,
+        run_id: id,
+        filter: 'latest',
+        per_page: 100,
+      });
+      jobs.push(...data.jobs.filter(({ name }) => name === SIZE_CHECK_JOB_NAME));
+    }
+
+    if (jobs.length > 0 && jobs.every(({ status }) => status === 'completed')) {
+      return;
+    }
+
+    core.info(`Waiting for the ${SIZE_CHECK_JOB_NAME} job of commit ${sha}...`);
+    await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+  }
+
+  core.warning(`Timed out waiting for the ${SIZE_CHECK_JOB_NAME} job of commit ${sha}.`);
 }
 
 /**
