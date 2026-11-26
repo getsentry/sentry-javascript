@@ -3,6 +3,9 @@ on:
   push:
     branches: [develop]
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/seed-workspace-dependencies.yml'
 permissions:
   contents: read
 env:
