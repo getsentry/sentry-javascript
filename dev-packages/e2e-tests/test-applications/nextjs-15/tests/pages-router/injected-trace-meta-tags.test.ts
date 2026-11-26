@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { URL_PATH } from '@sentry/conventions/attributes';
 import { PAGELOAD } from '@sentry/conventions/op';
 import { getSpanOp, waitForStreamedSpan } from '@sentry-internal/test-utils';
 import { parseSemver } from '@sentry/core';
@@ -6,6 +7,9 @@ import { parseSemver } from '@sentry/core';
 const nextPackageJson = require('next/package.json');
 const nextjsVersion = nextPackageJson.version;
 const { major, minor } = parseSemver(nextjsVersion);
+
+// Another test loads this page in parallel, so the `[locale]` segment tells the pageload spans apart.
+const PAGE_PATH = '/injected-meta-tags/pages-router-client-trace-propagation';
 
 const INJECTED_TRACE_ID = '12345678901234567890123456789012';
 const INJECTED_PARENT_SPAN_ID = '1234567890123456';
@@ -48,48 +52,16 @@ test('Should continue the trace of injected meta tags instead of the server trac
   );
 
   const pageloadSpanPromise = waitForStreamedSpan('nextjs-15', span => {
-    return (
-      span.name === '/[locale]/pages-router-client-trace-propagation' && getSpanOp(span) === PAGELOAD && span.is_segment
-    );
+    return getSpanOp(span) === PAGELOAD && span.is_segment && span.attributes?.[URL_PATH]?.value === PAGE_PATH;
   });
 
-  const response = await page.goto(`/123/pages-router-client-trace-propagation`);
+  await page.goto(PAGE_PATH);
 
   const pageloadSpan = await pageloadSpanPromise;
 
   const sentryTraceTags = await page
     .locator('meta[name="sentry-trace"]')
     .evaluateAll(tags => tags.map(tag => tag.getAttribute('content')));
-
-  // TEMPORARY diagnostic for the Turbopack variant, to be removed.
-  const pageInfo = await page.evaluate(() => ({
-    hasNextData: !!document.getElementById('__NEXT_DATA__'),
-    nextDataTrace: document.getElementById('__NEXT_DATA__')?.innerHTML.match(/_sentryTraceData":"([^"]+)"/)?.[1],
-    serverTiming: (
-      performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
-    )?.serverTiming?.map(entry => `${entry.name}=${entry.description.slice(0, 60)}`),
-    scripts: Array.from(document.scripts).map(
-      script =>
-        `${script.async ? 'async ' : ''}${script.defer ? 'defer ' : ''}${script.src.split('/').pop() || script.id || 'inline'}`,
-    ),
-    headOrder: Array.from(document.head.children).map(
-      child => `${child.tagName}${child.getAttribute('name') ? `:${child.getAttribute('name')}` : ''}`,
-    ),
-  }));
-  console.log(
-    '[injected-trace-meta-tags]',
-    JSON.stringify({
-      serverTiming: response?.headers()['server-timing']?.slice(0, 80),
-      sentryTraceTags,
-      pageInfo,
-      pageloadSpan: {
-        trace_id: pageloadSpan.trace_id,
-        parent_span_id: pageloadSpan.parent_span_id,
-        links: pageloadSpan.links,
-        attributes: pageloadSpan.attributes,
-      },
-    }),
-  );
 
   expect(sentryTraceTags).toHaveLength(2);
   expect(sentryTraceTags[0]).not.toContain(INJECTED_TRACE_ID);
