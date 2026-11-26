@@ -36,6 +36,7 @@ export interface MemberExpressionNode extends BaseNode {
 export interface ClassDeclarationNode extends BaseNode {
   id?: IdentifierNode | null;
   superClass?: BaseNode | null;
+  decorators?: BaseNode[] | null;
 }
 
 export interface ExportDefaultNode extends BaseNode {

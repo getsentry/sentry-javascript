@@ -151,8 +151,13 @@ export function wrapInlineExport(
     const wrappedName = state.wrappedLocals.get(name);
     return wrappedName ? `${wrappedName} as ${name}` : name;
   });
+  // In `@dec export class A {}` the decorators come before `export`, so the
+  // clause has to go before them.
+  const decoratorStart = (declaration as ClassDeclarationNode).decorators?.[0]?.start ?? exportNode.start;
+  const start = Math.min(decoratorStart, exportNode.start);
+  const decorators = state.ms.original.slice(start, exportNode.start);
   // A second call for another name of this declaration overwrites the same range again.
-  state.ms.overwrite(exportNode.start, declaration.start, `export { ${specifiers.join(', ')} };\n`);
+  state.ms.overwrite(start, declaration.start, `export { ${specifiers.join(', ')} };\n${decorators}`);
   return true;
 }
 

@@ -133,6 +133,17 @@ describe('wrapInlineExport', () => {
     expect(output).toBe('export { __SENTRY_WRAPPED_A__ as A };\nclass A {}\nconst __SENTRY_WRAPPED_A__ = wrap(A);\n');
   });
 
+  it.each([
+    ['@dec export class A {}', 'export { __SENTRY_WRAPPED_A__ as A };\n@dec class A {}'],
+    ['export @dec class A {}', 'export { __SENTRY_WRAPPED_A__ as A };\n@dec class A {}'],
+    ['export abstract class A {}', 'export { __SENTRY_WRAPPED_A__ as A };\nabstract class A {}'],
+  ])('keeps the class modifiers of `%s`', (code, expected) => {
+    const output = rewrite(code, (state, ast) => {
+      expect(wrapInlineExport(state, namedExportsOf(ast)[0]!, 'A', wrap)).toBe(true);
+    });
+    expect(output).toBe(`${expected}\nconst __SENTRY_WRAPPED_A__ = wrap(A);\n`);
+  });
+
   it('wraps an exported function', () => {
     const output = rewrite('export async function load() {}', (state, ast) => {
       wrapInlineExport(state, namedExportsOf(ast)[0]!, 'load', wrap);
