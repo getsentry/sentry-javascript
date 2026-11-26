@@ -212,6 +212,26 @@ describe('Vercel AI Gemini reasoning tokens', () => {
       expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(180);
     });
 
+    // The v2 adapter's `outputTokens.total` is candidate-only, and the SDK totals it into `totalUsage`.
+    it('keeps total equal to input plus output over Google v2-adapter steps', () => {
+      const steps = [
+        googleStep(20, 80, { inputTokens: { total: 10 }, outputTokens: { total: 20, reasoning: 80 } }),
+        googleStep(20, 100, { inputTokens: { total: 10 }, outputTokens: { total: 20, reasoning: 100 } }),
+      ];
+      const data = runSpan('generateText', {
+        usage: steps[1]!.usage,
+        totalUsage: { inputTokens: 20, outputTokens: 40, totalTokens: 60 },
+        providerMetadata: steps[1]!.providerMetadata,
+        steps,
+      });
+
+      expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(220);
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(180);
+      expect(data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(
+        (data[GEN_AI_USAGE_INPUT_TOKENS] as number) + (data[GEN_AI_USAGE_OUTPUT_TOKENS] as number),
+      );
+    });
+
     it('reads each step by its own provider', () => {
       const openaiStep = {
         usage: { outputTokens: 50, reasoningTokens: 30 },
@@ -240,18 +260,6 @@ describe('Vercel AI Gemini reasoning tokens', () => {
 
       expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(300);
       expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(100);
-    });
-
-    // v5/v6 `generateText` results expose the last step's usage as `usage` and the sum as `totalUsage`.
-    it('reads totalUsage over the last step usage', () => {
-      const data = runSpan('generateText', {
-        usage: { inputTokens: 10, outputTokens: 120, outputTokenDetails: { reasoningTokens: 100 } },
-        totalUsage: { inputTokens: 20, outputTokens: 220, outputTokenDetails: { reasoningTokens: 180 } },
-      });
-
-      expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(220);
-      expect(data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(240);
-      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(180);
     });
   });
 });

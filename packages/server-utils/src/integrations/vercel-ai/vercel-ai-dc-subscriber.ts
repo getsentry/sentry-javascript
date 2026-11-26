@@ -214,8 +214,8 @@ function getActiveSpanConversationId(): string | undefined {
 }
 
 /**
- * The `providerMetadata` attributes that the token counts don't cover. Its cost covers only the last
- * provider call of a partial-cost operation, whose cost the `generate_content` spans carry.
+ * The `providerMetadata` attributes other than token counts. A partial-cost operation's cost covers
+ * only its last provider call, so it stays on the `generate_content` spans.
  */
 function getProviderOnlyAttributes(providerMetadata: unknown, type: ChannelEventType): Record<string, number | string> {
   const attributes = getProviderMetadataAttributes(providerMetadata);
@@ -882,10 +882,8 @@ function tokenCount(value: unknown): number | undefined {
 }
 
 /**
- * Reasoning tokens from the SDK's usage. From v6 on, output includes reasoning: model calls report
- * `outputTokens.reasoning`, aggregates `outputTokenDetails.reasoningTokens`. v5's flat `reasoningTokens`
- * is read only for OpenAI, whose output includes it. Google's comes from `providerMetadata`, which also
- * corrects its output, and other v5 providers don't say whether their output includes it.
+ * Reasoning from the SDK's usage: v6+ for every provider, v5 only for OpenAI, whose output includes it.
+ * Other v5 providers don't say whether their output does, and Google's comes from `providerMetadata`.
  */
 function reasoningTokens(usage: Record<string, unknown>, providerMetadata: unknown): number | undefined {
   const outputTokens = isObjectLike(usage.outputTokens) ? usage.outputTokens : undefined;
@@ -919,9 +917,8 @@ const TOKEN_ATTRIBUTES: Record<keyof TokenUsage, string> = {
 const TOKEN_KEYS = Object.keys(TOKEN_ATTRIBUTES) as Array<keyof TokenUsage>;
 
 /**
- * One model call's token counts: the SDK's usage, corrected by the call's `providerMetadata`.
- * `languageModelCall` usage reports `{ total }` objects and step usage flat numbers; v4 names tokens
- * `promptTokens`/`completionTokens`.
+ * One model call's final token counts: its usage (flat or `{ total }`, v4 `promptTokens`/`completionTokens`)
+ * corrected by its own `providerMetadata`.
  */
 function modelCallUsage(usage: unknown, providerMetadata: unknown): TokenUsage {
   const derived = getProviderMetadataAttributes(providerMetadata);
@@ -943,14 +940,13 @@ function modelCallUsage(usage: unknown, providerMetadata: unknown): TokenUsage {
 }
 
 /**
- * An operation's token counts, summed over its steps so that it matches its model-call spans.
- * `providerMetadata` describes one step, and steps can use different providers. An operation without
- * `steps` is a single model call; a v5/v6 `generateText` result's `usage` is only its last step's.
+ * An operation's token counts, summed over its steps, which can use different providers. Every text
+ * operation from v4 on has `steps`; the others are a single model call.
  */
 function operationUsage(result: Record<string, unknown>, providerMetadata: unknown): TokenUsage {
   const steps = Array.isArray(result.steps) ? result.steps.filter(isObjectLike) : [];
   if (!steps.length) {
-    return modelCallUsage(result.totalUsage ?? result.usage, providerMetadata);
+    return modelCallUsage(result.usage, providerMetadata);
   }
   const total: TokenUsage = {};
   for (const step of steps) {
