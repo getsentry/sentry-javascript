@@ -2,8 +2,16 @@
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { CODE_FUNCTION_NAME, HTTP_ROUTE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
-import { FUNCTION, HTTP_CLIENT, HTTP_SERVER } from '@sentry/conventions/op';
+import {
+  CODE_FUNCTION_NAME,
+  ERROR_TYPE,
+  HTTP_ROUTE,
+  SENTRY_DESCRIPTION,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_STATUS_MESSAGE,
+} from '@sentry/conventions/attributes';
+import { DB, FUNCTION, HTTP_CLIENT, HTTP_SERVER } from '@sentry/conventions/op';
 import type { Client, Integration, StreamedSpanJSON } from '@sentry/core';
 import { createTransport, getActiveSpan, getCurrentScope, spanToJSON, startNewTrace, startSpan } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -22,10 +30,23 @@ async function importNuxtTraceAsync(): Promise<TraceAsync> {
 }
 
 const RENDER_ORIGIN = 'auto.function.nuxt.render';
+const DATA_ORIGIN = 'auto.function.nuxt.data';
 
 function renderSpanAttributes(name: string): Record<string, string> {
   return { [SENTRY_OP]: FUNCTION, [SENTRY_ORIGIN]: RENDER_ORIGIN, [CODE_FUNCTION_NAME]: name };
 }
+
+function dataSpanAttributes(name: string): Record<string, string> {
+  return { [SENTRY_OP]: FUNCTION, [SENTRY_ORIGIN]: DATA_ORIGIN, [CODE_FUNCTION_NAME]: name };
+}
+
+/** The error that `$fetch` rejects with. ofetch sets `status` and `statusCode`; the tests set one of them. */
+function fetchError(response: { status?: number; statusCode?: number }): Error {
+  const message = '[GET] "https://api.example.com/sessions?token=secret-token": request failed';
+  return Object.assign(new Error(message), { name: 'FetchError' }, response);
+}
+
+type PublishOptions = { rejects?: boolean };
 
 // All tests share one client, because the channel subscribers of an integration stay for the whole process.
 describe('nuxtTracingChannelIntegration', () => {
@@ -33,21 +54,39 @@ describe('nuxtTracingChannelIntegration', () => {
   let traceAsync: TraceAsync;
   const endedSpans: StreamedSpanJSON[] = [];
 
-  /** Publishes a `nuxt.render` event inside an `http.server` root span. Returns the ended spans of that request. */
-  async function render(
+  /** Publishes an event on a `nuxt.*` channel inside an `http.server` root span. Returns the ended spans of that request. */
+  async function publish(
+    channel: string,
     payload: object,
-    renderToString: () => Promise<unknown> = () => Promise.resolve({ html: '<div id="__nuxt"></div>' }),
-    { rejects = false }: { rejects?: boolean } = {},
+    operation: () => Promise<unknown>,
+    { rejects = false }: PublishOptions = {},
   ): Promise<StreamedSpanJSON[]> {
     const traceId = await startNewTrace(() =>
       startSpan({ name: 'GET', op: HTTP_SERVER }, async rootSpan => {
-        const rendered = traceAsync('nuxt.render', payload, renderToString);
-        await (rejects ? rendered.catch(() => undefined) : rendered);
+        const settled = traceAsync(channel, payload, operation);
+        await (rejects ? settled.catch(() => undefined) : settled);
         return spanToJSON(rootSpan).trace_id;
       }),
     );
 
     return endedSpans.filter(span => span.trace_id === traceId);
+  }
+
+  function render(
+    payload: object,
+    renderToString: () => Promise<unknown> = () => Promise.resolve({ html: '<div id="__nuxt"></div>' }),
+    options?: PublishOptions,
+  ): Promise<StreamedSpanJSON[]> {
+    return publish('nuxt.render', payload, renderToString, options);
+  }
+
+  /** `useAsyncData` publishes `nuxt.data` around the handler of the composable. */
+  function loadData(
+    payload: object,
+    handler: () => Promise<unknown> = () => Promise.resolve({ sessions: [] }),
+    options?: PublishOptions,
+  ): Promise<StreamedSpanJSON[]> {
+    return publish('nuxt.data', payload, handler, options);
   }
 
   function getParent(span: StreamedSpanJSON | undefined, spans: StreamedSpanJSON[]): StreamedSpanJSON | undefined {
@@ -287,6 +326,202 @@ describe('nuxtTracingChannelIntegration', () => {
       const activeSpans: unknown[] = [];
 
       await traceAsync('nuxt.render', { ssrContext: { error: false }, streaming: false }, async () => {
+        activeSpans.push(getActiveSpan());
+      });
+
+      expect(activeSpans).toEqual([undefined]);
+    });
+  });
+
+  describe('nuxt.data', () => {
+    // Only a dev build of Nuxt sends `useFetch` and `useLazyFetch`. A production build sends `useLazyAsyncData`.
+    it.each(['useFetch', 'useLazyFetch', 'useLazyAsyncData'])(
+      'names the span `%s` after the composable in the payload',
+      async functionName => {
+        const spans = await loadData({ key: 'active-sessions', functionName });
+
+        const dataSpans = spans.filter(span => span.attributes[SENTRY_ORIGIN] === DATA_ORIGIN);
+
+        expect(dataSpans).toHaveLength(1);
+        expect(dataSpans[0]?.name).toBe(functionName);
+        expect(dataSpans[0]?.attributes).toEqual({
+          ...dataSpanAttributes(functionName),
+          [SENTRY_DESCRIPTION]: 'active-sessions',
+        });
+      },
+    );
+
+    it('creates the data span with the ok status as a child of the request root span', async () => {
+      const spans = await loadData({ key: 'active-sessions', functionName: 'useAsyncData' });
+
+      const dataSpan = spans.find(span => span.attributes[SENTRY_ORIGIN] === DATA_ORIGIN);
+
+      expect(dataSpan?.status).toBe('ok');
+      expect(getParent(dataSpan, spans)?.attributes[SENTRY_OP]).toBe(HTTP_SERVER);
+    });
+
+    it.each([
+      { description: 'no function name, as in a production build', functionName: undefined },
+      { description: 'an empty function name', functionName: '' },
+      { description: 'a function name that is no string', functionName: { name: 'useFetch' } },
+    ])('names the span `useAsyncData` for a payload with $description', async ({ functionName }) => {
+      const spans = await loadData({ key: 'active-sessions', functionName });
+
+      const dataSpans = spans.filter(span => span.attributes[SENTRY_ORIGIN] === DATA_ORIGIN);
+
+      expect(dataSpans).toHaveLength(1);
+      expect(dataSpans[0]?.name).toBe('useAsyncData');
+      expect(dataSpans[0]?.attributes).toEqual({
+        ...dataSpanAttributes('useAsyncData'),
+        [SENTRY_DESCRIPTION]: 'active-sessions',
+      });
+    });
+
+    it.each([
+      { description: 'no key', key: undefined },
+      { description: 'an empty key', key: '' },
+      { description: 'a key that is no string', key: { value: 'active-sessions' } },
+      { description: 'the key that Nuxt makes for a call without a key', key: '$f2221v9rwjvsw2' },
+    ])('adds no description for a payload with $description', async ({ key }) => {
+      const spans = await loadData({ key, functionName: 'useAsyncData' });
+
+      const dataSpans = spans.filter(span => span.attributes[SENTRY_ORIGIN] === DATA_ORIGIN);
+
+      expect(dataSpans).toHaveLength(1);
+      expect(dataSpans[0]?.attributes).toEqual(dataSpanAttributes('useAsyncData'));
+    });
+
+    it('adds no description in the static trace lifecycle, where Relay replaces it with the span name', async () => {
+      vi.spyOn(client, 'getOptions').mockReturnValue({ ...client.getOptions(), traceLifecycle: 'static' });
+
+      const spans = await loadData({ key: 'active-sessions', functionName: 'useAsyncData' });
+
+      const dataSpans = spans.filter(span => span.attributes[SENTRY_ORIGIN] === DATA_ORIGIN);
+
+      expect(dataSpans).toHaveLength(1);
+      expect(dataSpans[0]?.attributes).toEqual(dataSpanAttributes('useAsyncData'));
+    });
+
+    it('puts the data span between the render span and a span of the handler', async () => {
+      const spans = await render({ ssrContext: { error: false }, streaming: false }, () =>
+        traceAsync('nuxt.data', { key: 'user-42', functionName: 'useFetch' }, () =>
+          startSpan({ name: 'GET https://api.example.com/users/42', op: HTTP_CLIENT }, () => Promise.resolve()),
+        ),
+      );
+
+      const fetchSpan = spans.find(span => span.attributes[SENTRY_OP] === HTTP_CLIENT);
+      const dataSpan = getParent(fetchSpan, spans);
+
+      expect(fetchSpan).toBeDefined();
+      expect(dataSpan?.name).toBe('useFetch');
+      expect(getParent(dataSpan, spans)?.name).toBe('renderPage');
+    });
+
+    it('gives each of two parallel data loads its own span', async () => {
+      const spans = await render({ ssrContext: { error: false }, streaming: false }, () =>
+        Promise.all(
+          ['user-42', 'active-sessions'].map(key =>
+            traceAsync('nuxt.data', { key, functionName: 'useAsyncData' }, () =>
+              startSpan({ name: `SELECT ${key}`, op: DB }, () => new Promise(resolve => setTimeout(resolve, 5))),
+            ),
+          ),
+        ),
+      );
+
+      const dbSpans = spans.filter(span => span.attributes[SENTRY_OP] === DB);
+
+      expect(dbSpans.map(span => [span.name, getParent(span, spans)?.attributes[SENTRY_DESCRIPTION]])).toEqual([
+        ['SELECT user-42', 'user-42'],
+        ['SELECT active-sessions', 'active-sessions'],
+      ]);
+    });
+
+    it('ends the span when the handler settles, not when the handler returns its promise', async () => {
+      const activeSpansAfterAwait: Array<Pick<StreamedSpanJSON, 'name' | 'end_timestamp'>> = [];
+
+      await loadData({ key: 'active-sessions', functionName: 'useAsyncData' }, async () => {
+        await new Promise(resolve => setTimeout(resolve, 5));
+        const { name, end_timestamp } = spanToJSON(getActiveSpan()!);
+        activeSpansAfterAwait.push({ name, end_timestamp });
+      });
+
+      expect(activeSpansAfterAwait).toEqual([{ name: 'useAsyncData', end_timestamp: undefined }]);
+    });
+
+    it('sets the error status on the span of a handler that rejects', async () => {
+      const spans = await loadData(
+        { key: 'active-sessions', functionName: 'useAsyncData' },
+        () => Promise.reject(new Error('[GET] "/api/sessions": 500 Internal Server Error')),
+        { rejects: true },
+      );
+
+      expect(spans.find(span => span.attributes[SENTRY_ORIGIN] === DATA_ORIGIN)?.status).toBe('error');
+    });
+
+    // The message of a failed `useFetch` has the URL with its query string, so it must not reach the span.
+    it.each([
+      { description: 'a 404 response', error: fetchError({ statusCode: 404 }), statusMessage: 'not_found' },
+      { description: 'a 401 response', error: fetchError({ status: 401 }), statusMessage: 'unauthenticated' },
+      { description: 'a 503 response', error: fetchError({ statusCode: 503 }), statusMessage: 'unavailable' },
+      { description: 'a request with no response', error: fetchError({}), statusMessage: 'internal_error' },
+      {
+        description: 'a timeout',
+        error: new DOMException('The operation was aborted due to timeout', 'TimeoutError'),
+        statusMessage: 'internal_error',
+      },
+      { description: 'a rejection with no error object', error: 'no session', statusMessage: 'internal_error' },
+    ])('sets the status message `$statusMessage` for $description', async ({ error, statusMessage }) => {
+      const spans = await loadData(
+        { key: 'active-sessions', functionName: 'useAsyncData' },
+        () => Promise.reject(error),
+        {
+          rejects: true,
+        },
+      );
+
+      const dataSpan = spans.find(span => span.attributes[SENTRY_ORIGIN] === DATA_ORIGIN);
+
+      expect(dataSpan?.status).toBe('error');
+      expect(dataSpan?.attributes[SENTRY_STATUS_MESSAGE]).toBe(statusMessage);
+    });
+
+    it('keeps the ok status for a handler that Nuxt aborts, because a new call with the same key replaced it', async () => {
+      const spans = await loadData(
+        { key: 'active-sessions', functionName: 'useAsyncData' },
+        () => Promise.reject(new DOMException('AsyncData request cancelled by deduplication', 'AbortError')),
+        { rejects: true },
+      );
+
+      const dataSpan = spans.find(span => span.attributes[SENTRY_ORIGIN] === DATA_ORIGIN);
+
+      expect(dataSpan?.status).toBe('ok');
+      expect(dataSpan?.attributes[ERROR_TYPE]).toBeUndefined();
+    });
+
+    it('captures no error for a handler that rejects, because Nuxt gives the error to the app', async () => {
+      const captureException = vi.spyOn(client, 'captureException');
+
+      await loadData(
+        { key: 'active-sessions', functionName: 'useAsyncData' },
+        () => Promise.reject(new Error('[GET] "/api/sessions": 500 Internal Server Error')),
+        { rejects: true },
+      );
+
+      expect(captureException).not.toHaveBeenCalled();
+    });
+
+    it('creates no span for a data load outside a request root span', async () => {
+      const endedSpanCount = endedSpans.length;
+
+      await traceAsync('nuxt.data', { key: 'active-sessions', functionName: 'useAsyncData' }, () => Promise.resolve());
+
+      expect(endedSpans).toHaveLength(endedSpanCount);
+    });
+
+    it('sets no active span for a data load outside a request root span', async () => {
+      const activeSpans: unknown[] = [];
+
+      await traceAsync('nuxt.data', { key: 'active-sessions', functionName: 'useAsyncData' }, async () => {
         activeSpans.push(getActiveSpan());
       });
 

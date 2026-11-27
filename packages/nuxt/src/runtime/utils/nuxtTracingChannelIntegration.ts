@@ -1,7 +1,25 @@
-import { CODE_FUNCTION_NAME, ERROR_TYPE, HTTP_ROUTE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import {
+  CODE_FUNCTION_NAME,
+  ERROR_TYPE,
+  HTTP_ROUTE,
+  SENTRY_DESCRIPTION,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+} from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 import type { Integration, Options, Span } from '@sentry/core';
-import { defineIntegration, getActiveSpan, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startInactiveSpan } from '@sentry/core';
+import {
+  defineIntegration,
+  getActiveSpan,
+  getClient,
+  getSpanStatusFromHttpCode,
+  hasSpanStreamingEnabled,
+  isObjectLike,
+  isString,
+  SPAN_STATUS_ERROR,
+  SPAN_STATUS_OK,
+  startInactiveSpan,
+} from '@sentry/core';
 import type { TracingChannelPayloadWithSpan } from '@sentry/server-utils';
 import { bindTracingChannelToSpan, diagnosticsTracingChannel } from '@sentry/server-utils';
 
@@ -15,6 +33,12 @@ interface NuxtRenderPayload {
     _renderResponse?: unknown;
     nuxt?: { $router?: { currentRoute?: { value?: { matched?: Array<{ path?: unknown }> } } } };
   };
+}
+
+/** What the SDK reads from the `nuxt.data` payload. */
+interface NuxtDataPayload {
+  key?: unknown;
+  functionName?: unknown;
 }
 
 const INTEGRATION_NAME = 'NuxtTracingChannel';
@@ -86,6 +110,53 @@ function setRenderResult(span: Span, data: TracingChannelPayloadWithSpan<NuxtRen
   }
 }
 
+/** For a call without a key, Nuxt makes one: a hash that starts with `$`. It tells the user nothing. */
+function getUserKey(key: unknown): string | undefined {
+  return isString(key) && key && !key.startsWith('$') ? key : undefined;
+}
+
+function startDataSpan({ key, functionName }: NuxtDataPayload): Span | undefined {
+  // No span without a request root span, for the same reason as in `startRenderSpan`.
+  if (!getActiveSpan()) {
+    return undefined;
+  }
+
+  // A production build of Nuxt sends the name only for `useLazyAsyncData`. All data composables call `useAsyncData`.
+  const name = (isString(functionName) && functionName) || 'useAsyncData';
+  const client = getClient();
+  // Only with span streaming: Relay replaces the description of a transaction span with the span name.
+  const description = client && hasSpanStreamingEnabled(client) ? getUserKey(key) : undefined;
+
+  return startInactiveSpan({
+    name,
+    attributes: {
+      [SENTRY_OP]: FUNCTION,
+      [SENTRY_ORIGIN]: 'auto.function.nuxt.data',
+      [CODE_FUNCTION_NAME]: name,
+      // The key can have request data, for example an id, so it is not in the span name.
+      ...(description && { [SENTRY_DESCRIPTION]: description }),
+    },
+  });
+}
+
+function setDataResult(span: Span, data: TracingChannelPayloadWithSpan<NuxtDataPayload>): void {
+  if (!('error' in data)) {
+    return;
+  }
+
+  const error: { name?: unknown; status?: unknown; statusCode?: unknown } = isObjectLike(data.error) ? data.error : {};
+
+  // Nuxt aborts a handler when a new call with the same key replaces it, and does not treat that as an error.
+  if (error.name === 'AbortError') {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+    span.setAttribute(ERROR_TYPE, undefined);
+    return;
+  }
+
+  // Replaces the error message in the status. The message of a failed `useFetch` has the URL with its query string.
+  span.setStatus(getSpanStatusFromHttpCode(Number(error.status ?? error.statusCode)));
+}
+
 /** Makes spans from the `nuxt.*` tracing channels. Nuxt publishes nothing when the `nuxt` channel group is off. */
 export const nuxtTracingChannelIntegration = defineIntegration(() => ({
   name: INTEGRATION_NAME,
@@ -98,6 +169,10 @@ export const nuxtTracingChannelIntegration = defineIntegration(() => ({
     // It also exists without these channels, and it already has the HTTP data and the incoming trace.
     bindTracingChannelToSpan(diagnosticsTracingChannel<NuxtRenderPayload>('nuxt.render'), startRenderSpan, {
       beforeSpanEnd: setRenderResult,
+    });
+
+    bindTracingChannelToSpan(diagnosticsTracingChannel<NuxtDataPayload>('nuxt.data'), startDataSpan, {
+      beforeSpanEnd: setDataResult,
     });
   },
 }));
