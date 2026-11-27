@@ -160,6 +160,8 @@ export class ServerRuntimeClient<
 
     // The event processors before Dedupe are usually synchronous, so most duplicates are known here.
     if (isMarkedDuplicate(hint)) {
+      // Reject at once to free the promise buffer slot. `filtered` keeps running and counts the duplicate outside
+      // the buffer.
       this._countWithoutSlot(filtered.then(countDuplicate), isolationScope);
       return rejectedSyncPromise(_makeDoNotSendEventError(DUPLICATE_EVENT_ERROR));
     }
@@ -364,8 +366,8 @@ export class ServerRuntimeClient<
   }
 
   /**
-   * Whether an error that is never sent can still run event processing to update sessions. The limit keeps that
-   * work bounded in an error storm.
+   * Whether an error that is never sent can still run event processing to update sessions. Above the limit, the error
+   * does not update the session. So an error storm can lose a session count, but it never loses an error that is sent.
    */
   private _canCountWithoutSlot(): boolean {
     return this._numCountingWithoutSlot < (this._options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
@@ -376,6 +378,7 @@ export class ServerRuntimeClient<
    * never takes a slot from an error that is sent.
    */
   private _countWithoutSlot(counting: PromiseLike<void>, isolationScope: Scope): void {
+    // `flush()` waits until `_numProcessing` is 0, so it also waits for this session update.
     this._numProcessing++;
     this._numCountingWithoutSlot++;
     const settle = (): void => {

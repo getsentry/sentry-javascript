@@ -340,6 +340,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._process(
       () => this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope, capturedSpanIsolationScope),
       dataCategory,
+      // Only exception events count in request sessions, so `_onQueueOverflow` gets the hint only for them.
       isExceptionEvent(event) ? hintWithEventId : undefined,
     );
 
@@ -1348,8 +1349,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // The error is never sent, so it must not make a later copy of it a duplicate.
     setDedupeContext(hint, { mode: 'ignore' });
-    // Runs in the promise buffer, so a burst with async processors can still overflow it. `ServerRuntimeClient` avoids
-    // this; in the browser it is rare (one user, mostly sync processors), so we keep the bundle size small instead.
+    // The `_applyFilters` call below holds a promise buffer slot until it settles. With an async event processor or
+    // `beforeSend`, many sampled-out errors at the same time can fill the buffer. The client then drops errors that it
+    // would otherwise send, with `queue_overflow`. `ServerRuntimeClient` overrides this method to run the filters
+    // outside the buffer, because a server gets errors from many requests at the same time. The base client does not,
+    // to save browser bundle size. One browser user rarely causes that many errors at the same time.
     return this._applyFilters(event, hint, currentScope, isolationScope).then(processedEvent => {
       this._updateSessions(processedEvent, currentScope, isolationScope);
       this.recordDroppedEvent('sample_rate', 'error');
