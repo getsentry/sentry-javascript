@@ -489,17 +489,17 @@ function resolveModelCallParent(): Span | undefined {
 function wrapResolvedModel(model: ResolvedModel, options: VercelAiChannelOptions): ResolvedModel {
   const wrapped = new Proxy(model, {
     get(target, prop) {
-      // `Reflect.get` without a receiver keeps getters and methods bound to the real model.
+      // No receiver, so getters run against the real model.
       const value: unknown = Reflect.get(target, prop);
-      // A Proxy must return a read-only, non-configurable data property unchanged.
-      const frozen = Reflect.getOwnPropertyDescriptor(target, prop);
-      if (frozen && !frozen.configurable && !frozen.writable) {
+      if ((prop !== 'doGenerate' && prop !== 'doStream') || typeof value !== 'function') {
         return value;
       }
-      if ((prop === 'doGenerate' || prop === 'doStream') && typeof value === 'function') {
-        return wrapModelMethod(target, prop, value.bind(target), options);
+      // A Proxy must return a read-only, non-configurable data property unchanged.
+      const descriptor = Reflect.getOwnPropertyDescriptor(target, prop);
+      if (descriptor && !descriptor.configurable && !descriptor.writable) {
+        return value;
       }
-      return value;
+      return wrapModelMethod(target, prop, value.bind(target), options);
     },
   });
   instrumentedModels.add(wrapped);

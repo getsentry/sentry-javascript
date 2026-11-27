@@ -770,7 +770,7 @@ export function registerVercelAiGenerationTests(version: '6' | '7', vercelAiVers
     'scenario-v2-model.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      // ai 7 has no `resolveLanguageModel` hook; the bug was ai 6 wrapping v2 models in a get-only `Proxy`.
+      // ai 7 has no `resolveLanguageModel` hook.
       test.skipIf(version === '7')('spans model calls on a spec-v2 model without mutating it', async () => {
         await createRunner()
           .expect({
