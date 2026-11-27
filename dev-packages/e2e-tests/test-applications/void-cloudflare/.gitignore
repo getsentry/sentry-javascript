@@ -1,7 +1,0 @@
-dist
-.void
-.void-wrangler.jsonc
-.cloudflare
-.wrangler
-test-results
-pnpm-lock.yaml
