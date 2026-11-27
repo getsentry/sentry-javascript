@@ -5,6 +5,7 @@ import type { Scope } from './scope';
 import type { SegmentSpanCaptureStrategy } from './tracing/segmentSpanCaptureStrategy';
 import type { SerializedLog } from './types/log';
 import type { SerializedMetric } from './types/metric';
+import type { ScriptURLPolicy } from './types/trustedTypes';
 import type { TunnelStore } from './utils/tunnelStore';
 import { SDK_VERSION } from './utils/version';
 import { GLOBAL_OBJ } from './utils/worldwide';
@@ -56,7 +57,7 @@ export interface SentryCarrier {
   tunnelStore?: TunnelStore;
 
   /** Trusted Types policy of the browser SDK. Shared because a page can only create a policy name once. */
-  trustedTypesPolicy?: { createScriptURL(input: string): unknown };
+  trustedTypesPolicy?: ScriptURLPolicy;
 }
 
 /**

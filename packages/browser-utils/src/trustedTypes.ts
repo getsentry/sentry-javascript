@@ -1,19 +1,10 @@
+import type { ScriptURLPolicy } from '@sentry/core';
 import { debug, getClient, getGlobalSingleton, getReportDialogEndpoint, SDK_VERSION } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { WINDOW } from './types';
 
 // Part of the public contract: pages allow this name in their `trusted-types` CSP directive.
 const POLICY_NAME = 'sentry-sdk';
-
-// The DOM lib has no Trusted Types definitions.
-// @see https://developer.mozilla.org/en-US/docs/Web/API/TrustedTypePolicy
-interface TrustedScriptURL {
-  toString(): string;
-}
-
-interface ScriptURLPolicy {
-  createScriptURL(input: string): TrustedScriptURL;
-}
 
 interface TrustedTypesWindow {
   trustedTypes?: {

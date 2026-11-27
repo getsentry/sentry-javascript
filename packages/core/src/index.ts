@@ -560,6 +560,7 @@ export type { ParameterizedString } from './types/parameterize';
 export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './types/profiling';
 export type { ViewHierarchyData, ViewHierarchyWindow } from './types/view-hierarchy';
 export type { LegacyCSPReport } from './types/csp';
+export type { ScriptURLPolicy, TrustedScriptURL } from './types/trustedTypes';
 export type { SerializedLog, SerializedLogContainer } from './types/log';
 export type {
   BuildTimeOptionsBase,
