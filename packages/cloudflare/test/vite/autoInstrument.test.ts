@@ -727,6 +727,48 @@ describe('wranglerConfigPath option', () => {
   });
 });
 
+describe('native Void app', () => {
+  const entryCode = 'export default class extends WorkerEntrypoint { fetch(request) { return handle(request); } }';
+
+  it('wraps the generated entry with the options file from the Vite root, without a wrangler config', async () => {
+    const dir = writeTempDir({ 'instrument.server.ts': 'export default env => ({ dsn: env.SENTRY_DSN });' });
+    const warnings: string[] = [];
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({
+      root: dir,
+      plugins: [{ name: 'void:routing' }],
+      logger: { warn: msg => warnings.push(msg) },
+    });
+
+    const result = await plugin.transform.call(
+      { parse: (c: string) => parseJS(c) },
+      entryCode,
+      join(dir, '.void/entry.ts'),
+    );
+
+    expect(warnings).toEqual([]);
+    expect(result.code).toBe(
+      [
+        "import * as __SENTRY__ from '@sentry/cloudflare';",
+        "import __SENTRY_OPTIONS_CALLBACK__ from '../instrument.server.ts';",
+        `var __SENTRY_DEFAULT_EXPORT__ = { default: ${entryCode.replace('export default ', '')} }.default;`,
+        'export { __SENTRY_DEFAULT_EXPORT__ as default };',
+        '__SENTRY_DEFAULT_EXPORT__ = __SENTRY__.withSentry(__SENTRY_OPTIONS_CALLBACK__, __SENTRY_DEFAULT_EXPORT__);',
+      ].join('\n'),
+    );
+  });
+
+  it('uses the generated entry and the settings of a wrangler config that names another `main`', async () => {
+    const dir = writeTempDir({ 'wrangler.toml': 'name = "void-app"\nmain = "src/index.ts"' });
+    const plugin = sentryCloudflareAutoInstrumentPlugin();
+    plugin.configResolved({ root: dir, plugins: [{ name: 'void:routing' }] });
+    const tx = (id: string) => plugin.transform.call({ parse: (c: string) => parseJS(c) }, entryCode, id);
+
+    expect(await tx(join(dir, 'src/index.ts'))).toBeUndefined();
+    expect((await tx(join(dir, '.void/entry.ts'))).code).toContain('"name":"void-app"');
+  });
+});
+
 describe('package specifier as wrangler `main`', () => {
   const MAIN = 'vinext/server/fetch-handler';
   const code = 'export default { fetch() { return new Response("ok"); } };';

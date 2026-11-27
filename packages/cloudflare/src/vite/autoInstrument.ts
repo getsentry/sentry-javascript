@@ -1,4 +1,4 @@
-import { basename, dirname, isAbsolute } from 'node:path';
+import { basename, dirname, isAbsolute, resolve } from 'node:path';
 import { createIdResolver, type ResolvedConfig } from 'vite';
 import { collectAgentCandidates, detectAgentClasses, type ModuleResolver } from './agentClass';
 import { buildOptionsImport, ENV_FALLBACK_OPTIONS_FN, resolveInstrumentFile } from './instrumentFile';
@@ -166,6 +166,22 @@ export function sentryCloudflareAutoInstrumentPlugin(options: { wranglerConfigPa
       isVinext = config.plugins?.some(plugin => plugin.name?.startsWith('vinext:')) ?? false;
 
       const result = resolveWranglerConfig(config.root, options.wranglerConfigPath);
+
+      // A native Void app. `void:routing` writes the Worker entry, and Void gives it to
+      // `@cloudflare/vite-plugin` in code, so a wrangler config is optional and its `main` is not used.
+      if (config.plugins?.some(plugin => plugin.name === 'void:routing')) {
+        wranglerConfig = result?.config ?? {
+          durableObjects: [],
+          workflows: [],
+          workerEntrypoints: [],
+          sameWorkerBindings: [],
+        };
+        entryFilePath = normalizePath(resolve(config.root, '.void/entry.ts'));
+        // `.void` is a generated directory that is not in version control.
+        instrumentFilePath = resolveInstrumentFile(config.root);
+        return;
+      }
+
       if (!result) {
         // An explicit path that fails is a misconfiguration worth naming;
         // without one, hint at the option so custom-named configs (e.g. a
