@@ -13,6 +13,7 @@ import {
   setCurrentClient,
   spanToBaggageHeader,
   spanToJSON,
+  spanToStaticSpanJSON,
   startInactiveSpan,
   startSpan,
   startSpanManual,
@@ -892,6 +893,99 @@ describe('startIdleSpan', () => {
 
       expect(spanToJSON(idleSpan).end_timestamp).toBeLessThan(999_999_999);
       expect(spanToJSON(idleSpan).end_timestamp).toBeGreaterThan(1060);
+    });
+  });
+
+  describe('children still running when the idle span ends', () => {
+    // Tap 1 starts an interaction. The browser's event timing entry for the tap is a short, finished child.
+    // The tap triggers a request 500ms later, which is still running when tap 2 interrupts the interaction.
+    function startInterruptedInteraction(traceLifecycle: 'static' | 'stream'): { idleSpan: Span; fetchSpan: Span } {
+      const client = new TestClient(getDefaultTestClientOptions({ dsn, tracesSampleRate: 1, traceLifecycle }));
+      setCurrentClient(client);
+      client.init();
+
+      const idleSpan = startIdleSpan(
+        { name: '/home', op: 'ui.action.click', startTime: 1000 },
+        { finalTimeout: 99_999_999 },
+      );
+      startInactiveSpan({ name: 'ui.interaction.click', startTime: 1000 }).end(1000.016);
+      const fetchSpan = startInactiveSpan({ name: 'GET /api/data', startTime: 1000.5 });
+
+      return { idleSpan, fetchSpan };
+    }
+
+    it('does not trim the idle span to before a running child started', () => {
+      const { idleSpan } = startInterruptedInteraction('stream');
+
+      idleSpan.end(1000.7);
+
+      expect(spanToStaticSpanJSON(idleSpan).timestamp).toBe(1000.5);
+    });
+
+    it('lets running children end on their own with span streaming', () => {
+      const { idleSpan, fetchSpan } = startInterruptedInteraction('stream');
+      const afterSpanEnd = vi.fn();
+      getClient()!.on('afterSpanEnd', afterSpanEnd);
+
+      idleSpan.end(1000.7);
+
+      expect(afterSpanEnd).not.toHaveBeenCalledWith(fetchSpan);
+      expect(fetchSpan.isRecording()).toBe(true);
+
+      fetchSpan.end(1001.2);
+
+      expect(afterSpanEnd).toHaveBeenCalledWith(fetchSpan);
+      expect(spanToStaticSpanJSON(fetchSpan)).toEqual(
+        expect.objectContaining({ start_timestamp: 1000.5, timestamp: 1001.2, status: 'ok' }),
+      );
+      expect(spanToStaticSpanJSON(idleSpan).data['sentry.idle_span_discarded_spans']).toBeUndefined();
+    });
+
+    it('cancels running children after the final timeout with span streaming', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({ dsn, tracesSampleRate: 1, traceLifecycle: 'stream' }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const idleSpan = startIdleSpan({ name: 'foo' }, { finalTimeout: 30_000 });
+      const childSpan = startInactiveSpan({ name: 'never ends' });
+
+      idleSpan.end();
+      vi.advanceTimersByTime(29_999);
+      expect(childSpan.isRecording()).toBe(true);
+
+      vi.advanceTimersByTime(1);
+      expect(childSpan.isRecording()).toBe(false);
+      expect(spanToStaticSpanJSON(childSpan).status).toBe('cancelled');
+    });
+
+    it('cancels running children right away when the child span timeout ends the idle span with span streaming', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({ dsn, tracesSampleRate: 1, traceLifecycle: 'stream' }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const idleSpan = startIdleSpan({ name: 'foo' }, { childSpanTimeout: 4000 });
+      const childSpan = startInactiveSpan({ name: 'never ends' });
+
+      vi.advanceTimersByTime(4000);
+
+      expect(spanToStaticSpanJSON(idleSpan).data[SENTRY_IDLE_SPAN_FINISH_REASON]).toBe('heartbeatFailed');
+      expect(childSpan.isRecording()).toBe(false);
+      expect(spanToStaticSpanJSON(childSpan).status).toBe('cancelled');
+    });
+
+    it('cancels running children at the idle span end without span streaming', () => {
+      const { idleSpan, fetchSpan } = startInterruptedInteraction('static');
+
+      idleSpan.end(1000.7);
+
+      expect(spanToStaticSpanJSON(fetchSpan)).toEqual(
+        expect.objectContaining({ start_timestamp: 1000.5, timestamp: 1000.5, status: 'cancelled' }),
+      );
+      expect(spanToStaticSpanJSON(idleSpan).data['sentry.idle_span_discarded_spans']).toBeUndefined();
     });
   });
 });
