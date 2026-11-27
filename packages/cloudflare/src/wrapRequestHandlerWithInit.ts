@@ -36,42 +36,24 @@ function getRequestErrorMechanismType(context: ExecutionContextCompat | undefine
 function stripVinextInternalData(
   request: Request<unknown, IncomingRequestCfProperties<unknown> | CfProperties<unknown>>,
 ): Request<unknown, IncomingRequestCfProperties<unknown> | CfProperties<unknown>> {
-  // Most requests have nothing to do with vinext: skip parsing the URL and copying
-  // headers unless the URL carries the cache key. Transport headers are checked too,
-  // because a forged header reaches Sentry before vinext's own gateway strips it.
-  const hasCacheKey = request.url.includes('__vinext_cache_key=');
-  if (!hasCacheKey) {
-    let hasVinextHeaders = false;
-    for (const name of request.headers.keys()) {
-      if (name.startsWith('x-vinext-internal-')) {
-        hasVinextHeaders = true;
-        break;
-      }
-    }
-    if (!hasVinextHeaders) {
-      return request;
-    }
+  if (!request.url.includes('__vinext_cache_key=')) {
+    return request;
   }
+
   try {
     const url = new URL(request.url);
-    const vinextQueryParams = [...url.searchParams.keys()].filter(key => key.startsWith('__vinext_'));
-    for (const key of vinextQueryParams) {
-      url.searchParams.delete(key);
-    }
+    url.searchParams.delete('__vinext_cache_key');
+
     const headers = new Headers(request.headers);
-    const vinextHeaders = [...headers.keys()].filter(name => name.startsWith('x-vinext-internal-'));
-    for (const name of vinextHeaders) {
-      headers.delete(name);
+    for (const name of [...headers.keys()]) {
+      if (name.startsWith('x-vinext-internal-')) {
+        headers.delete(name);
+      }
     }
+
     // No body: the handler reads the body of the original request.
-    return new Request(url.toString(), {
-      method: request.method,
-      headers,
-      signal: request.signal,
-      cf: request.cf,
-    });
+    return new Request(url.toString(), { method: request.method, headers, cf: request.cf });
   } catch {
-    // Never break the request to hide data: if sanitizing fails, record the original.
     return request;
   }
 }

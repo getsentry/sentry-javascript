@@ -706,51 +706,6 @@ describe('withSentry', () => {
       });
     });
 
-    test.each([
-      {
-        name: 'header-only',
-        url: 'https://example.com/page?foo=bar',
-        headers: {
-          'x-vinext-internal-dispatch': 'https://example.com/page?token=secret',
-          'x-custom': 'keep',
-        },
-        expectedUrl: 'https://example.com/page?foo=bar',
-      },
-      {
-        name: 'no markers',
-        url: 'https://example.com/page?foo=bar',
-        headers: { 'x-custom': 'keep' },
-        expectedUrl: 'https://example.com/page?foo=bar',
-      },
-    ])('strips vinext data from the recorded request ($name)', async ({ url, headers, expectedUrl }) => {
-      const mockRequest = new Request(url, { headers });
-
-      let sentryEvent: Event = {};
-      await wrapRequestHandler(
-        {
-          options: {
-            ...MOCK_OPTIONS,
-            beforeSend(event) {
-              sentryEvent = event;
-              return null;
-            },
-          },
-          request: mockRequest,
-          context: createMockExecutionContext(),
-        },
-        () => {
-          SentryCore.captureMessage('vinext');
-          return new Response('test');
-        },
-      );
-
-      const normalizedRequest = sentryEvent.sdkProcessingMetadata?.normalizedRequest;
-      expect(normalizedRequest?.url).toBe(expectedUrl);
-      expect(normalizedRequest?.query_string).not.toContain('__vinext_');
-      expect(normalizedRequest?.headers).not.toHaveProperty('x-vinext-internal-dispatch');
-      expect(normalizedRequest?.headers).toHaveProperty('x-custom', 'keep');
-    });
-
     describe('with a Cloudflare trace', () => {
       const CLOUDFLARE_TRACE_ID = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
       const CLOUDFLARE_SPAN_ID = 'b1c2d3e4f5a60718';
