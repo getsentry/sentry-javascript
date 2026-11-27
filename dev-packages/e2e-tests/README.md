@@ -231,7 +231,9 @@ is the reference setup.
   and wraps the generated Worker in `worker.ts` with `withSentry` from `@sentry/nextjs/cloudflare`. `astro-6` replaces
   `astro.config.mjs` with `astro.config.cloudflare.mjs`, which uses the `@astrojs/cloudflare` adapter (it builds with
   `@cloudflare/vite-plugin`) and adds `sentryCloudflareVitePlugin` to `vite.plugins`. The Worker entry is the one of
-  the adapter, so `instrument.server.ts` sits next to `wrangler.jsonc`.
+  the adapter, so `instrument.server.ts` sits next to `wrangler.jsonc`. `void` also replaces `void.config.ts`, because
+  the Void config selects the target. On Cloudflare, Void generates the Worker entry and the wrangler config, so the
+  app has no `wrangler.jsonc`, `instrument.server.ts` sits in the app root, and the start command is `vite preview`.
 - **Cloudflare in `vite dev`**: to run the Worker in `vite dev` (for example the dev tests of the `hono-4` Cloudflare
   variant), start it with `CLOUDFLARE_INCLUDE_PROCESS_ENV=true vite dev`. The runner gives `E2E_TEST_DSN` to the app
   only as a process env var. `wrangler dev` adds it to the Worker `env` with `--var "E2E_TEST_DSN:$E2E_TEST_DSN"`, but
