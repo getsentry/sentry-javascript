@@ -1,6 +1,8 @@
+import { defineCloudflareOptions } from '@sentry/cloudflare';
+
 // The Sentry plugin looks for this file in the Vite root of a Void app, because the directory of the
 // generated entry (`.void/`) is not in version control.
-export default (env: { E2E_TEST_DSN: string }) => ({
+export default defineCloudflareOptions((env: { E2E_TEST_DSN: string }) => ({
   dsn: env.E2E_TEST_DSN,
   environment: 'qa',
   tunnel: 'http://localhost:3031/',
@@ -8,4 +10,4 @@ export default (env: { E2E_TEST_DSN: string }) => ({
   transportOptions: {
     bufferSize: 1000,
   },
-});
+}));
