@@ -12,7 +12,7 @@ import {
 import { _INTERNAL_captureLog } from '../../../src/logs/internal';
 import { _INTERNAL_captureMetric } from '../../../src/metrics/internal';
 import { continueTrace, getDynamicSamplingContextFromSpan } from '../../../src/tracing';
-import { resolveSamplingUnit, sampleRandFromKey } from '../../../src/tracing/samplingUnit';
+import { getFallbackSampleRate, resolveSamplingUnit, sampleRandFromKey } from '../../../src/tracing/samplingUnit';
 import { startInactiveSpan, startNewTrace } from '../../../src/tracing/trace';
 import type { CoreOptions } from '../../../src/types/options';
 import type { Session } from '../../../src/types/session';
@@ -109,14 +109,34 @@ describe('sampleRandFromKey', () => {
   });
 });
 
+describe('getFallbackSampleRate', () => {
+  it.each([
+    // [sampleRate, unitRate, fallback]
+    [0.2, 0.1, 1 / 9],
+    [0.5, 0.1, 4 / 9],
+    [1, 0.3, 1],
+    [0.7, 0, 0.7],
+    // The unit rate is the higher one: nothing is left for the fallback
+    [0.1, 0.2, 0],
+    [0.5, 0.5, 0],
+    [1, 1, 0],
+  ])('corrects a rate of %s with a unit rate of %s to %s', (sampleRate, unitRate, fallback) => {
+    expect(getFallbackSampleRate(sampleRate, unitRate)).toBeCloseTo(fallback, 10);
+    if (fallback > 0) {
+      // The total stays at the rate of the telemetry
+      expect(unitRate + (1 - unitRate) * fallback).toBeCloseTo(sampleRate, 10);
+    }
+  });
+});
+
 describe("sampleBy: 'session'", () => {
   it('turns span recording on without `tracesSampleRate`', () => {
-    init({ sampleBy: 'session', telemetrySampleRate: 0.5 });
+    init({ sampleBy: 'session', consistentSampleRate: 0.5 });
     expect(hasSpansEnabled()).toBe(true);
   });
 
   it('makes one decision per session for all of its traces', () => {
-    init({ sampleBy: 'session', telemetrySampleRate: 0.5 });
+    init({ sampleBy: 'session', consistentSampleRate: 0.5 });
 
     for (let s = 0; s < 50; s++) {
       const session = startSession();
@@ -126,18 +146,23 @@ describe("sampleBy: 'session'", () => {
         const span = startRootSpanInNewTrace();
         const dsc = getDynamicSamplingContextFromSpan(span);
 
+        // There is no `tracesSampleRate` to fall back to, so only sampled sessions send spans
         expect(spanIsSampled(span)).toBe(expectedRand < 0.5);
-        // The trace carries the session's value and rate, so the DSC invariant holds and Sentry extrapolates
-        // with the session rate: sample_rand < sample_rate <=> sampled
-        expect(dsc.sample_rand).toBe(`${expectedRand}`);
+        // The trace reports the session rate, and the DSC invariant holds: sample_rand < sample_rate <=> sampled
         expect(dsc.sample_rate).toBe('0.5');
         expect(dsc.sampled).toBe(`${expectedRand < 0.5}`);
+        if (expectedRand < 0.5) {
+          // All traces of a sampled session carry the session's value
+          expect(dsc.sample_rand).toBe(`${expectedRand}`);
+        } else {
+          expect(Number(dsc.sample_rand)).toBeGreaterThanOrEqual(0.5);
+        }
       }
     }
   });
 
-  it('samples about `telemetrySampleRate` of all sessions', () => {
-    init({ sampleBy: 'session', telemetrySampleRate: 0.25 });
+  it('samples about `consistentSampleRate` of all sessions', () => {
+    init({ sampleBy: 'session', consistentSampleRate: 0.25 });
 
     let sampledSessions = 0;
     for (let s = 0; s < 2000; s++) {
@@ -151,55 +176,123 @@ describe("sampleBy: 'session'", () => {
   });
 
   it('sends all spans, errors, logs and metrics of a sampled session', () => {
-    // `tracesSampler` and `sampleRate` would drop everything. Inside a sampled session they are not consulted.
+    // `tracesSampler` and `sampleRate` would drop everything. A sampled session is sent anyway.
     const tracesSampler = vi.fn(() => 0);
-    init({ sampleBy: 'session', telemetrySampleRate: 0.5, tracesSampler, sampleRate: 0 });
+    init({ sampleBy: 'session', consistentSampleRate: 0.5, tracesSampler, sampleRate: 0 });
     startSessionWithDecision(true, 0.5);
 
     for (let i = 0; i < 3; i++) {
-      expect(spanIsSampled(startRootSpanInNewTrace())).toBe(true);
+      const span = startRootSpanInNewTrace();
+      expect(spanIsSampled(span)).toBe(true);
+      // The session rate is the higher one, so the spans report it
+      expect(getDynamicSamplingContextFromSpan(span).sample_rate).toBe('0.5');
       captureOneOfEach();
     }
 
-    expect(tracesSampler).not.toHaveBeenCalled();
     // Logs and metrics are not sampled, so they carry no sample rate
     expect(logs).toEqual([undefined, undefined, undefined]);
     expect(metrics).toEqual([undefined, undefined, undefined]);
     expect(outcomes()).toEqual({});
   });
 
-  it('sends no spans of an unsampled session, and errors, logs and metrics as before', () => {
-    const tracesSampler = vi.fn(() => 1);
-    init({ sampleBy: 'session', telemetrySampleRate: 0.5, tracesSampler });
-    startSessionWithDecision(false, 0.5);
+  describe('in an unsampled session', () => {
+    it('falls back to `tracesSampler`, and sends logs and metrics as before', () => {
+      init({ sampleBy: 'session', consistentSampleRate: 0.5, tracesSampler: () => 1 });
+      startSessionWithDecision(false, 0.5);
 
-    for (let i = 0; i < 3; i++) {
-      expect(spanIsSampled(startRootSpanInNewTrace())).toBe(false);
-      captureOneOfEach();
-    }
+      for (let i = 0; i < 3; i++) {
+        const span = startRootSpanInNewTrace();
+        expect(spanIsSampled(span)).toBe(true);
+        expect(getDynamicSamplingContextFromSpan(span).sample_rate).toBe('1');
+        captureOneOfEach();
+      }
 
-    expect(tracesSampler).not.toHaveBeenCalled();
-    // Logs and metrics are not sampled, so the session's decision does not apply to them
-    expect(logs).toEqual([undefined, undefined, undefined]);
-    expect(metrics).toEqual([undefined, undefined, undefined]);
-    // Only spans are dropped and reported. Errors are sent: `sampleRate` defaults to 1.
-    expect(outcomes()).toEqual({
-      'sample_rate:transaction': 3,
-      'sample_rate:span': 3,
+      // Logs and metrics are not sampled, so the session's decision does not apply to them
+      expect(logs).toEqual([undefined, undefined, undefined]);
+      expect(metrics).toEqual([undefined, undefined, undefined]);
+      // Errors are sent: `sampleRate` defaults to 1
+      expect(outcomes()).toEqual({});
+    });
+
+    it('sends no spans if the session rate is not below `tracesSampleRate`, and reports the session rate', () => {
+      init({ sampleBy: 'session', consistentSampleRate: 0.5, tracesSampleRate: 0.2 });
+      startSessionWithDecision(false, 0.5);
+
+      for (let i = 0; i < 20; i++) {
+        const span = startRootSpanInNewTrace();
+        const dsc = getDynamicSamplingContextFromSpan(span);
+        expect(spanIsSampled(span)).toBe(false);
+        expect(dsc.sample_rate).toBe('0.5');
+        expect(Number(dsc.sample_rand)).toBeGreaterThanOrEqual(0.5);
+      }
+      expect(outcomes()).toEqual({ 'sample_rate:transaction': 20, 'sample_rate:span': 20 });
+    });
+
+    it('applies the corrected `sampleRate` to errors', () => {
+      // 0.5 + (1 - 0.5) * fallback = 0.75 => fallback = 0.5
+      init({ sampleBy: 'session', consistentSampleRate: 0.5, sampleRate: 0.75 });
+      startSessionWithDecision(false, 0.5);
+
+      for (let i = 0; i < 2000; i++) {
+        captureException(new Error('boom'));
+      }
+
+      // 1000 expected, the standard deviation is ~22
+      expect(outcomes()['sample_rate:error']).toBeGreaterThan(880);
+      expect(outcomes()['sample_rate:error']).toBeLessThan(1120);
+    });
+
+    it('sends no errors if the session rate is not below `sampleRate`', () => {
+      init({ sampleBy: 'session', consistentSampleRate: 0.5, sampleRate: 0.5 });
+      startSessionWithDecision(false, 0.5);
+
+      for (let i = 0; i < 20; i++) {
+        captureException(new Error('boom'));
+      }
+
+      expect(outcomes()['sample_rate:error']).toBe(20);
     });
   });
 
-  it('applies `sampleRate` to errors of an unsampled session', () => {
-    init({ sampleBy: 'session', telemetrySampleRate: 0.5, sampleRate: 0 });
-    startSessionWithDecision(false, 0.5);
+  it('sends as many spans as `tracesSampleRate` alone, and every span reports `tracesSampleRate`', () => {
+    init({ sampleBy: 'session', consistentSampleRate: 0.1, tracesSampleRate: 0.2 });
 
-    captureException(new Error('boom'));
+    let traces = 0;
+    let sent = 0;
+    let sentInSampledSessions = 0;
+    for (let s = 0; s < 4000; s++) {
+      const session = startSession();
+      const sessionSampled = sampleRandFromKey(session.sid) < 0.1;
 
-    expect(outcomes()['sample_rate:error']).toBe(1);
+      for (let t = 0; t < 3; t++) {
+        const span = startRootSpanInNewTrace();
+        const dsc = getDynamicSamplingContextFromSpan(span);
+        traces++;
+
+        // Every span has the same overall chance to be sent, so every span reports the same rate
+        expect(dsc.sample_rate).toBe('0.2');
+        expect(Number(dsc.sample_rand) < 0.2).toBe(spanIsSampled(span));
+
+        if (sessionSampled) {
+          expect(spanIsSampled(span)).toBe(true);
+          sentInSampledSessions++;
+        }
+        if (spanIsSampled(span)) {
+          sent++;
+        }
+      }
+    }
+
+    // 10% of all spans are sent in sampled sessions, another 10% as a fallback with a rate of 0.111.
+    // Without the correction, 28% would be sent.
+    expect(sentInSampledSessions / traces).toBeGreaterThan(0.07);
+    expect(sentInSampledSessions / traces).toBeLessThan(0.13);
+    expect(sent / traces).toBeGreaterThan(0.17);
+    expect(sent / traces).toBeLessThan(0.23);
   });
 
   it('leaves telemetry outside of a session to the existing options', () => {
-    init({ sampleBy: 'session', telemetrySampleRate: 0, tracesSampleRate: 1 });
+    init({ sampleBy: 'session', consistentSampleRate: 0, tracesSampleRate: 1 });
 
     // No session was started
     expect(spanIsSampled(startRootSpanInNewTrace())).toBe(true);
@@ -212,7 +305,7 @@ describe("sampleBy: 'session'", () => {
   });
 
   it('does not sample traces outside of a session if there is no trace rate', () => {
-    init({ sampleBy: 'session', telemetrySampleRate: 1 });
+    init({ sampleBy: 'session', consistentSampleRate: 1 });
     expect(spanIsSampled(startRootSpanInNewTrace())).toBe(false);
     expect(outcomes()).toEqual({ 'sample_rate:transaction': 1, 'sample_rate:span': 1 });
   });
@@ -224,7 +317,7 @@ describe("sampleBy: 'session'", () => {
     });
 
     it('keeps the decision of the trace head and lets a new session adopt its sample_rand', () => {
-      init({ sampleBy: 'session', telemetrySampleRate: 0.5 });
+      init({ sampleBy: 'session', consistentSampleRate: 0.5 });
       startSession();
 
       // The other service sampled this trace with a value that the session rate rejects
@@ -237,7 +330,7 @@ describe("sampleBy: 'session'", () => {
     });
 
     it('agrees with the trace head if both use the same rate', () => {
-      init({ sampleBy: 'session', telemetrySampleRate: 0.5 });
+      init({ sampleBy: 'session', consistentSampleRate: 0.5 });
 
       for (const sampleRand of [0.1, 0.3, 0.6, 0.8]) {
         startSession();
@@ -248,12 +341,14 @@ describe("sampleBy: 'session'", () => {
         const navigation = startRootSpanInNewTrace('navigation');
 
         expect(spanIsSampled(navigation)).toBe(spanIsSampled(continued));
-        expect(getDynamicSamplingContextFromSpan(navigation).sample_rand).toBe(`${sampleRand}`);
+        if (sampleRand < 0.5) {
+          expect(getDynamicSamplingContextFromSpan(navigation).sample_rand).toBe(`${sampleRand}`);
+        }
       }
     });
 
     it('does not change a session that already has its value', () => {
-      init({ sampleBy: 'session', telemetrySampleRate: 0.5 });
+      init({ sampleBy: 'session', consistentSampleRate: 0.5 });
       const session = startSessionWithDecision(true, 0.5);
       startRootSpanInNewTrace();
 
@@ -278,7 +373,7 @@ describe("sampleBy: 'conversation'", () => {
 
       // Each turn of the conversation is a separate request, possibly in a separate process
       for (let turn = 0; turn < 3; turn++) {
-        init({ sampleBy: 'conversation', telemetrySampleRate: 0.5 });
+        init({ sampleBy: 'conversation', consistentSampleRate: 0.5 });
         setConversationId(conversationId);
 
         expect(spanIsSampled(startRootSpanInNewTrace('POST /chat'))).toBe(expectedSampled);
@@ -287,7 +382,7 @@ describe("sampleBy: 'conversation'", () => {
   });
 
   it('cannot change a trace that started before the conversation id was set', () => {
-    init({ sampleBy: 'conversation', telemetrySampleRate: 0, tracesSampleRate: 1 });
+    init({ sampleBy: 'conversation', consistentSampleRate: 0, tracesSampleRate: 1 });
 
     startNewTrace(() => {
       // Like an `http.server` span that starts before the request handler knows the conversation
@@ -304,7 +399,7 @@ describe("sampleBy: 'conversation'", () => {
 
 describe('sampleBy: fallbacks and custom keys', () => {
   it('uses the first unit that is available', () => {
-    init({ sampleBy: ['session', 'conversation'], telemetrySampleRate: 1 });
+    init({ sampleBy: ['session', 'conversation'], consistentSampleRate: 1 });
 
     setConversationId('conv_1');
     expect(resolveSamplingUnit(client.getOptions())).toMatchObject({ type: 'conversation', key: 'conv_1' });
@@ -316,7 +411,7 @@ describe('sampleBy: fallbacks and custom keys', () => {
   it('supports a custom key, for example a conversation id from a request header', () => {
     init({
       sampleBy: ({ normalizedRequest }) => normalizedRequest?.headers?.['x-conversation-id'],
-      telemetrySampleRate: 0.5,
+      consistentSampleRate: 0.5,
     });
 
     getIsolationScope().setSDKProcessingMetadata({
@@ -325,9 +420,8 @@ describe('sampleBy: fallbacks and custom keys', () => {
 
     // The key is known before the root span starts, so the trace follows the conversation
     const span = startRootSpanInNewTrace('POST /chat');
-    const expectedRand = sampleRandFromKey('conv_from_header');
-    expect(getDynamicSamplingContextFromSpan(span).sample_rand).toBe(`${expectedRand}`);
-    expect(spanIsSampled(span)).toBe(expectedRand < 0.5);
+    expect(resolveSamplingUnit(client.getOptions())).toMatchObject({ type: 'custom', key: 'conv_from_header' });
+    expect(spanIsSampled(span)).toBe(sampleRandFromKey('conv_from_header') < 0.5);
   });
 
   it('falls back to the existing options if the custom key throws', () => {
@@ -335,10 +429,39 @@ describe('sampleBy: fallbacks and custom keys', () => {
       sampleBy: () => {
         throw new Error('nope');
       },
-      telemetrySampleRate: 0,
+      consistentSampleRate: 0,
       tracesSampleRate: 1,
     });
 
     expect(spanIsSampled(startRootSpanInNewTrace())).toBe(true);
+  });
+});
+
+describe("sampleBy: 'trace'", () => {
+  it('sends the errors of a sampled trace, and falls back to the corrected rates otherwise', () => {
+    // Spans: 0.3 + (1 - 0.3) * fallback = 0.5. Errors: `sampleRate` is below 0.3, so there is no fallback.
+    init({ sampleBy: 'trace', consistentSampleRate: 0.3, tracesSampleRate: 0.5, sampleRate: 0.1 });
+
+    let sent = 0;
+    for (let t = 0; t < 2000; t++) {
+      startNewTrace(() => {
+        const span = startInactiveSpan({ name: 'root' });
+        const dsc = getDynamicSamplingContextFromSpan(span);
+        const sampleRand = Number(dsc.sample_rand);
+
+        expect(dsc.sample_rate).toBe('0.5');
+        expect(spanIsSampled(span)).toBe(sampleRand < 0.5);
+        sent += spanIsSampled(span) ? 1 : 0;
+
+        const droppedErrors = outcomes()['sample_rate:error'] || 0;
+        captureException(new Error('boom'));
+        // The error is sent exactly if its trace is one of the 30% that are sent completely
+        expect((outcomes()['sample_rate:error'] || 0) - droppedErrors).toBe(sampleRand < 0.3 ? 0 : 1);
+      });
+    }
+
+    // 1000 expected, the standard deviation is ~22
+    expect(sent).toBeGreaterThan(880);
+    expect(sent).toBeLessThan(1120);
   });
 });

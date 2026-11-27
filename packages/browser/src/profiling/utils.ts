@@ -294,7 +294,7 @@ export function shouldProfileSession(options: BrowserOptions): boolean {
   // `profileSessionSampleRate` is not consulted. To sample profiles independently again, compare
   // `profileSessionSampleRate` against `samplingUnit.sampleRand` here.
   const samplingUnit = resolveSamplingUnit(options);
-  if (samplingUnit) {
+  if (samplingUnit && samplingUnit.type !== 'trace') {
     return samplingUnit.sampled;
   }
 

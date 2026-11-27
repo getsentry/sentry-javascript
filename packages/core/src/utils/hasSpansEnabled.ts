@@ -23,7 +23,7 @@ declare const __SENTRY_TRACING__: boolean | undefined;
  */
 export function hasSpansEnabled(
   maybeOptions?:
-    | Pick<CoreOptions, 'tracesSampleRate' | 'tracesSampler' | 'sampleBy' | 'telemetrySampleRate'>
+    | Pick<CoreOptions, 'tracesSampleRate' | 'tracesSampler' | 'sampleBy' | 'consistentSampleRate'>
     | undefined,
 ): boolean {
   if (typeof __SENTRY_TRACING__ === 'boolean' && !__SENTRY_TRACING__) {
@@ -34,7 +34,7 @@ export function hasSpansEnabled(
   return (
     !!options &&
     // Note: This check is `!= null`, meaning "nullish". `0` is not "nullish", `undefined` and `null` are. (This comment was brought to you by 15 minutes of questioning life)
-    // PoC: `telemetrySampleRate` with `sampleBy` also turns span recording on, so one rate is enough to get traces.
+    // PoC: `consistentSampleRate` with `sampleBy` also turns span recording on, so one rate is enough to get traces.
     (options.tracesSampleRate != null || !!options.tracesSampler || hasSamplingUnits(options))
   );
 }

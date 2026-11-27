@@ -465,7 +465,7 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions,
   // `replaysSessionSampleRate` is not consulted. `replaysOnErrorSampleRate` still applies in unsampled sessions.
   // To sample replays independently again, compare `replaysSessionSampleRate` against `samplingUnit.sampleRand` here.
   const samplingUnit = resolveSamplingUnit(client.getOptions());
-  if (samplingUnit) {
+  if (samplingUnit && samplingUnit.type !== 'trace') {
     finalOptions.sessionSampleRate = samplingUnit.sampled ? 1 : 0;
   }
 

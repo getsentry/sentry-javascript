@@ -98,21 +98,27 @@ describe("sampleBy: 'session' with browserTracingIntegration", () => {
   it('makes one decision for the pageload and all navigations of a session (client-rendered app)', () => {
     for (let s = 0; s < 30; s++) {
       getMainCarrier().__SENTRY__ = undefined;
-      // No `tracesSampleRate`: `telemetrySampleRate` is the only sample rate
-      const client = setup({ sampleBy: 'session', telemetrySampleRate: 0.5 });
+      // No `tracesSampleRate`: `consistentSampleRate` is the only sample rate
+      const client = setup({ sampleBy: 'session', consistentSampleRate: 0.5 });
       const session = startSession();
       const expectedRand = sampleRandFromKey(session.sid);
 
       const spans: Span[] = [startBrowserTracingPageLoadSpan(client, { name: '/' })!];
       for (const name of ['/products', '/cart', '/checkout']) {
-        spans.push(startBrowserTracingNavigationSpan(client, { name })!);
-        // The scope carries the session's value too, for outgoing requests without an active span
-        expect(getCurrentScope().getPropagationContext().sampleRand).toBe(expectedRand);
+        const span = startBrowserTracingNavigationSpan(client, { name })!;
+        spans.push(span);
+        // The scope carries the same value as the span, for outgoing requests without an active span
+        expect(`${getCurrentScope().getPropagationContext().sampleRand}`).toBe(sampleRandOf(span));
       }
 
       for (const span of spans) {
-        expect(sampleRandOf(span)).toBe(`${expectedRand}`);
         expect(spanIsSampled(span)).toBe(expectedRand < 0.5);
+        if (expectedRand < 0.5) {
+          // All traces of a sampled session carry the session's value
+          expect(sampleRandOf(span)).toBe(`${expectedRand}`);
+        } else {
+          expect(Number(sampleRandOf(span))).toBeGreaterThanOrEqual(0.5);
+        }
       }
 
       // Each navigation is still its own trace
@@ -120,11 +126,26 @@ describe("sampleBy: 'session' with browserTracingIntegration", () => {
     }
   });
 
+  it('falls back to `tracesSampleRate` for the navigations of an unsampled session', () => {
+    const client = setup({ sampleBy: 'session', consistentSampleRate: 0.2, tracesSampleRate: 1 });
+    let session = startSession();
+    while (sampleRandFromKey(session.sid) < 0.2) {
+      session = startSession();
+    }
+
+    for (const name of ['/products', '/cart']) {
+      const span = startBrowserTracingNavigationSpan(client, { name })!;
+      expect(spanIsSampled(span)).toBe(true);
+      expect(getDynamicSamplingContextFromSpan(span).sample_rate).toBe('1');
+    }
+    expect(resolveSamplingUnit(client.getOptions())?.sampled).toBe(false);
+  });
+
   describe('server-rendered pageload', () => {
     it('starts its own trace and links the server request by default, so the session decides', () => {
       for (let s = 0; s < 30; s++) {
         getMainCarrier().__SENTRY__ = undefined;
-        const client = setup({ sampleBy: 'session', telemetrySampleRate: 0.5 });
+        const client = setup({ sampleBy: 'session', consistentSampleRate: 0.5 });
         const session = startSession();
         const sessionSampled = sampleRandFromKey(session.sid) < 0.5;
 
@@ -133,7 +154,9 @@ describe("sampleBy: 'session' with browserTracingIntegration", () => {
 
         expect(pageload.spanContext().traceId).not.toBe(SERVER_TRACE_ID);
         expect(spanIsSampled(pageload)).toBe(sessionSampled);
-        expect(sampleRandOf(pageload)).toBe(`${sampleRandFromKey(session.sid)}`);
+        if (sessionSampled) {
+          expect(sampleRandOf(pageload)).toBe(`${sampleRandFromKey(session.sid)}`);
+        }
 
         // The link is kept on unsampled spans too, but only sampled spans are sent
         if (sessionSampled) {
@@ -154,7 +177,7 @@ describe("sampleBy: 'session' with browserTracingIntegration", () => {
     });
 
     it("continues the server's trace with `serverTrace: 'continue'`, and the session adopts its value", () => {
-      const client = setup({ sampleBy: 'session', telemetrySampleRate: 0.1 }, { serverTrace: 'continue' });
+      const client = setup({ sampleBy: 'session', consistentSampleRate: 0.1 }, { serverTrace: 'continue' });
       startSession();
 
       const pageload = startBrowserTracingPageLoadSpan(client, { name: '/' }, serverTrace(0.3, true))!;
@@ -184,7 +207,7 @@ describe("sampleBy: 'session' with browserTracingIntegration", () => {
   it('runs the profiler in exactly the sampled sessions', () => {
     for (let s = 0; s < 30; s++) {
       getMainCarrier().__SENTRY__ = undefined;
-      const client = setup({ sampleBy: 'session', telemetrySampleRate: 0.5, profileLifecycle: 'trace' });
+      const client = setup({ sampleBy: 'session', consistentSampleRate: 0.5, profileLifecycle: 'trace' });
       const session = startSession();
 
       expect(shouldProfileSession(client.getOptions())).toBe(sampleRandFromKey(session.sid) < 0.5);
