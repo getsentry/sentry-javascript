@@ -295,9 +295,9 @@ export function createTanstackAIMiddleware(
       const status = getErrorStatus(ctx.signal);
       if (status.message === 'internal_error') {
         // TanStack gives a tool failure back to the model as the tool result, so the error handlers
-        // of the app never see it. The run continues, so the error counts as handled.
+        // of the app never see it.
         withActiveSpan(span, () => {
-          captureException(error, { mechanism: { type: TANSTACK_AI_ORIGIN, handled: true } });
+          captureException(error, { mechanism: { type: TANSTACK_AI_ORIGIN, handled: false } });
         });
       }
       endSpan(span, status, error);
