@@ -37,7 +37,7 @@ export { sampleSpan } from './sampling';
 export {
   getConsistentSessionSampleRand,
   getSampleRandForNewTrace,
-  isInSampledTrace,
+  getTraceSamplingDecision,
   sampleRandFromKey,
 } from './consistentSampling';
 export type { ConsistentSampling } from './consistentSampling';

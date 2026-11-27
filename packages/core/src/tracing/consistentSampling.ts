@@ -5,9 +5,11 @@ import type { Scope } from '../scope';
 import type { CoreOptions } from '../types/options';
 import type { Session } from '../types/session';
 import { debug } from '../utils/debug-logger';
+import { parseSampleRate } from '../utils/parseSampleRate';
 import { safeMathRandom } from '../utils/randomSafeContext';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { spanIsSampled } from '../utils/spanUtils';
+import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 
 /**
  * PoC: consistent sampling, driven by the trace sampling decision.
@@ -15,24 +17,28 @@ import { spanIsSampled } from '../utils/spanUtils';
  * There is no new sample rate. `tracesSampleRate` and `tracesSampler` stay the one place where the sampling
  * decision is made. The `consistentSampling` option extends that decision:
  *
- * - `'trace'`: Errors captured in a sampled trace are always sent. In an unsampled trace they follow `sampleRate`.
- *   Logs and metrics have no sample rate of their own, so they are sent either way.
+ * - `'off'`: Nothing changes. This is the same as not setting the option.
+ * - `'trace'`: Errors captured in a sampled trace are always sent. In an unsampled trace they fall back to
+ *   `sampleRate`, corrected so that the SDK still sends `sampleRate` of all errors (see
+ *   {@link getFallbackSampleRate}). Logs and metrics have no sample rate of their own, so they are sent either way.
  * - `'session'`: In addition, the first trace of a session is sampled as usual, and every later trace the SDK
  *   starts in that session reuses its decision. Replay and profile rates are compared against the session's
  *   `sample_rand` instead of a new random number.
  * - `'conversation'`: In addition, every trace the SDK starts while a conversation id is set gets a `sample_rand`
  *   derived from that id. With one trace sample rate, all requests of a conversation get the same decision.
  */
-export type ConsistentSampling = 'trace' | 'session' | 'conversation';
+export type ConsistentSampling = 'off' | 'trace' | 'session' | 'conversation';
 
 type ConsistentSamplingOptions = Pick<CoreOptions, 'consistentSampling'>;
 
-/** The decision of the first trace of a session, which later traces of the session reuse. */
-interface HeldSamplingDecision {
+/** A trace sampling decision. A session holds the one of its first trace, which its later traces reuse. */
+interface TraceSamplingDecision {
   sampled: boolean;
-  /** The rate the decision was made with. Later traces report it as their `sample_rate`. */
+  /** The rate the decision was made with. Later traces of a session report it as their `sample_rate`. */
   sampleRate: number | undefined;
 }
+
+type HeldSamplingDecision = TraceSamplingDecision;
 
 /**
  * A session keeps the `sample_rand` it was given first. This is `sampleRandFromKey(sid)`, unless the session is
@@ -216,16 +222,57 @@ export function getConsistentSessionSampleRand(
 }
 
 /**
- * Whether telemetry captured on the given scope belongs to a sampled trace: the active span is sampled, or,
- * without an active span, the current trace on the propagation context is (in the browser, the trace of the
- * current page after its pageload or navigation span ended).
+ * The sampling decision of the trace that telemetry captured on the given scope belongs to: the decision of the
+ * active span, or, without an active span, of the current trace on the propagation context (in the browser, the
+ * trace of the current page after its pageload or navigation span ended).
  *
- * Always `false` without `consistentSampling`, so telemetry follows its own sample rate as before.
+ * Returns `undefined` without `consistentSampling` or if the trace has no decision. Telemetry then follows its
+ * own sample rate as before.
  */
-export function isInSampledTrace(options: ConsistentSamplingOptions, scope: Scope): boolean {
-  if (!options.consistentSampling) {
-    return false;
+export function getTraceSamplingDecision(
+  options: ConsistentSamplingOptions,
+  scope: Scope,
+): TraceSamplingDecision | undefined {
+  if (!options.consistentSampling || options.consistentSampling === 'off') {
+    return undefined;
   }
+
   const span = _getSpanForScope(scope);
-  return span ? spanIsSampled(span) : scope.getPropagationContext().sampled === true;
+  if (span) {
+    const sampled = spanIsSampled(span);
+    // The rate is only needed to correct the fallback rate in an unsampled trace
+    const sampleRate = sampled ? undefined : parseSampleRate(getDynamicSamplingContextFromSpan(span).sample_rate);
+    return { sampled, sampleRate };
+  }
+
+  const { sampled, dsc } = scope.getPropagationContext();
+  return sampled === undefined ? undefined : { sampled, sampleRate: parseSampleRate(dsc?.sample_rate) };
+}
+
+/**
+ * The rate for the fallback decision in an unsampled trace, for telemetry with its own sample rate.
+ *
+ * Applying the plain rate would send more than before: with `tracesSampleRate: 0.2` and `sampleRate: 0.5`,
+ * 20% + 80% * 0.5 = 60% of all errors. The corrected rate keeps the total at the telemetry's own rate:
+ *
+ *   traceSampleRate + (1 - traceSampleRate) * fallback = sampleRate
+ *
+ * If the trace rate is the higher one, there is nothing left for the fallback, and the total is the trace rate.
+ */
+export function getFallbackSampleRate(sampleRate: number, traceSampleRate: number): number {
+  return sampleRate > traceSampleRate ? (sampleRate - traceSampleRate) / (1 - traceSampleRate) : 0;
+}
+
+/**
+ * The rate to sample an error with: all errors of a sampled trace are sent, errors of an unsampled trace follow
+ * the corrected `sampleRate`. Without a trace decision, `sampleRate` applies as is.
+ */
+export function getErrorSampleRate(sampleRate: number, decision: TraceSamplingDecision | undefined): number {
+  if (!decision) {
+    return sampleRate;
+  }
+  if (decision.sampled) {
+    return 1;
+  }
+  return decision.sampleRate === undefined ? sampleRate : getFallbackSampleRate(sampleRate, decision.sampleRate);
 }

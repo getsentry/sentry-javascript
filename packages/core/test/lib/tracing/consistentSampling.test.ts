@@ -10,7 +10,11 @@ import {
 import { _INTERNAL_captureLog } from '../../../src/logs/internal';
 import { _INTERNAL_captureMetric } from '../../../src/metrics/internal';
 import { continueTrace, getDynamicSamplingContextFromSpan } from '../../../src/tracing';
-import { getConsistentSessionSampleRand, sampleRandFromKey } from '../../../src/tracing/consistentSampling';
+import {
+  getConsistentSessionSampleRand,
+  getFallbackSampleRate,
+  sampleRandFromKey,
+} from '../../../src/tracing/consistentSampling';
 import { startInactiveSpan, startNewTrace, startSpan } from '../../../src/tracing/trace';
 import type { CoreOptions } from '../../../src/types/options';
 import type { TracesSamplerSamplingContext } from '../../../src/types/samplingcontext';
@@ -110,9 +114,29 @@ describe('sampleRandFromKey', () => {
   });
 });
 
+describe('getFallbackSampleRate', () => {
+  it.each([
+    // [sampleRate, traceSampleRate, fallback]
+    [0.5, 0.2, 3 / 8],
+    [0.5, 0.1, 4 / 9],
+    [1, 0.3, 1],
+    [0.7, 0, 0.7],
+    // The trace rate is the higher one: nothing is left for the fallback
+    [0.1, 0.2, 0],
+    [0.5, 0.5, 0],
+    [1, 1, 0],
+  ])('corrects a rate of %s with a trace sample rate of %s to %s', (sampleRate, traceSampleRate, fallback) => {
+    expect(getFallbackSampleRate(sampleRate, traceSampleRate)).toBeCloseTo(fallback, 10);
+    if (fallback > 0) {
+      // The total stays at the rate of the telemetry
+      expect(traceSampleRate + (1 - traceSampleRate) * fallback).toBeCloseTo(sampleRate, 10);
+    }
+  });
+});
+
 describe('without consistentSampling', () => {
-  it('samples errors with `sampleRate`, independent of their trace', () => {
-    init({ tracesSampleRate: 1, sampleRate: 0 });
+  it.each([undefined, 'off'] as const)('samples errors with `sampleRate`, independent of their trace (%s)', value => {
+    init({ consistentSampling: value, tracesSampleRate: 1, sampleRate: 0 });
 
     expect(captureErrorInNewTrace()).toBe(true);
     expect(droppedErrors()).toBe(1);
@@ -142,6 +166,51 @@ describe("consistentSampling: 'trace'", () => {
 
     captureException(new Error('boom'));
     expect(droppedErrors()).toBe(1);
+  });
+
+  it('corrects `sampleRate` in unsampled traces, so the SDK sends as many errors as before', () => {
+    // 0.5 + (1 - 0.5) * fallback = 0.75 => fallback = 0.5
+    init({ consistentSampling: 'trace', tracesSampleRate: 0.5, sampleRate: 0.75 });
+
+    for (let t = 0; t < 2000; t++) {
+      const droppedBefore = droppedErrors();
+      if (captureErrorInNewTrace()) {
+        // Errors of a sampled trace are always sent
+        expect(droppedErrors()).toBe(droppedBefore);
+      }
+    }
+
+    // 25% of all errors are dropped, as with `sampleRate: 0.75` alone. Without the correction it would be 12.5%.
+    // 500 expected, the standard deviation is ~19
+    expect(droppedErrors()).toBeGreaterThan(400);
+    expect(droppedErrors()).toBeLessThan(600);
+  });
+
+  it('sends no errors of unsampled traces if `sampleRate` is not above the trace sample rate', () => {
+    init({ consistentSampling: 'trace', tracesSampleRate: 0.5, sampleRate: 0.3 });
+
+    let unsampledTraces = 0;
+    for (let t = 0; t < 200; t++) {
+      unsampledTraces += captureErrorInNewTrace() ? 0 : 1;
+    }
+
+    expect(droppedErrors()).toBe(unsampledTraces);
+  });
+
+  it('uses the decision of the current trace if there is no active span', () => {
+    init({ consistentSampling: 'trace', tracesSampleRate: 1, sampleRate: 0.5 });
+    const trace = { traceId: '12312012123120121231201212312012', sampleRand: 0.9 };
+
+    // Like a page whose navigation span ended: the trace was not sampled, with a rate of 0.5
+    getCurrentScope().setPropagationContext({ ...trace, sampled: false, dsc: { sample_rate: '0.5' } });
+    for (let i = 0; i < 20; i++) {
+      captureException(new Error('boom'));
+    }
+    expect(droppedErrors()).toBe(20);
+
+    getCurrentScope().setPropagationContext({ ...trace, sampled: true, dsc: { sample_rate: '0.5' } });
+    captureException(new Error('boom'));
+    expect(droppedErrors()).toBe(20);
   });
 
   it('samples each trace on its own', () => {
