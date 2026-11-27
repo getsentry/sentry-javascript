@@ -16,7 +16,12 @@
     "test:build:delete-option-webpack": "pnpm install && E2E_VARIANT=delete-option E2E_NEXT_WEBPACK=1 pnpm build",
     "test:build:manual-upload": "pnpm install && E2E_VARIANT=manual-upload pnpm build",
     "test:build:manual-upload-webpack": "pnpm install && E2E_VARIANT=manual-upload E2E_NEXT_WEBPACK=1 pnpm build",
-    "test:assert:manual-upload": "pnpm ts-node --script-mode assert-manual-upload.ts"
+    "test:assert:manual-upload": "pnpm ts-node --script-mode assert-manual-upload.ts",
+    "test:build:sri-delete": "pnpm install && E2E_SRI=1 E2E_DELETE_SOURCEMAPS=1 pnpm build",
+    "test:build:sri-delete-webpack": "pnpm install && E2E_SRI=1 E2E_DELETE_SOURCEMAPS=1 E2E_NEXT_WEBPACK=1 pnpm build",
+    "test:build:sri-manual-upload": "pnpm install && E2E_SRI=1 E2E_VARIANT=manual-upload pnpm build",
+    "test:build:sri-manual-upload-webpack": "pnpm install && E2E_SRI=1 E2E_VARIANT=manual-upload E2E_NEXT_WEBPACK=1 pnpm build",
+    "test:assert:sri": "pnpm ts-node --script-mode assert-sri.ts"
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../packed/sentry-nextjs-packed.tgz",
@@ -76,6 +81,26 @@
         "build-command": "pnpm test:build:manual-upload-webpack",
         "assert-command": "pnpm test:assert:manual-upload",
         "label": "nextjs-16-sourcemaps (manual upload, webpack)"
+      },
+      {
+        "build-command": "pnpm test:build:sri-delete",
+        "assert-command": "pnpm test:assert:sri",
+        "label": "nextjs-16-sourcemaps (SRI, delete, turbopack)"
+      },
+      {
+        "build-command": "pnpm test:build:sri-delete-webpack",
+        "assert-command": "pnpm test:assert:sri",
+        "label": "nextjs-16-sourcemaps (SRI, delete, webpack)"
+      },
+      {
+        "build-command": "pnpm test:build:sri-manual-upload",
+        "assert-command": "pnpm test:assert:sri",
+        "label": "nextjs-16-sourcemaps (SRI, manual upload, turbopack)"
+      },
+      {
+        "build-command": "pnpm test:build:sri-manual-upload-webpack",
+        "assert-command": "pnpm test:assert:sri",
+        "label": "nextjs-16-sourcemaps (SRI, manual upload, webpack)"
       }
     ]
   }

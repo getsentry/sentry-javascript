@@ -17,6 +17,9 @@ const nitroPreset = process.env.NITRO_PRESET;
 // `delete-all`: Sentry removes the client maps the app enabled and the server maps Nuxt enables.
 const variant = process.env.E2E_VARIANT;
 
+// `nuxt-security` adds integrity attributes, which must still match the files Sentry injected into.
+const sri = process.env.E2E_SRI === 'true';
+
 // The experimental Vite server runs no Nitro, so the Sentry Vite plugin uploads and removes the server maps too.
 const viteServer = process.env.E2E_VITE_SERVER === 'true';
 
@@ -54,7 +57,9 @@ export default defineNuxtConfig({
 
   vite: { plugins: [recordChunksWithoutSourceMap()] },
 
-  modules: ['@sentry/nuxt/module'],
+  modules: sri ? ['nuxt-security', '@sentry/nuxt/module'] : ['@sentry/nuxt/module'],
+
+  ...(sri && { security: { sri: true } }),
 
   runtimeConfig: {
     public: {

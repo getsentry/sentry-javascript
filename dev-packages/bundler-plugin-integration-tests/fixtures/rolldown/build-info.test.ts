@@ -12,9 +12,11 @@ test(import.meta.url, ({ runBundler, readOutputFiles }) => {
     		e.SENTRY_RELEASE = { id: "build-information-injection-test" };
     		e.SENTRY_BUILD_INFO = {
     			"deps": [
+    				"@rollup/plugin-html",
     				"@sentry/bundler-plugins",
     				"react",
-    				"rolldown"
+    				"rolldown",
+    				"rollup-plugin-sri"
     			],
     			"depsVersions": { "react": 19 },
     			"nodeVersion":"NODE_VERSION"

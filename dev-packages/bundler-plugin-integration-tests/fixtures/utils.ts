@@ -1,9 +1,9 @@
 import type { ExecSyncOptions } from "node:child_process";
 import { execSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const DEBUG = !!process.env["DEBUG"];
 const CURRENT_SHA = execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim();
@@ -165,4 +165,44 @@ export async function withFakeSentryServer(
       server.close(() => resolve());
     });
   }
+}
+
+type IntegrityCheck = {
+  html: string;
+  url: string;
+  integrity: string;
+  valid: boolean;
+  source: string;
+};
+
+/**
+ * Checks every `integrity` attribute in the HTML files of `outDir` against
+ * the bytes of the file it points to, the same way a browser does.
+ */
+export function checkSubresourceIntegrity(outDir: string): IntegrityCheck[] {
+  const checks: IntegrityCheck[] = [];
+  const htmlFiles = Object.keys(readAllFiles(outDir)).filter((f) => f.endsWith(".html"));
+
+  for (const html of htmlFiles) {
+    const content = readFileSync(join(outDir, html), "utf-8");
+    for (const [tag] of content.matchAll(/<(?:script|link)\b[^>]*>/g)) {
+      const integrity = tag.match(/\sintegrity="([^"]+)"/)?.[1];
+      const url = tag.match(/\s(?:src|href)="([^"]+)"/)?.[1];
+      if (!integrity || !url) {
+        continue;
+      }
+
+      const path = url.startsWith("/") ? join(outDir, url) : join(outDir, dirname(html), url);
+      const bytes = readFileSync(path);
+      const hashes = integrity.split(/\s+/);
+      const valid = hashes.some((hash) => {
+        const algorithm = hash.split("-")[0] as string;
+        return hash === `${algorithm}-${createHash(algorithm).update(bytes).digest("base64")}`;
+      });
+
+      checks.push({ html, url, integrity, valid, source: bytes.toString("utf-8") });
+    }
+  }
+
+  return checks;
 }

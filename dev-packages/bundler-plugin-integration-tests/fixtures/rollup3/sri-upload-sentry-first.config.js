@@ -1,0 +1,15 @@
+import { sentryRollupPlugin } from "@sentry/bundler-plugins/rollup";
+import html from "@rollup/plugin-html";
+import { defineConfig } from "rollup";
+import sri from "rollup-plugin-sri";
+import { sentryConfig } from "../configs/sri-upload.config.js";
+
+export default defineConfig({
+  input: "src/dynamic-import.js",
+  output: {
+    dir: "out/sri-upload-sentry-first",
+    format: "es",
+    sourcemap: true,
+  },
+  plugins: [sentryRollupPlugin(sentryConfig), html(), sri()],
+});
