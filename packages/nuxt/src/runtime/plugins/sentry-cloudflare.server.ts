@@ -20,15 +20,18 @@ import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { isCloudflareEntryWrapped } from '../utils/cloudflare-entry';
 import { getCfProperties, getCloudflareProperties, hasCfProperty, isEventType } from '../utils/event-type-check';
+import { withNuxtTracingChannelIntegration } from '../utils/nuxtTracingChannelIntegration';
 import { addSentryPageMetaTags, recordRequestStart } from '../utils/pageMetaTags';
 
 function getRequestHandlerOptions(cloudflareOptions: CloudflareOptions): CloudflareOptions {
+  const userOptions = _INTERNAL_captureOptionsSetByUser(cloudflareOptions);
   const options: CloudflareOptions = {
     // `wrapRequestHandler` only sets up the integrations that work without `nodejs_compat`.
     // Nitro's Cloudflare presets require the flag anyway, so opt into the full set.
     defaultIntegrations: getDefaultIntegrations(cloudflareOptions),
     _extendsDefaultIntegrations: cloudflareOptions.defaultIntegrations === undefined,
-    ..._INTERNAL_captureOptionsSetByUser(cloudflareOptions),
+    ...userOptions,
+    integrations: withNuxtTracingChannelIntegration(userOptions.integrations),
   };
   applySdkMetadata(options, 'nuxt', ['nuxt', 'cloudflare']);
   return options;

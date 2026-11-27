@@ -2,6 +2,7 @@
 import type { ExportedHandler } from '@cloudflare/workers-types';
 import { URL_PATH } from '@sentry/conventions/attributes';
 import { HTTP_SERVER } from '@sentry/conventions/op';
+import type { Integration } from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -35,6 +36,8 @@ vi.mock('@sentry/cloudflare', () => ({
     DurableObjectClass,
   }),
 }));
+
+type ResolveIntegrations = (defaultIntegrations: Integration[]) => Integration[];
 
 type WrappedHandler = {
   optionsCallback: (env: unknown) => unknown;
@@ -80,8 +83,24 @@ describe('wrapNitroCloudflareEntryWithSentry', () => {
           ],
         },
       },
+      integrations: expect.any(Function),
       ignoreSpans: [],
     });
+  });
+
+  it('adds the integration for the tracing channels of Nuxt to the integrations of the app', () => {
+    const wrapped = wrapNitroCloudflareEntryWithSentry(
+      () => ({ integrations: [{ name: 'AppIntegration' }] }),
+      {},
+    ) as unknown as WrappedHandler;
+
+    const { integrations } = wrapped.optionsCallback({}) as { integrations: ResolveIntegrations };
+
+    expect(integrations([{ name: 'Fetch' }]).map(integration => integration.name)).toEqual([
+      'Fetch',
+      'NuxtTracingChannel',
+      'AppIntegration',
+    ]);
   });
 
   it('ignores the server spans of requests to the build output after the `ignoreSpans` of the app', () => {
@@ -158,7 +177,22 @@ describe('wrapNitroDurableObjectWithSentry', () => {
           ],
         },
       },
+      integrations: expect.any(Function),
     });
+  });
+
+  it('adds the integration for the tracing channels of Nuxt', () => {
+    const { optionsCallback } = wrapNitroDurableObjectWithSentry(
+      () => ({}),
+      NitroDurableObject,
+    ) as unknown as WrappedDurableObject;
+
+    const { integrations } = optionsCallback({}) as { integrations: ResolveIntegrations };
+
+    expect(integrations([{ name: 'Fetch' }]).map(integration => integration.name)).toEqual([
+      'Fetch',
+      'NuxtTracingChannel',
+    ]);
   });
 });
 

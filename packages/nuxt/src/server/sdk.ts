@@ -23,6 +23,7 @@ import {
 } from '../common/devMode';
 import type { SentryNuxtServerOptions } from '../common/types';
 import { getBuildAssetRequestFilters } from '../runtime/utils/buildAssetRequestFilters';
+import { withNuxtTracingChannelIntegration } from '../runtime/utils/nuxtTracingChannelIntegration';
 
 /**
  * Initializes the server-side of the Nuxt SDK
@@ -65,7 +66,7 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
   const sentryOptions = {
     environment: options.environment ?? process.env.SENTRY_ENVIRONMENT ?? envFallback,
     ...userOptions,
-    integrations: withNuxtNitroIntegration(userOptions.integrations),
+    integrations: withNuxtIntegrations(userOptions.integrations),
     ignoreSpans: [
       ...(options.ignoreSpans || []),
       ...getBuildAssetRequestFilters(getNuxtBuildAssetsPath()),
@@ -91,26 +92,25 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 /**
  * Swaps the default Nitro integration for one without middleware spans, storage spans and `Server-Timing` headers.
  * The Nuxt SDK already covers these, so with Nitro's tracing channels on, each operation would get two spans.
+ * Also adds `nuxtTracingChannelIntegration`.
  *
  * It wraps `integrations` and not `defaultIntegrations`, because only `initNode` resolves the defaults correctly
  * (it also reads `SENTRY_TRACES_SAMPLE_RATE`).
  */
-function withNuxtNitroIntegration(
+function withNuxtIntegrations(
   userIntegrations: SentryNuxtServerOptions['integrations'],
 ): NonNullable<SentryNuxtServerOptions['integrations']> {
   // Keep the SDK spans, not the channel spans. Nitro v2 has no channels, and h3 does not tell which middleware ran.
   const nuxtNitroIntegration = nitroIntegration({ middleware: false, storage: false, serverTiming: false });
+  const withTracingChannelIntegration = withNuxtTracingChannelIntegration(userIntegrations);
 
-  return defaultIntegrations => {
-    const integrations = defaultIntegrations.map(integration =>
-      // The spread keeps core's default-instance flag, so a `nitroIntegration` from the user still wins.
-      integration.name === nuxtNitroIntegration.name ? { ...integration, ...nuxtNitroIntegration } : integration,
+  return defaultIntegrations =>
+    withTracingChannelIntegration(
+      defaultIntegrations.map(integration =>
+        // The spread keeps core's default-instance flag, so a `nitroIntegration` from the user still wins.
+        integration.name === nuxtNitroIntegration.name ? { ...integration, ...nuxtNitroIntegration } : integration,
+      ),
     );
-
-    return typeof userIntegrations === 'function'
-      ? userIntegrations(integrations)
-      : [...integrations, ...(userIntegrations ?? [])];
-  };
 }
 
 /**
