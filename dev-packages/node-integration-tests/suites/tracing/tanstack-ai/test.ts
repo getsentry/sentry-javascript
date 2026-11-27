@@ -118,13 +118,17 @@ describe('TanStack AI integration', () => {
   });
 
   createEsmTests(__dirname, 'scenario-errors.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('marks a failed model call and its run', async () => {
+    test('marks a failed model call, a stopped stream and their runs', async () => {
       await createRunner()
         .expect({
           span: container => {
             const modelError = runSpans(container.items, 'thread-model-error');
             expect(modelError.agent.status).toBe('error');
             expect(modelError.chats.map(span => span.status)).toEqual(['error']);
+
+            // `onAbort` ends these spans. Span streaming sends the `cancelled` status as `ok`.
+            const stopped = runSpans(container.items, 'thread-stopped');
+            expect(stopped.chats).toHaveLength(1);
           },
         })
         .start()
