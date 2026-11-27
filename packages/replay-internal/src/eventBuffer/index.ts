@@ -1,4 +1,5 @@
 import { getWorkerURL } from '@sentry-internal/replay-worker';
+import { getTrustedScriptURL } from '@sentry/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { EventBuffer, ReplayWorkerURL } from '../types';
 import { debug } from '../util/logger';
@@ -55,7 +56,7 @@ function _loadWorker(customWorkerUrl?: ReplayWorkerURL): EventBufferProxy | void
 
 function _getWorkerUrl(): string {
   if (typeof __SENTRY_EXCLUDE_REPLAY_WORKER__ === 'undefined' || !__SENTRY_EXCLUDE_REPLAY_WORKER__) {
-    return getWorkerURL();
+    return getTrustedScriptURL(getWorkerURL());
   }
 
   return '';

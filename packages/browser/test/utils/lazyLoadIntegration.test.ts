@@ -2,11 +2,14 @@
  * @vitest-environment jsdom
  */
 
+import type { Client } from '@sentry/core';
+import { getCurrentScope, GLOBAL_OBJ } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 import { TextDecoder, TextEncoder } from 'util';
-import { afterAll, afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { lazyLoadIntegration, SDK_VERSION } from '../../src';
 import * as Sentry from '../../src';
+import { LAZY_LOADABLE_NAMES } from '../../src/utils/lazyLoadIntegration';
 
 const patchedEncoder = (!global.window.TextEncoder && (global.window.TextEncoder = TextEncoder)) || true;
 // @ts-expect-error patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
@@ -81,4 +84,35 @@ describe('lazyLoadIntegration', () => {
       `https://browser.sentry-cdn.com/${SDK_VERSION}/httpclient.min.js`,
     );
   });
+
+  describe.each([undefined, 'https://cdn.example.com', 'https://cdn.example.com:8443/some/path/'])(
+    'with Trusted Types and cdnBaseUrl %s',
+    cdnBaseUrl => {
+      beforeEach(() => {
+        delete GLOBAL_OBJ.__SENTRY__;
+        getCurrentScope().setClient({
+          getOptions: () => ({ cdnBaseUrl }),
+          getDsn: () => undefined,
+        } as unknown as Client);
+        vi.stubGlobal('trustedTypes', { createPolicy: (_name: string, rules: unknown) => rules });
+      });
+
+      afterEach(() => {
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+        delete GLOBAL_OBJ.__SENTRY__;
+      });
+
+      test.each(LAZY_LOADABLE_NAMES)('the policy accepts the URL for %s', async name => {
+        const appendChild = vi.spyOn(global.document.body, 'appendChild').mockImplementation(node => {
+          node.dispatchEvent(new global.window.Event('error'));
+          return node;
+        });
+
+        // A URL refused by the policy rejects with a different error, before the script is appended
+        await expect(lazyLoadIntegration(name)).rejects.toThrow(`Error when loading integration: ${name}`);
+        expect(appendChild).toHaveBeenCalledTimes(1);
+      });
+    },
+  );
 });

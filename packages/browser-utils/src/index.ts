@@ -31,6 +31,8 @@ export { isBotUserAgent } from './isBotUserAgent';
 
 export { getLocationHref } from './getLocationHref';
 
+export { getCdnBaseUrl, getTrustedScriptURL } from './trustedTypes';
+
 export {
   createCachedRouteProvider,
   createUrlRouteProvider,
