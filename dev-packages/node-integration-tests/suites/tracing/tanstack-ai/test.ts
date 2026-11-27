@@ -139,7 +139,7 @@ describe('TanStack AI integration', () => {
               values: [
                 expect.objectContaining({
                   value: 'Weather service down',
-                  mechanism: expect.objectContaining({ type: 'auto.ai.tanstack_ai', handled: true }),
+                  mechanism: expect.objectContaining({ type: 'auto.ai.tanstack_ai', handled: false }),
                 }),
               ],
             },
