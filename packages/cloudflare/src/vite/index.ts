@@ -46,6 +46,9 @@ export interface SentryCloudflareVitePluginOptions {
    * left alone, so this is safe alongside manual instrumentation. Set to
    * `false` to opt out.
    *
+   * A native Void app needs no wrangler config. The plugin wraps the Worker entry that Void generates and
+   * reads the options from an `instrument.server.*` file in the Vite root.
+   *
    * The plugin also adds the bindings that resolve to the wrapped classes (this worker's own
    * Durable Objects and self service bindings) to `rpcTracePropagationBindings`. Bindings to
    * other workers stay opt-in, their receivers may not run Sentry.
