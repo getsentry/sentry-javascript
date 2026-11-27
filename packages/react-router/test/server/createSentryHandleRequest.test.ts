@@ -1,10 +1,17 @@
 /* eslint-disable no-console */
+import type * as SentryCoreServer from '@sentry/core/server';
+import { _INTERNAL_safeUnref } from '@sentry/core/server';
 import type { EntryContext } from 'react-router';
 import { PassThrough } from 'stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSentryHandleRequest } from '../../src/server/createSentryHandleRequest';
 import * as getMetaTagTransformerModule from '../../src/server/getMetaTagTransformer';
 import * as wrapSentryHandleRequestModule from '../../src/server/wrapSentryHandleRequest';
+
+vi.mock('@sentry/core/server', async importOriginal => ({
+  ...(await importOriginal<typeof SentryCoreServer>()),
+  _INTERNAL_safeUnref: vi.fn(timer => timer),
+}));
 
 vi.mock('../../src/server/wrapSentryHandleRequest', () => ({
   wrapSentryHandleRequest: vi.fn(fn => fn),
@@ -151,6 +158,18 @@ describe('createSentryHandleRequest', () => {
 
     vi.advanceTimersByTime(1);
     expect(mockAbort).toHaveBeenCalled();
+  });
+
+  it('unrefs the abort timer so it cannot keep a Node process alive', () => {
+    const handleRequest = createSentryHandleRequest({
+      renderToPipeableStream: mockRenderToPipeableStream,
+      ServerRouter: mockServerRouter,
+      createReadableStreamFromReadable: mockCreateReadableStreamFromReadable,
+    });
+
+    handleRequest(mockRequest, 200, mockResponseHeaders, mockRouterContext, mockLoadContext);
+
+    expect(_INTERNAL_safeUnref).toHaveBeenCalledTimes(1);
   });
 
   it('should use the default bot regex if not provided', () => {
