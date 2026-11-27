@@ -5,8 +5,8 @@ import { _getUpdatedSourceMapSettings, sentryAstro } from '../../src/integration
 import type { SentryOptions } from '../../src/integration/types';
 
 type CapturedSourcemapsOptions = {
-  deleteSourcemapsAfterUpload?: boolean | ((environment?: string) => boolean | undefined);
-  sdkEnabledSourceMaps?: (environment?: string) => boolean;
+  deleteSourcemapsAfterUpload?: boolean;
+  sdkDeleteSourceMaps?: (environment?: string) => boolean | undefined;
 };
 
 let capturedSourcemapsOptions: CapturedSourcemapsOptions | undefined;
@@ -22,7 +22,8 @@ vi.mock('@sentry/bundler-plugins/vite', () => ({
 
 // Without a configured name, the real resolver falls back to the git revision of this checkout.
 const resolveReleaseName = vi.fn((name?: string) => name);
-vi.mock('@sentry/bundler-plugins/core', () => ({
+vi.mock('@sentry/bundler-plugins/core', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   resolveReleaseName: (name?: string) => resolveReleaseName(name),
 }));
 
@@ -136,8 +137,7 @@ describe('sentryAstro integration', () => {
         bundleSizeOptimizations: {},
         sourcemaps: {
           assets: ['out/**/*', 'out/**/.prerender/**/*'],
-          deleteSourcemapsAfterUpload: expect.any(Function),
-          sdkEnabledSourceMaps: expect.any(Function),
+          sdkDeleteSourceMaps: expect.any(Function),
         },
         _metaOptions: {
           telemetry: {
@@ -168,8 +168,7 @@ describe('sentryAstro integration', () => {
         bundleSizeOptimizations: {},
         sourcemaps: {
           assets: ['dist/**/*', 'dist/**/.prerender/**/*'],
-          deleteSourcemapsAfterUpload: expect.any(Function),
-          sdkEnabledSourceMaps: expect.any(Function),
+          sdkDeleteSourceMaps: expect.any(Function),
         },
         _metaOptions: {
           telemetry: {
@@ -208,8 +207,7 @@ describe('sentryAstro integration', () => {
         bundleSizeOptimizations: {},
         sourcemaps: {
           assets: ['{.vercel,dist}/**/*', '{.vercel,dist}/**/.prerender/**/*'],
-          deleteSourcemapsAfterUpload: expect.any(Function),
-          sdkEnabledSourceMaps: expect.any(Function),
+          sdkDeleteSourceMaps: expect.any(Function),
         },
         _metaOptions: {
           telemetry: {
@@ -248,8 +246,7 @@ describe('sentryAstro integration', () => {
         bundleSizeOptimizations: {},
         sourcemaps: {
           assets: ['dist/server/**/*, dist/client/**/*'],
-          deleteSourcemapsAfterUpload: expect.any(Function),
-          sdkEnabledSourceMaps: expect.any(Function),
+          sdkDeleteSourceMaps: expect.any(Function),
         },
         _metaOptions: {
           telemetry: {
@@ -282,7 +279,7 @@ describe('sentryAstro integration', () => {
       expect.objectContaining({
         sourcemaps: expect.objectContaining({
           filesToDeleteAfterUpload: ['./custom/path/**/*'],
-          deleteSourcemapsAfterUpload: undefined,
+          sdkDeleteSourceMaps: undefined,
         }),
       }),
     );
@@ -300,15 +297,15 @@ describe('sentryAstro integration', () => {
       });
     }
 
-    function expectSourcemapsOptions({ sdkEnabledSourceMaps, ...sourcemaps }: Record<string, unknown>): void {
+    function expectSourcemapsOptions({ sdkDeleteSourceMaps, ...sourcemaps }: Record<string, unknown>): void {
       expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
       expect(sentryVitePluginSpy).toHaveBeenCalledWith(
         expect.objectContaining({ sourcemaps: expect.objectContaining(sourcemaps) }),
       );
-      expect(capturedSourcemapsOptions?.sdkEnabledSourceMaps?.()).toBe(sdkEnabledSourceMaps);
+      expect(capturedSourcemapsOptions?.sdkDeleteSourceMaps?.()).toBe(sdkDeleteSourceMaps);
     }
 
-    // The bundler plugin calls the function form in its `config` hook, after the build state
+    // The bundler plugin calls `sdkDeleteSourceMaps` in its `config` hook, after the build state
     // plugin ran.
     function runBuildStatePlugin(viteConfig: { build?: { outDir?: string } }): void {
       const plugin = updateConfig.mock.calls
@@ -317,10 +314,11 @@ describe('sentryAstro integration', () => {
       plugin.config(viteConfig);
     }
 
+    // Like the bundler plugin, the user's `deleteSourcemapsAfterUpload` wins over the SDK's value.
     function expectDeleteOption(value: boolean | undefined): void {
       expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
-      const option = capturedSourcemapsOptions?.deleteSourcemapsAfterUpload;
-      expect(typeof option === 'function' ? option() : option).toBe(value);
+      const { deleteSourcemapsAfterUpload, sdkDeleteSourceMaps } = capturedSourcemapsOptions ?? {};
+      expect(deleteSourcemapsAfterUpload ?? sdkDeleteSourceMaps?.()).toBe(value);
     }
 
     it('is `true` when the SDK enabled the source maps', async () => {
@@ -342,10 +340,11 @@ describe('sentryAstro integration', () => {
       },
     );
 
-    it('lets a user-set `true` remove the maps of a Cloudflare `_worker.js` build', async () => {
+    it('passes a user-set `true` through, but asks for no SDK deletion of a Cloudflare `_worker.js` build', async () => {
       await runSetup({ sourcemaps: { deleteSourcemapsAfterUpload: true } });
       runBuildStatePlugin({ build: { outDir: 'dist/_worker.js/' } });
-      expectDeleteOption(true);
+      expect(capturedSourcemapsOptions?.deleteSourcemapsAfterUpload).toBe(true);
+      expect(capturedSourcemapsOptions?.sdkDeleteSourceMaps?.()).toBeUndefined();
     });
 
     it.each(['hidden', true] as const)('is not set when the user set `vite.build.sourcemap: %s`', async sourcemap => {
@@ -368,23 +367,23 @@ describe('sentryAstro integration', () => {
       expectDeleteOption(undefined);
     });
 
-    it('lets a user-set `true` win over the user glob', async () => {
+    it('passes a user-set `true` through, but asks for no SDK deletion with a user glob', async () => {
       await runSetup({
         sourcemaps: { deleteSourcemapsAfterUpload: true, filesToDeleteAfterUpload: ['./dist/**/*.map'] },
       });
-      expectDeleteOption(true);
+      expectSourcemapsOptions({ deleteSourcemapsAfterUpload: true, sdkDeleteSourceMaps: undefined });
+      expect(capturedSourcemapsOptions?.sdkDeleteSourceMaps).toBeUndefined();
     });
 
     // Then the plugin removes all of these maps, also those of chunks outside the user's
     // `assets` or `ignore`.
-    it('marks the source maps as SDK-enabled when the user narrowed the upload', async () => {
+    it('asks for SDK deletion when the user narrowed the upload', async () => {
       await runSetup({ sourcemaps: { assets: ['./dist/client/**/*'], ignore: ['**/vendor/**'] } });
       expectSourcemapsOptions({
         assets: ['./dist/client/**/*'],
         ignore: ['**/vendor/**'],
-        sdkEnabledSourceMaps: true,
+        sdkDeleteSourceMaps: true,
       });
-      expectDeleteOption(true);
     });
 
     // The output setting overrides `vite.build.sourcemap`, so these maps are the user's.
@@ -395,44 +394,37 @@ describe('sentryAstro integration', () => {
     ] as const)('leaves the source maps to the user with the output options %j', async build => {
       await runSetup({}, { vite: { build } } as Partial<AstroConfig>);
       expectViteSourceMapSetting(undefined);
-      expectSourcemapsOptions({ sdkEnabledSourceMaps: false });
-      expectDeleteOption(undefined);
+      expectSourcemapsOptions({ sdkDeleteSourceMaps: undefined });
     });
 
     // Astro copies the top-level setting into the `client` environment.
-    it('marks the source maps of the `client` environment as SDK-enabled', async () => {
+    it('asks for SDK deletion of the `client` environment', async () => {
       await runSetup({});
       runBuildStatePlugin({ build: { outDir: 'dist/' } });
-      expect(capturedSourcemapsOptions?.sdkEnabledSourceMaps?.('client')).toBe(true);
-      const option = capturedSourcemapsOptions?.deleteSourcemapsAfterUpload;
-      expect(typeof option === 'function' ? option('client') : option).toBe(true);
+      expect(capturedSourcemapsOptions?.sdkDeleteSourceMaps?.('client')).toBe(true);
     });
 
-    it('does not mark the source maps of an environment the user set as SDK-enabled', async () => {
+    it('asks for no SDK deletion of an environment the user set', async () => {
       await runSetup({}, {
         vite: { environments: { client: { build: { sourcemap: true } } } },
       } as Partial<AstroConfig>);
       runBuildStatePlugin({ build: { outDir: 'dist/' } });
-      expect(capturedSourcemapsOptions?.sdkEnabledSourceMaps?.('client')).toBe(false);
-      const option = capturedSourcemapsOptions?.deleteSourcemapsAfterUpload;
-      expect(typeof option === 'function' ? option('client') : option).toBeUndefined();
-      expectSourcemapsOptions({ sdkEnabledSourceMaps: true });
-      expectDeleteOption(true);
+      expect(capturedSourcemapsOptions?.sdkDeleteSourceMaps?.('client')).toBeUndefined();
+      expectSourcemapsOptions({ sdkDeleteSourceMaps: true });
     });
 
     it.each(['hidden', true, false] as const)(
-      'does not mark source maps as SDK-enabled when the user set `vite.build.sourcemap: %s`',
+      'asks for no SDK deletion when the user set `vite.build.sourcemap: %s`',
       async sourcemap => {
         await runSetup({}, { vite: { build: { sourcemap } } });
-        expectSourcemapsOptions({ sdkEnabledSourceMaps: false });
+        expectSourcemapsOptions({ sdkDeleteSourceMaps: undefined });
       },
     );
 
     // The maps are removed in this mode too, after the plugin stamps the debug IDs.
     it("is `true` with `disable: 'disable-upload'`", async () => {
       await runSetup({ sourcemaps: { disable: 'disable-upload' } });
-      expectSourcemapsOptions({ disable: 'disable-upload', sdkEnabledSourceMaps: true });
-      expectDeleteOption(true);
+      expectSourcemapsOptions({ disable: 'disable-upload', sdkDeleteSourceMaps: true });
     });
 
     function expectViteSourceMapSetting(sourcemap: 'hidden' | undefined): void {
@@ -448,8 +440,7 @@ describe('sentryAstro integration', () => {
       'adds the plugin, turns no source maps on and asks for no deletion with %j',
       async sourcemaps => {
         await runSetup({ sourcemaps });
-        expectSourcemapsOptions({ ...sourcemaps, sdkEnabledSourceMaps: false });
-        expectDeleteOption(undefined);
+        expectSourcemapsOptions({ ...sourcemaps, sdkDeleteSourceMaps: undefined });
         expectViteSourceMapSetting(undefined);
       },
     );
@@ -465,15 +456,14 @@ describe('sentryAstro integration', () => {
       [{ delete: false, deleteSourcemapsAfterUpload: true }, 'hidden', true],
     ] as const)('with %j it sets the source map setting to %s', async (sourcemaps, setting, deleteAfterUpload) => {
       await runSetup({ sourcemaps });
-      expectSourcemapsOptions({ ...sourcemaps, sdkEnabledSourceMaps: setting === 'hidden' });
+      expectSourcemapsOptions({ ...sourcemaps, sdkDeleteSourceMaps: undefined });
       expect(capturedSourcemapsOptions?.deleteSourcemapsAfterUpload).toBe(deleteAfterUpload);
       expectViteSourceMapSetting(setting);
     });
 
     it('enables hidden source maps when `upload: true` replaces `disable: true`', async () => {
       await runSetup({ sourcemaps: { disable: true, upload: true } });
-      expectSourcemapsOptions({ sdkEnabledSourceMaps: true });
-      expectDeleteOption(true);
+      expectSourcemapsOptions({ sdkDeleteSourceMaps: true });
       expectViteSourceMapSetting('hidden');
     });
   });

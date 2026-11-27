@@ -15,7 +15,7 @@ import {
 let lastPluginOptions: SentryVitePluginInternalOptions | undefined;
 
 /** What the options returned when the mocked Sentry plugin's `config` hook ran. */
-let optionsAtSentryConfigHook: { deletion?: boolean; sdkEnabled?: boolean } | undefined;
+let optionsAtSentryConfigHook: { deletion?: boolean; sdkDelete?: boolean } | undefined;
 
 const sentryVitePluginSpy = vi.fn((options: SentryVitePluginInternalOptions): Plugin[] => {
   lastPluginOptions = options;
@@ -23,7 +23,7 @@ const sentryVitePluginSpy = vi.fn((options: SentryVitePluginInternalOptions): Pl
     {
       name: 'sentry-vite-debug-id-upload-plugin',
       config() {
-        optionsAtSentryConfigHook = { deletion: getDeleteOption(), sdkEnabled: getSdkEnabledOption() };
+        optionsAtSentryConfigHook = { deletion: getDeleteOption(), sdkDelete: getSdkDeleteOption() };
       },
     },
   ];
@@ -44,13 +44,13 @@ function runConfigHooks(plugins: Plugin[], config: UserConfig): UserConfig {
   return config;
 }
 
+/** The plugin's delete value without `sourcemaps.delete`: the user's value wins over the SDK's. */
 function getDeleteOption(environment?: string): boolean | undefined {
-  const value = lastPluginOptions?.sourcemaps?.deleteSourcemapsAfterUpload;
-  return typeof value === 'function' ? value(environment) : value;
+  return lastPluginOptions?.sourcemaps?.deleteSourcemapsAfterUpload ?? getSdkDeleteOption(environment);
 }
 
-function getSdkEnabledOption(environment?: string): boolean | undefined {
-  const value = lastPluginOptions?.sourcemaps?.sdkEnabledSourceMaps;
+function getSdkDeleteOption(environment?: string): boolean | undefined {
+  const value = lastPluginOptions?.sourcemaps?.sdkDeleteSourceMaps;
   return typeof value === 'function' ? value(environment) : value;
 }
 
@@ -147,8 +147,8 @@ describe('makeAddSentryVitePlugin()', () => {
         moduleMetadata: { team: 'sdk' },
         sourcemaps: {
           filesToDeleteAfterUpload: ['baz/*.js'],
-          deleteSourcemapsAfterUpload: expect.any(Function),
-          sdkEnabledSourceMaps: expect.any(Function),
+          deleteSourcemapsAfterUpload: undefined,
+          sdkDeleteSourceMaps: expect.any(Function),
         },
         bundleSizeOptimizations: {
           excludeTracing: true,
@@ -305,14 +305,13 @@ describe.each([
   // Nitro gives its environments their own `build.sourcemap`, and `@sentry/nitro` reads those
   // maps after the build.
   it.each([
-    [undefined, true, true],
-    ['nitro', undefined, false],
-    ['ssr', undefined, false],
-  ])('answers for the `%s` environment', (environment, deletion, sdkEnabled) => {
+    [undefined, true],
+    ['nitro', undefined],
+    ['ssr', undefined],
+  ])('answers for the `%s` environment', (environment, deletion) => {
     makePlugin({}, { sdkEnabledSourceMaps: true });
 
-    expect(getDeleteOption(environment)).toBe(deletion);
-    expect(getSdkEnabledOption(environment)).toBe(sdkEnabled);
+    expect(getSdkDeleteOption(environment)).toBe(deletion);
   });
 
   it.each([undefined, 'nitro', 'ssr'])(
@@ -329,10 +328,9 @@ describe.each([
     const state: SourceMapState = { sdkEnabledSourceMaps: false };
     makePlugin({ sourcemaps: { assets: ['./dist/client/**'] } }, state);
 
-    expect(getSdkEnabledOption()).toBe(false);
+    expect(getSdkDeleteOption()).toBeUndefined();
     state.sdkEnabledSourceMaps = true;
-    expect(getSdkEnabledOption()).toBe(true);
-    expect(getDeleteOption()).toBe(true);
+    expect(getSdkDeleteOption()).toBe(true);
   });
 });
 
@@ -368,8 +366,7 @@ describe.each([
 it('makeAddSentryVitePlugin() asks for deletion when only the upload is disabled', () => {
   makeAddSentryVitePlugin({ sourcemaps: { disable: 'disable-upload' } }, { sdkEnabledSourceMaps: true });
 
-  expect(getDeleteOption()).toBe(true);
-  expect(getSdkEnabledOption()).toBe(true);
+  expect(getSdkDeleteOption()).toBe(true);
 });
 
 it('makeAddSentryVitePluginSolidStart2() keeps the source maps when only the upload is disabled', () => {
@@ -395,14 +392,14 @@ describe.each([
     const config = runConfigHooks(getPlugins(), { ...vinxiClientConfig });
 
     expect(config.build?.sourcemap).toBe('hidden');
-    expect(optionsAtSentryConfigHook).toEqual({ deletion: true, sdkEnabled: true });
+    expect(optionsAtSentryConfigHook).toEqual({ deletion: true, sdkDelete: true });
   });
 
   it('keeps source maps the user enabled', () => {
     const config = runConfigHooks(getPlugins(), { ...vinxiClientConfig, build: { sourcemap: 'hidden' } });
 
     expect(config.build?.sourcemap).toBe('hidden');
-    expect(optionsAtSentryConfigHook).toEqual({ deletion: undefined, sdkEnabled: false });
+    expect(optionsAtSentryConfigHook).toEqual({ deletion: undefined, sdkDelete: undefined });
   });
 });
 

@@ -95,7 +95,12 @@ export function convertRemixRouteIdToPath(routeId: string): string {
   return routePath;
 }
 
-/** Check if running in Cloudflare Workers environment. */
+/**
+ * Check if running in Cloudflare Workers environment.
+ *
+ * Not `isCloudflareWorkers()` from `@sentry/server-utils`: any import of that package pulls `node:async_hooks`
+ * into Hydrogen builds.
+ */
 export function isCloudflareEnv(): boolean {
   // eslint-disable-next-line no-restricted-globals
   return typeof navigator !== 'undefined' && navigator?.userAgent?.includes('Cloudflare');

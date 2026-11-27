@@ -1,5 +1,6 @@
 const fs = require('fs');
 
+const { hasSourceMapUploadCredentials } = require('@sentry/bundler-plugins/core');
 const { sentryWebpackPlugin } = require('@sentry/bundler-plugins/webpack');
 const { consoleSandbox, resolveSourceMapsFeatures } = require('@sentry/core');
 
@@ -29,10 +30,12 @@ exports.onCreateWebpackConfig = ({ getConfig, actions, stage }, options) => {
       });
     }
     // Sentry turns source maps on to upload them, or when `sourcemaps.delete: false` keeps them for a manual upload.
+    // The plugin gets no credentials from these options, only from the environment.
     const shouldAutomaticallyEnableSourceMaps =
       prevSourceMapSetting !== 'source-map' &&
       prevSourceMapSetting !== 'hidden-source-map' &&
-      (upload || (options.sourcemaps?.delete === false && injectDebugIds));
+      ((upload && hasSourceMapUploadCredentials(undefined)) ||
+        (options.sourcemaps?.delete === false && injectDebugIds));
 
     // Gatsby reads the `build-html` maps in `.cache` to map HTML render errors. The plugin does not
     // get `sourcemaps.delete` itself, because it would also remove those.
@@ -61,9 +64,7 @@ exports.onCreateWebpackConfig = ({ getConfig, actions, stage }, options) => {
             assets: ['./public/**'],
             upload: options.sourcemaps?.upload,
             injectDebugIds: options.sourcemaps?.injectDebugIds,
-            deleteSourcemapsAfterUpload,
-            // Also removes CSS maps and maps of chunks that are not uploaded.
-            sdkEnabledSourceMaps: deleteSourcemapsAfterUpload,
+            sdkDeleteSourceMaps: deleteSourcemapsAfterUpload,
             // Ignore files that aren't users' source code related
             ignore: [
               'polyfill-*', // related to polyfills

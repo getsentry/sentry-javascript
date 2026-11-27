@@ -3,6 +3,7 @@ import { addServerTimingTraceHeader, defineCloudflareOptions as defineCloudflare
 import type { Integration } from '@sentry/core';
 import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata, defineIntegration } from '@sentry/core';
 import { solidServerErrorsIntegration } from './errors';
+import { solidServerObserveIntegration } from './observe';
 import { solidServerTracePropagationIntegration } from './tracePropagation';
 
 // Sends the trace to the browser on every document response, so the pageload continues it, as `init` does on Node.
@@ -48,6 +49,7 @@ export const defineCloudflareOptions: typeof defineCloudflareOptionsBase = (
           ...defaults,
           solidServerErrorsIntegration(),
           solidServerTracePropagationIntegration(),
+          solidServerObserveIntegration(),
           serverTimingTraceHeaderIntegration(),
         ];
         return typeof userIntegrations === 'function'

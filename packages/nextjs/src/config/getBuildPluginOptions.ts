@@ -185,7 +185,7 @@ function createSourcemapUploadIgnorePattern(
 
 /**
  * Creates file patterns for deletion after the source map upload that runs after the production compile.
- * The webpack plugin removes the maps of webpack builds itself (see `deleteSourcemapsAfterUpload`).
+ * The webpack plugin removes the maps of webpack builds itself (see `sdkDeleteSourceMaps`).
  */
 function createFilesToDeleteAfterUploadPattern(
   normalizedDistPath: string,
@@ -369,10 +369,9 @@ export function getBuildPluginOptions({
       assets: sentryBuildOptions.sourcemaps?.assets ?? sourcemapUploadAssets,
       ignore: finalIgnorePatterns,
       filesToDeleteAfterUpload,
-      deleteSourcemapsAfterUpload: webpackPluginDeletesSourcemaps,
       // Every client map goes, also those the user turned on with `productionBrowserSourceMaps` or
       // `devtool`, and those of chunks the upload leaves out.
-      sdkEnabledSourceMaps: webpackPluginDeletesSourcemaps,
+      sdkDeleteSourceMaps: webpackPluginDeletesSourcemaps,
       resolveSourceMap: sentryBuildOptions.sourcemaps?.resolveSourceMap,
     },
     release: createReleaseConfig(releaseName, sentryBuildOptions),

@@ -108,11 +108,7 @@ export function setTelemetryDataOnScope(
   scope.setTag('delete-after-upload', !!sourcemaps?.filesToDeleteAfterUpload);
   scope.setTag(
     'delete-sourcemaps-after-upload',
-    typeof sourcemaps?.deleteSourcemapsAfterUpload === 'function'
-      ? 'function'
-      : sourcemaps?.deleteSourcemapsAfterUpload === undefined
-        ? 'auto'
-        : String(sourcemaps.deleteSourcemapsAfterUpload),
+    sourcemaps?.deleteSourcemapsAfterUpload === undefined ? 'auto' : String(sourcemaps.deleteSourcemapsAfterUpload),
   );
   scope.setTag('sourcemaps-disabled', !!sourcemaps?.disable);
   scope.setTag('sourcemaps-upload', sourcemaps?.upload === undefined ? 'auto' : String(sourcemaps.upload));

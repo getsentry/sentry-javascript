@@ -38,6 +38,7 @@ import {
 } from '@sentry/core/server';
 import {
   debug,
+  defineIntegration,
   safeCallback,
   getSpanStatusFromHttpCode,
   httpHeadersToSpanAttributes,
@@ -279,7 +280,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
  * This integration emits spans for incoming requests handled via the node `http` module.
  * It requires the `httpServerIntegration` to be present.
  */
-export const httpServerSpansIntegration = _httpServerSpansIntegration as (
+export const httpServerSpansIntegration = defineIntegration(_httpServerSpansIntegration) as (
   options?: HttpServerSpansIntegrationOptions,
 ) => Integration & {
   name: 'Http.ServerSpans';

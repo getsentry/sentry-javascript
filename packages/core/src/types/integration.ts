@@ -13,6 +13,12 @@ export interface Integration {
   _options?: unknown;
 
   /**
+   * @internal Options that hold functions from a library, such as router hooks, rather than user code. SDK
+   * configuration reporting leaves their fingerprints out, since those change with the library build, not the config.
+   */
+  _libraryOptions?: readonly string[];
+
+  /**
    * This hook is only called once, even if multiple clients are created.
    * It does not receives any arguments, and should only use for e.g. global monkey patching and similar things.
    */

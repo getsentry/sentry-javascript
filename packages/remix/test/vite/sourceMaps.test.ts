@@ -1,6 +1,6 @@
 import type { SentryVitePluginInternalOptions } from '@sentry/bundler-plugins/vite';
 import type { UserConfig } from 'vite';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SourceMapState } from '../../src/vite/sourceMaps';
 import {
   getUpdatedSourceMapSettings,
@@ -27,7 +27,21 @@ beforeEach(() => {
   delete process.env.SENTRY_AUTH_TOKEN;
 });
 
+function stubUploadCredentials(): void {
+  vi.stubEnv('SENTRY_AUTH_TOKEN', 'token');
+  vi.stubEnv('SENTRY_ORG', 'org');
+  vi.stubEnv('SENTRY_PROJECT', 'project');
+}
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe('makeEnableSourceMapsPlugin', () => {
+  beforeEach(() => {
+    stubUploadCredentials();
+  });
+
   it('returns a build-time plugin that updates the source map setting', () => {
     const plugin = makeEnableSourceMapsPlugin({});
 
@@ -58,6 +72,7 @@ describe('makeEnableSourceMapsPlugin', () => {
 
 describe('getUpdatedSourceMapSettings', () => {
   beforeEach(() => {
+    stubUploadCredentials();
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
   });
@@ -95,6 +110,16 @@ describe('getUpdatedSourceMapSettings', () => {
     [{ upload: false, delete: true }, undefined],
     [{ injectDebugIds: false, delete: false }, undefined],
   ] as const)('with an unset setting and %j it returns %s', (sourcemaps, expected) => {
+    expect(getUpdatedSourceMapSettings({}, { sourcemaps })).toBe(expected);
+  });
+
+  it.each([
+    [{}, undefined],
+    [{ disable: 'disable-upload' }, 'hidden'],
+    [{ delete: false }, 'hidden'],
+  ] as const)('without upload credentials, with an unset setting and %j it returns %s', (sourcemaps, expected) => {
+    vi.stubEnv('SENTRY_AUTH_TOKEN', '');
+
     expect(getUpdatedSourceMapSettings({}, { sourcemaps })).toBe(expected);
   });
 
@@ -168,7 +193,7 @@ describe('makeAddSentryVitePlugin', () => {
   });
 
   function getDeleteOption(): boolean | undefined {
-    const value = capturedOptions?.sourcemaps?.deleteSourcemapsAfterUpload;
+    const value = capturedOptions?.sourcemaps?.sdkDeleteSourceMaps;
     return typeof value === 'function' ? value() : value;
   }
 
@@ -205,11 +230,12 @@ describe('makeAddSentryVitePlugin', () => {
   });
 
   it.each([{ delete: true }, { delete: false, deleteSourcemapsAfterUpload: true }] as const)(
-    'passes no `deleteSourcemapsAfterUpload` with %j',
+    'passes no `deleteSourcemapsAfterUpload` and no `sdkDeleteSourceMaps` with %j',
     sourcemaps => {
       makeAddSentryVitePlugin({ sourcemaps }, { sdkEnabledSourceMaps: true });
 
       expect(capturedOptions?.sourcemaps?.deleteSourcemapsAfterUpload).toBeUndefined();
+      expect(capturedOptions?.sourcemaps?.sdkDeleteSourceMaps).toBeUndefined();
     },
   );
 
@@ -221,6 +247,7 @@ describe('makeAddSentryVitePlugin', () => {
     (value, sdkEnabledSourceMaps, expected) => {
       makeAddSentryVitePlugin({ sourcemaps: { deleteSourcemapsAfterUpload: value } }, { sdkEnabledSourceMaps });
 
+      expect(capturedOptions?.sourcemaps?.deleteSourcemapsAfterUpload).toBeUndefined();
       expect(getDeleteOption()).toBe(expected);
     },
   );
@@ -234,14 +261,4 @@ describe('makeAddSentryVitePlugin', () => {
       expect(getDeleteOption()).toBeUndefined();
     },
   );
-
-  it('tells the bundler plugin whether the SDK enabled the source maps', () => {
-    const state: SourceMapState = { sdkEnabledSourceMaps: false };
-    makeAddSentryVitePlugin({}, state);
-    const sdkEnabled = capturedOptions?.sourcemaps?.sdkEnabledSourceMaps as () => boolean;
-
-    expect(sdkEnabled()).toBe(false);
-    state.sdkEnabledSourceMaps = true;
-    expect(sdkEnabled()).toBe(true);
-  });
 });

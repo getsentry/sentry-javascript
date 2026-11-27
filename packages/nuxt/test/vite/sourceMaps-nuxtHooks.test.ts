@@ -370,8 +370,8 @@ describe('setupSourceMaps hooks', () => {
           assets: undefined,
           ignore: undefined,
           filesToDeleteAfterUpload: undefined,
-          deleteSourcemapsAfterUpload: expect.any(Function),
-          sdkEnabledSourceMaps: expect.any(Function),
+          deleteSourcemapsAfterUpload: undefined,
+          sdkDeleteSourceMaps: expect.any(Function),
           rewriteSources: expect.any(Function),
         },
       });
@@ -401,12 +401,7 @@ describe('setupSourceMaps hooks', () => {
 
   describe('client source map deletion', () => {
     function getDeleteOption(environment?: string): boolean | undefined {
-      const value = capturedViteOptions.options?.sourcemaps?.deleteSourcemapsAfterUpload;
-      return typeof value === 'function' ? value(environment) : value;
-    }
-
-    function getSdkEnabledSourceMaps(environment?: string): boolean | undefined {
-      const value = capturedViteOptions.options?.sourcemaps?.sdkEnabledSourceMaps;
+      const value = capturedViteOptions.options?.sourcemaps?.sdkDeleteSourceMaps;
       return typeof value === 'function' ? value(environment) : value;
     }
 
@@ -423,7 +418,7 @@ describe('setupSourceMaps hooks', () => {
     });
 
     // The plugin then also removes the maps of chunks that the user's `assets` or `ignore` leave out.
-    it('tells the Vite plugin that Sentry enabled the client source maps', async () => {
+    it('asks the Vite plugin to delete the client source maps Sentry enabled with a narrowed upload', async () => {
       const mockNuxt = createMockNuxt({ sourcemap: { client: undefined, server: true } });
 
       setupSourceMaps(
@@ -434,40 +429,38 @@ describe('setupSourceMaps hooks', () => {
       await mockNuxt.triggerHook('modules:done');
 
       expect(capturedViteOptions.options?.sourcemaps?.assets).toEqual(['.nuxt/dist/client/_nuxt/entry*']);
-      expect(getSdkEnabledSourceMaps()).toBe(true);
+      expect(getDeleteOption()).toBe(true);
     });
 
     // With the Vite environment API, the plugin also decides for the server environments.
     it.each([
-      { environment: undefined, sdkEnabled: true },
-      { environment: 'client', sdkEnabled: true },
-      { environment: 'ssr', sdkEnabled: false },
-      { environment: 'nitro', sdkEnabled: false },
-    ])('answers for the client only, in the $environment environment', async ({ environment, sdkEnabled }) => {
+      { environment: undefined, expected: true },
+      { environment: 'client', expected: true },
+      { environment: 'ssr', expected: undefined },
+      { environment: 'nitro', expected: undefined },
+    ])('answers for the client only, in the $environment environment', async ({ environment, expected }) => {
       const mockNuxt = createMockNuxt({ sourcemap: { client: undefined, server: true } });
 
       setupSourceMaps({}, mockNuxt as unknown as Nuxt, vi.fn());
       await mockNuxt.triggerHook('modules:done');
 
-      expect(getDeleteOption(environment)).toBe(sdkEnabled ? true : undefined);
-      expect(getSdkEnabledSourceMaps(environment)).toBe(sdkEnabled);
+      expect(getDeleteOption(environment)).toBe(expected);
     });
 
     it.each([
-      { label: 'Sentry enabled', server: undefined, sourcemaps: {}, expected: true, sdkEnabled: true },
-      { label: 'Nuxt enabled', server: true, sourcemaps: {}, expected: undefined, sdkEnabled: false },
-      { label: 'Nuxt enabled', server: true, sourcemaps: { delete: true }, expected: true, sdkEnabled: true },
-      { label: 'Sentry enabled', server: undefined, sourcemaps: { delete: false }, expected: false, sdkEnabled: true },
+      { label: 'Sentry enabled', server: undefined, sourcemaps: {}, expected: true },
+      { label: 'Nuxt enabled', server: true, sourcemaps: {}, expected: undefined },
+      { label: 'Nuxt enabled', server: true, sourcemaps: { delete: true }, expected: true },
+      { label: 'Sentry enabled', server: undefined, sourcemaps: { delete: false }, expected: false },
       {
         label: 'Sentry enabled',
         server: undefined,
         sourcemaps: { filesToDeleteAfterUpload: 'x/**' },
         expected: undefined,
-        sdkEnabled: true,
       },
     ] as const)(
       'on the Vite server, decides for the $label server maps in the ssr environment with $sourcemaps',
-      async ({ server, sourcemaps, expected, sdkEnabled }) => {
+      async ({ server, sourcemaps, expected }) => {
         const mockNuxt = createMockNuxt({ sourcemap: { client: true, server } });
 
         setupSourceMaps({ sourcemaps }, mockNuxt as unknown as Nuxt, vi.fn(), false, true);
@@ -475,7 +468,6 @@ describe('setupSourceMaps hooks', () => {
 
         for (const environment of ['ssr', undefined]) {
           expect(getDeleteOption(environment)).toBe(expected);
-          expect(getSdkEnabledSourceMaps(environment)).toBe(sdkEnabled);
         }
       },
     );
@@ -489,7 +481,6 @@ describe('setupSourceMaps hooks', () => {
         await mockNuxt.triggerHook('modules:done');
 
         expect(getDeleteOption()).toBeUndefined();
-        expect(getSdkEnabledSourceMaps()).toBe(false);
       },
     );
 
@@ -504,6 +495,7 @@ describe('setupSourceMaps hooks', () => {
         setupSourceMaps({ sourcemaps: { deleteSourcemapsAfterUpload } }, mockNuxt as unknown as Nuxt, vi.fn());
         await mockNuxt.triggerHook('modules:done');
 
+        expect(capturedViteOptions.options?.sourcemaps?.deleteSourcemapsAfterUpload).toBeUndefined();
         expect(getDeleteOption()).toBe(expected);
         expect(getDeleteOption('client')).toBe(expected);
         expect(getDeleteOption('ssr')).toBeUndefined();
@@ -519,7 +511,6 @@ describe('setupSourceMaps hooks', () => {
 
       expect(capturedViteOptions.options?.sourcemaps?.disable).toBe('disable-upload');
       expect(getDeleteOption()).toBe(true);
-      expect(getSdkEnabledSourceMaps()).toBe(true);
     });
 
     describe('with the new source map options', () => {
@@ -558,7 +549,6 @@ describe('setupSourceMaps hooks', () => {
             expect.objectContaining({ sourcemaps: expect.objectContaining(sourcemaps) }),
           );
           expect(getDeleteOption()).toBeUndefined();
-          expect(getSdkEnabledSourceMaps()).toBe(false);
           expect(mockCreateSentryBuildPluginManager).not.toHaveBeenCalled();
         },
       );
@@ -582,7 +572,6 @@ describe('setupSourceMaps hooks', () => {
         await runBuild({ delete: true }, { client: true, server: true });
 
         expect(getDeleteOption()).toBe(true);
-        expect(getSdkEnabledSourceMaps()).toBe(true);
         expectFilesDeletedAfterBuild(['.output/server/**/*.map']);
       });
 
@@ -599,10 +588,13 @@ describe('setupSourceMaps hooks', () => {
         expect(capturedViteOptions.options?.sourcemaps?.delete).toBeUndefined();
         expect(getDeleteOption('client')).toBe(value);
         expect(getDeleteOption('ssr')).toBeUndefined();
-        expect(getSdkEnabledSourceMaps('ssr')).toBe(false);
         expect(mockSentryRollupPlugin).toHaveBeenCalledWith(
           expect.objectContaining({
-            sourcemaps: expect.objectContaining({ delete: undefined, deleteSourcemapsAfterUpload: false }),
+            sourcemaps: expect.objectContaining({
+              delete: undefined,
+              deleteSourcemapsAfterUpload: undefined,
+              sdkDeleteSourceMaps: false,
+            }),
           }),
         );
       });

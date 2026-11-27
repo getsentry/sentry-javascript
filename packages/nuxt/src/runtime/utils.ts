@@ -1,5 +1,5 @@
 import type { ClientOptions, Context, SerializedTraceData } from '@sentry/core';
-import { captureException, debug, getClient, getTraceMetaTags, isObjectLike } from '@sentry/core';
+import { captureException, debug, filterCollectedUrl, getClient, getTraceMetaTags, isObjectLike } from '@sentry/core';
 import type { CapturedErrorContext } from 'nitropack/types';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import type { ComponentPublicInstance } from 'vue';
@@ -39,7 +39,8 @@ export function extractErrorContext(errorContext: CapturedErrorContext | undefin
   if (errorContext.event) {
     const { method, path } = getEventRequestInfo(errorContext.event);
     ctx.method = method;
-    ctx.path = path;
+    // The h3 v1 path has the query string.
+    ctx.path = filterCollectedUrl(path);
   }
 
   if (Array.isArray(errorContext.tags)) {

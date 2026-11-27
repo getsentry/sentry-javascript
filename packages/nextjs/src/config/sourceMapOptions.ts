@@ -1,16 +1,18 @@
 import type { InternalOptions as SentryBuildPluginOptions } from '@sentry/bundler-plugins/core';
+import { hasSourceMapUploadCredentials } from '@sentry/bundler-plugins/core';
 import { resolveSourceMapsFeatures } from '@sentry/core';
 import type { SentryBuildOptions } from './types';
 
 type SourceMapsOptions = SentryBuildOptions['sourcemaps'];
 
 /**
- * Whether Sentry turns source maps on that the user did not set: when it uploads them, or when
+ * Whether Sentry turns source maps on that the user did not set: when it can upload them, or when
  * `sourcemaps.delete: false` keeps them for a manual upload.
  */
-export function sentryEnablesSourceMaps(sourcemaps: SourceMapsOptions): boolean {
+export function sentryEnablesSourceMaps(options: SentryBuildOptions): boolean {
+  const { sourcemaps } = options;
   const { injectDebugIds, upload } = resolveSourceMapsFeatures(sourcemaps);
-  return upload || (sourcemaps?.delete === false && injectDebugIds);
+  return (upload && hasSourceMapUploadCredentials(options)) || (sourcemaps?.delete === false && injectDebugIds);
 }
 
 /** Reads `sourcemaps.delete`. When it is unset, `sourcemaps.deleteSourcemapsAfterUpload` decides. */

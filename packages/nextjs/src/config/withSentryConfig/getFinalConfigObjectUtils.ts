@@ -29,6 +29,10 @@ const MISSING_INSTRUMENTATION_FILE_WARNING_SHOWN = '__SENTRY_MISSING_INSTRUMENTA
  * With the default `'childProcesses'`, Next.js runs Turbopack loaders in `node` processes and puts `process.execArgv`
  * into their `NODE_OPTIONS`. On Bun, `execArgv` contains `--bun`, which Node.js does not accept, so the build fails or
  * hangs. `withSentryConfig` always adds loaders.
+ *
+ * `next dev` keeps the Next.js default. With worker threads, the loaders run in the dev server process, and Bun caches
+ * that `.next/dev` has no `node_modules` folder. The server then cannot load the externals that Turbopack links into
+ * `.next/dev/node_modules` later.
  */
 export function maybeSetTurbopackPluginRuntimeStrategyOption(
   incomingUserNextConfigObject: NextConfigObject,
@@ -36,7 +40,7 @@ export function maybeSetTurbopackPluginRuntimeStrategyOption(
   isTurbopack: boolean,
   silent?: boolean,
 ): void {
-  if (!process.versions.bun || !isTurbopack || !nextJsVersion) {
+  if (!process.versions.bun || !isTurbopack || !nextJsVersion || process.env.NODE_ENV === 'development') {
     return;
   }
 

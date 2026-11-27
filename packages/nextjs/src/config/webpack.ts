@@ -362,7 +362,7 @@ export function constructWebpackConfigFunction({
         loadModule<{ sentryWebpackPlugin: any }>('@sentry/bundler-plugins/webpack', module) ?? {};
 
       if (sentryWebpackPlugin) {
-        if (sentryEnablesSourceMaps(userSentryOptions.sourcemaps)) {
+        if (sentryEnablesSourceMaps(userSentryOptions)) {
           // Source maps can be configured in 3 ways:
           // 1. (next config): productionBrowserSourceMaps
           // 2. (next config): experimental.serverSourceMaps

@@ -1,3 +1,4 @@
+import { MIDDLEWARE as MIDDLEWARE_OP } from '@sentry/conventions/op';
 import { expect, test } from '@playwright/test';
 import { collectStreamedSpansUntilSegment, getSpanOp, waitForError } from '@sentry-internal/test-utils';
 import { IMPORT_SURFACES } from './importSurfaces';
@@ -345,4 +346,15 @@ test.describe('Server Middleware Instrumentation (#imports hooks)', () => {
     expect(onRequest0Span).toBeDefined();
     expect(onRequest0Span?.status).toBe('ok');
   });
+});
+
+test('creates exactly one span for each server middleware handler of a request', async ({ request }) => {
+  const spansPromise = collectRequestSpans();
+
+  await request.get('/api/middleware-test');
+
+  // No filter on the middleware name, so a `middleware` span from any other source fails the count.
+  const middlewareSpans = (await spansPromise).filter(span => getSpanOp(span) === MIDDLEWARE_OP);
+
+  expect(middlewareSpans).toHaveLength(MIDDLEWARE['#imports'].spanCount + MIDDLEWARE['nuxt/server'].spanCount);
 });

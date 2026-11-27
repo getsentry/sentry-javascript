@@ -3,10 +3,10 @@ import type { Context, TextMapGetter } from '@opentelemetry/api';
 import { context, propagation, trace } from '@opentelemetry/api';
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { withSentry as withSentryCloudflare } from '@sentry/cloudflare';
-import type { Integration } from '@sentry/core';
 import {
   _INTERNAL_captureOptionsSetByUser,
   applySdkMetadata,
+  defineIntegration,
   extractTraceparentData,
   getRootSpan,
   GLOBAL_OBJ,
@@ -52,7 +52,7 @@ class NextjsCloudflarePropagator extends NextSentryPropagator {
   }
 }
 
-const nextjsIntegration = (): Integration => ({
+const nextjsIntegration = defineIntegration(() => ({
   name: 'Nextjs',
   setup: client => {
     if ((client.getOptions() as CloudflareOptions).enableOpenTelemetrySetup) {
@@ -72,7 +72,7 @@ const nextjsIntegration = (): Integration => ({
       }
     });
   },
-});
+}));
 
 /**
  * `withSentry` of `@sentry/cloudflare` for the Worker entry of a Next.js app, e.g. `.open-next/worker.js`. It adds the

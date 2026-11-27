@@ -1,7 +1,7 @@
 import type { RequestOptions } from 'node:http';
 import { context, createContextKey, propagation } from '@opentelemetry/api';
 import type { Integration, IntegrationFn } from '@sentry/core';
-import { addNonEnumerableProperty, debug, getClient } from '@sentry/core';
+import { addNonEnumerableProperty, debug, defineIntegration, getClient } from '@sentry/core';
 import type { HttpIncomingMessage, HttpServerResponse } from '@sentry/core/server';
 import {
   getHttpServerSubscriptions,
@@ -166,7 +166,7 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
  *
  * @see {@link ../../light/integrations/httpServerIntegration.ts} for the lightweight version without OpenTelemetry
  */
-export const httpServerIntegration = _httpServerIntegration as (
+export const httpServerIntegration = defineIntegration(_httpServerIntegration) as (
   options?: HttpServerIntegrationOptions,
 ) => Integration & {
   name: 'Http.Server';

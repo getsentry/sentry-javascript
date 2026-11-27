@@ -5,6 +5,7 @@
     "moduleResolution": "bundler",
     "types": ["node"],
     "strict": true,
+    "exactOptionalPropertyTypes": true,
     "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

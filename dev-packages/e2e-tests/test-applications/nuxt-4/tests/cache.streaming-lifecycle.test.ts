@@ -1,5 +1,7 @@
+import { CACHE_HIT, URL_PATH } from '@sentry/conventions/attributes';
+import { CACHE_GET, CACHE_PUT } from '@sentry/conventions/op';
 import { expect, test } from '@playwright/test';
-import { collectStreamedSpansUntilSegment } from '@sentry-internal/test-utils';
+import { collectStreamedSpansUntilSegment, getSpanOp } from '@sentry-internal/test-utils';
 import { isViteServer, NITRO_ONLY } from './isViteServer';
 
 test.skip(isViteServer, NITRO_ONLY);
@@ -16,6 +18,15 @@ test.describe('Cache Instrumentation', () => {
     );
 
     return spans.filter(span => span.attributes['sentry.origin']?.value === 'auto.cache.nuxt');
+  }
+
+  /** Every span of the request's trace, whatever created it, so that a second span for one cache access shows up. */
+  function collectRequestSpans() {
+    return collectStreamedSpansUntilSegment(
+      'nuxt-4',
+      span => span.attributes[URL_PATH]?.value === '/api/cache-test',
+      span => getSpanOp(span) === CACHE_GET,
+    );
   }
 
   test('instruments cachedFunction and cachedEventHandler calls and creates spans with correct attributes', async ({
@@ -150,5 +161,38 @@ test.describe('Cache Instrumentation', () => {
 
     // We should have at least one cache hit (second calls to getCachedUser and getCachedData)
     expect(cacheHitSpans.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test('creates exactly one span for each cache read and write', async ({ request }) => {
+    // Unique keys, so that the first call of each cached function is a cache miss.
+    const uniqueKey = `count-${Date.now()}`;
+    const spansPromise = collectRequestSpans();
+
+    await request.get(`/api/cache-test?user=${uniqueKey}&data=${uniqueKey}`);
+
+    const spans = await spansPromise;
+    const readSpans = spans.filter(span => getSpanOp(span) === CACHE_GET);
+    const writeSpans = spans.filter(span => getSpanOp(span) === CACHE_PUT);
+    const cacheMissSpans = readSpans.filter(span => span.attributes[CACHE_HIT]?.value === false);
+
+    // 3x getCachedUser, 2x getCachedData, 1x cachedHandler.
+    expect(readSpans).toHaveLength(6);
+    // One write for each cache miss. An earlier test can have filled the cache of the handler, so the number of
+    // misses is not fixed.
+    expect(writeSpans).toHaveLength(cacheMissSpans.length);
+  });
+
+  test('makes each cache span a child of the request root span', async ({ request }) => {
+    const uniqueKey = `parent-${Date.now()}`;
+    const spansPromise = collectRequestSpans();
+
+    await request.get(`/api/cache-test?user=${uniqueKey}&data=${uniqueKey}`);
+
+    const spans = await spansPromise;
+    const rootSpan = spans.find(span => span.is_segment);
+    const cacheSpans = spans.filter(span => getSpanOp(span) === CACHE_GET || getSpanOp(span) === CACHE_PUT);
+    const parentSpanIds = new Set(cacheSpans.map(span => span.parent_span_id));
+
+    expect(parentSpanIds).toEqual(new Set([rootSpan?.span_id]));
   });
 });

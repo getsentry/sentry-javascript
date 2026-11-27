@@ -128,8 +128,9 @@ export function withClientSourceMapDeletion(
       ...options.sourcemaps,
       filesToDeleteAfterUpload: undefined,
       delete: undefined,
-      // The Vite plugin reads these in its `config` hook, after `modules:done` set the fallback.
-      deleteSourcemapsAfterUpload: environment => {
+      deleteSourcemapsAfterUpload: undefined,
+      // The Vite plugin reads this in its `config` hook, after `modules:done` set the fallback.
+      sdkDeleteSourceMaps: environment => {
         const side = getSide(environment);
         if (side === undefined) {
           return undefined;
@@ -138,11 +139,6 @@ export function withClientSourceMapDeletion(
           return userSourcemaps.delete;
         }
         return fallback[side] && userSourcemaps?.filesToDeleteAfterUpload === undefined ? true : undefined;
-      },
-      // Makes the plugin remove every source map of the environment, not only those of uploaded chunks.
-      sdkEnabledSourceMaps: environment => {
-        const side = getSide(environment);
-        return side !== undefined && (userSourcemaps?.delete === true || fallback[side]);
       },
     },
   };
@@ -156,14 +152,15 @@ function isClientEnvironment(environment: string | undefined): boolean {
   return environment === undefined || environment === 'client';
 }
 
-export function withoutSourceMapDeletion(options: Options): Options {
+export function withoutSourceMapDeletion(options: Options): InternalOptions {
   return {
     ...options,
     sourcemaps: {
       ...options.sourcemaps,
       filesToDeleteAfterUpload: undefined,
       delete: undefined,
-      deleteSourcemapsAfterUpload: false,
+      deleteSourcemapsAfterUpload: undefined,
+      sdkDeleteSourceMaps: false,
     },
   };
 }

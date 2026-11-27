@@ -152,6 +152,75 @@ describe('Nuxt Server SDK', () => {
       expect(callArgs?.defaultIntegrations).toBe(false);
     });
 
+    describe('Nitro integration', () => {
+      it('keeps the integrations of a user `integrations` array', () => {
+        const checkoutIntegration = { name: 'CheckoutAnalytics' };
+
+        const client = init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          integrations: [checkoutIntegration],
+        });
+
+        expect(client?.getIntegrationByName('CheckoutAnalytics')).toBe(checkoutIntegration);
+        expect(client?.getIntegrationByName('Nitro')).toBeDefined();
+      });
+
+      it('applies a user `integrations` function to the default integrations', () => {
+        const client = init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          integrations: defaults => defaults.filter(integration => integration.name !== 'Console'),
+        });
+
+        expect(client?.getIntegrationByName('Console')).toBeUndefined();
+        expect(client?.getIntegrationByName('Nitro')).toBeDefined();
+      });
+
+      it('uses a `nitroIntegration` from the user instead of its own', () => {
+        const userNitroIntegration = SentryNode.nitroIntegration({ serverTiming: false });
+
+        const client = init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          integrations: [userNitroIntegration],
+        });
+
+        expect(client?.getIntegrationByName('Nitro')).toBe(userNitroIntegration);
+      });
+
+      it('uses a `nitroIntegration` that a user `integrations` function puts before the defaults', () => {
+        const userNitroIntegration = SentryNode.nitroIntegration({ serverTiming: false });
+
+        const client = init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          integrations: defaults => [userNitroIntegration, ...defaults],
+        });
+
+        expect(client?.getIntegrationByName('Nitro')).toBe(userNitroIntegration);
+      });
+
+      it('reports the integrations that a user `integrations` function adds and removes', () => {
+        const client = init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          integrations: defaults => [
+            ...defaults.filter(integration => integration.name !== 'Console'),
+            { name: 'CheckoutAnalytics' },
+          ],
+        });
+
+        expect(client?.getOptions()._metadata?.integrationsSetByUser).toEqual(['CheckoutAnalytics']);
+        expect(client?.getOptions()._metadata?.removedDefaultIntegrations).toEqual(['Console']);
+      });
+
+      it('adds no Nitro integration when the default integrations are off', () => {
+        const client = init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          defaultIntegrations: false,
+        });
+
+        expect(client).toBeDefined();
+        expect(client?.getIntegrationByName('Nitro')).toBeUndefined();
+      });
+    });
+
     describe('environment option', () => {
       const originalEnv = process.env.SENTRY_ENVIRONMENT;
 

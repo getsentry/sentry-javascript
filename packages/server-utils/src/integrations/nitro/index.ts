@@ -8,6 +8,13 @@ const INTEGRATION_NAME = 'Nitro' as const;
 
 export interface NitroIntegrationOptions {
   /**
+   * Create `middleware` spans for h3 middleware.
+   *
+   * @default true
+   */
+  middleware?: boolean;
+
+  /**
    * Set `Server-Timing` response headers carrying the current `sentry-trace`/`baggage`, so the browser
    * SDK can connect a pageload trace to the backend trace.
    *
@@ -24,12 +31,12 @@ export interface NitroIntegrationOptions {
 }
 
 const _nitroIntegration = ((options: NitroIntegrationOptions = {}) => {
-  const { serverTiming = true, storage = true } = options;
+  const { middleware = true, serverTiming = true, storage = true } = options;
 
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      captureTracingEvents();
+      captureTracingEvents({ middleware });
 
       if (storage) {
         captureStorageEvents();

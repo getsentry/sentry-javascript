@@ -28,14 +28,14 @@ type GlobalWithTraceChannels = typeof GLOBAL_OBJ & {
 /**
  * Captures tracing events emitted by Nitro tracing channels.
  */
-export function captureTracingEvents(): void {
+export function captureTracingEvents(options: { middleware: boolean }): void {
   // Resolved at call time: bundlers may evaluate this module before `GLOBAL_OBJ` is initialized.
   const globalWithTraceChannels = GLOBAL_OBJ as GlobalWithTraceChannels;
   if (globalWithTraceChannels.__SENTRY_NITRO_HTTP_CHANNELS_INSTRUMENTED__) {
     return;
   }
 
-  setupH3TracingChannels();
+  setupH3TracingChannels(options);
   setupSrvxTracingChannels();
   globalWithTraceChannels.__SENTRY_NITRO_HTTP_CHANNELS_INSTRUMENTED__ = true;
 }
@@ -98,7 +98,7 @@ function getParameterizedRoute(event: NitroH3Event): string | undefined {
   return routePath;
 }
 
-function setupH3TracingChannels(): void {
+function setupH3TracingChannels(options: { middleware: boolean }): void {
   // Bail if this is not available
   if (!diagnosticsChannel.tracingChannel) {
     return;
@@ -107,6 +107,10 @@ function setupH3TracingChannels(): void {
   bindTracingChannelToSpan(
     diagnosticsChannel.tracingChannel<H3TracingRequestEvent>('h3.request'),
     data => {
+      if (data.type === 'middleware' && !options.middleware) {
+        return undefined;
+      }
+
       const method = data.event.req.method?.toUpperCase() || HTTP_SPAN_NAME_FALLBACK;
 
       // The route lives on the request's `http.server` root span, so the route handler only gets a

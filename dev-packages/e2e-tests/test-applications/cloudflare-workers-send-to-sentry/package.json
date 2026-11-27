@@ -27,6 +27,7 @@
     "wrangler": "^4.114.0"
   },
   "sentryTest": {
-    "optional": true
+    "optional": true,
+    "needsSecrets": true
   }
 }

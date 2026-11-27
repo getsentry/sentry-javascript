@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
@@ -102,29 +103,145 @@ describe('Vercel AI Gemini reasoning tokens', () => {
     expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBeUndefined();
   });
 
-  // A top-level operation's span reports usage summed across every step, while `providerMetadata`
-  // describes the last step alone. Reasoning is gated with output and total: it is a subset of an
-  // output this span never recomputes, and nothing sums it across steps.
-  it('does not write last-step usage onto an invoke_agent span', () => {
-    const data = runSpan('generateText', {
-      usage: { inputTokens: 900, outputTokens: 350, totalTokens: 1250 },
-      providerMetadata: REASONING_METADATA,
+  it('reads v7 model-call reasoning for any provider', () => {
+    const data = runSpan('languageModelCall', {
+      usage: { inputTokens: { total: 14 }, outputTokens: { total: 90, text: 30, reasoning: 60 } },
+      providerMetadata: { xai: {} },
+    });
+
+    expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(90);
+    expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(60);
+  });
+
+  // `@ai-sdk/openai` 2.x reports reasoning only in the usage, not in `providerMetadata`.
+  it('reads v5 OpenAI model-call reasoning from the usage', () => {
+    const data = runSpan('languageModelCall', {
+      usage: { inputTokens: 14, outputTokens: 350, reasoningTokens: 200, totalTokens: 364 },
+      providerMetadata: { openai: {} },
     });
 
     expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(350);
-    expect(data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(1250);
+    expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(200);
+  });
+
+  it('ignores v5 reasoning from a provider whose output it may not be part of', () => {
+    const data = runSpan('languageModelCall', {
+      usage: { inputTokens: 14, outputTokens: 350, reasoningTokens: 200, totalTokens: 564 },
+      providerMetadata: { xai: {} },
+    });
+
+    expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(350);
     expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBeUndefined();
   });
 
-  // OpenAI reports reasoning against an `outputTokens` that already includes it, so there is no
-  // recomputed output to suppress and the subset relationship still holds on the aggregate span.
-  it('keeps OpenAI reasoning tokens on an invoke_agent span', () => {
-    const data = runSpan('generateText', {
-      usage: { inputTokens: 900, outputTokens: 350, totalTokens: 1250 },
-      providerMetadata: { openai: { reasoningTokens: 120 } },
+  it('records zero reasoning', () => {
+    const data = runSpan('languageModelCall', {
+      usage: { inputTokens: { total: 14 }, outputTokens: { total: 12, text: 12, reasoning: 0 } },
     });
 
-    expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(350);
-    expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(120);
+    expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(0);
+  });
+
+  describe('invoke_agent spans', () => {
+    function googleStep(candidates: number, thoughts: number, usage: Record<string, unknown>) {
+      return {
+        usage,
+        providerMetadata: {
+          google: {
+            usageMetadata: {
+              promptTokenCount: 10,
+              candidatesTokenCount: candidates,
+              thoughtsTokenCount: thoughts,
+              totalTokenCount: 10 + candidates + thoughts,
+            },
+          },
+        },
+      };
+    }
+
+    // `providerMetadata` describes the last step alone, so each step is read on its own.
+    it('sums each step rather than reading the last step (v6+)', () => {
+      const steps = [
+        googleStep(20, 80, { outputTokens: 100, outputTokenDetails: { reasoningTokens: 80 } }),
+        googleStep(20, 100, { outputTokens: 120, outputTokenDetails: { reasoningTokens: 100 } }),
+      ];
+      const data = runSpan('generateText', {
+        usage: steps[1]!.usage,
+        totalUsage: { inputTokens: 20, outputTokens: 220, totalTokens: 240 },
+        providerMetadata: steps[1]!.providerMetadata,
+        steps,
+      });
+
+      expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(220);
+      expect(data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(240);
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(180);
+    });
+
+    // `@ai-sdk/google` 2.x reports candidate-only `outputTokens` next to a separate `reasoningTokens`.
+    it('adds reasoning into the output of v5 Google steps', () => {
+      const steps = [
+        googleStep(20, 80, { outputTokens: 20, reasoningTokens: 80 }),
+        googleStep(20, 100, { outputTokens: 20, reasoningTokens: 100 }),
+      ];
+      const data = runSpan('generateText', {
+        totalUsage: { inputTokens: 20, outputTokens: 40, reasoningTokens: 180, totalTokens: 240 },
+        providerMetadata: steps[1]!.providerMetadata,
+        steps,
+      });
+
+      expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(220);
+      expect(data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(240);
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(180);
+    });
+
+    // The v2 adapter's `outputTokens.total` is candidate-only, and the SDK totals it into `totalUsage`.
+    it('keeps total equal to input plus output over Google v2-adapter steps', () => {
+      const steps = [
+        googleStep(20, 80, { inputTokens: { total: 10 }, outputTokens: { total: 20, reasoning: 80 } }),
+        googleStep(20, 100, { inputTokens: { total: 10 }, outputTokens: { total: 20, reasoning: 100 } }),
+      ];
+      const data = runSpan('generateText', {
+        usage: steps[1]!.usage,
+        totalUsage: { inputTokens: 20, outputTokens: 40, totalTokens: 60 },
+        providerMetadata: steps[1]!.providerMetadata,
+        steps,
+      });
+
+      expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(220);
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(180);
+      expect(data[GEN_AI_USAGE_TOTAL_TOKENS]).toBe(
+        (data[GEN_AI_USAGE_INPUT_TOKENS] as number) + (data[GEN_AI_USAGE_OUTPUT_TOKENS] as number),
+      );
+    });
+
+    it('reads each step by its own provider', () => {
+      const openaiStep = {
+        usage: { outputTokens: 50, reasoningTokens: 30 },
+        providerMetadata: { openai: {} },
+      };
+      const data = runSpan('generateText', {
+        totalUsage: { inputTokens: 20, outputTokens: 70, reasoningTokens: 110 },
+        providerMetadata: openaiStep.providerMetadata,
+        steps: [googleStep(20, 80, { outputTokens: 20, reasoningTokens: 80 }), openaiStep],
+      });
+
+      expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(150);
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(110);
+    });
+
+    // v4 reports no reasoning in the usage, only in each step's `providerMetadata`.
+    it('sums v4 OpenAI reasoning from each step', () => {
+      const data = runSpan('generateText', {
+        usage: { promptTokens: 20, completionTokens: 300, totalTokens: 320 },
+        providerMetadata: { openai: { reasoningTokens: 40 } },
+        steps: [
+          { usage: { promptTokens: 10, completionTokens: 200 }, providerMetadata: { openai: { reasoningTokens: 60 } } },
+          { usage: { promptTokens: 10, completionTokens: 100 }, providerMetadata: { openai: { reasoningTokens: 40 } } },
+        ],
+      });
+
+      expect(data[GEN_AI_USAGE_OUTPUT_TOKENS]).toBe(300);
+      expect(data[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]).toBe(100);
+    });
   });
 });

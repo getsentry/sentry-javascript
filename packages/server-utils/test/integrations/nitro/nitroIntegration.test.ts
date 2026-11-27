@@ -17,6 +17,16 @@ describe('nitroIntegration', () => {
     nitroIntegration().setupOnce!();
 
     expect(captureTracingEvents).toHaveBeenCalledTimes(1);
+    expect(captureTracingEvents).toHaveBeenCalledWith({ middleware: true });
+    expect(captureStorageEvents).toHaveBeenCalledTimes(1);
+    expect(captureServerTimingHeaders).toHaveBeenCalledTimes(1);
+  });
+
+  it('turns off h3 middleware spans when `middleware` is disabled', () => {
+    nitroIntegration({ middleware: false }).setupOnce!();
+
+    expect(captureTracingEvents).toHaveBeenCalledTimes(1);
+    expect(captureTracingEvents).toHaveBeenCalledWith({ middleware: false });
     expect(captureStorageEvents).toHaveBeenCalledTimes(1);
     expect(captureServerTimingHeaders).toHaveBeenCalledTimes(1);
   });

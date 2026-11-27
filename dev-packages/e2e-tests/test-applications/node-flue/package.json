@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "NODE_OPTIONS='--import=@sentry/node/import' vite dev --port 3030",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "start": "NODE_OPTIONS='--import=@sentry/node/import' PORT=3030 node dist/server.mjs",
     "clean": "npx rimraf node_modules dist pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
@@ -34,7 +34,7 @@
     "node": "24.x"
   },
   "sentryTest": {
-    "optional": true,
+    "needsSecrets": true,
     "optionalVariants": [
       {
         "build-command": "pnpm test:build-latest",

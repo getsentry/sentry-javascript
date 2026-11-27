@@ -364,7 +364,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (rollup / rolldown)', () => {
       },
     };
 
-    const sdkSourcemaps = { deleteSourcemapsAfterUpload: true, sdkEnabledSourceMaps: true, ignore: ['**/vendor.js'] };
+    const sdkSourcemaps = { sdkDeleteSourceMaps: true, ignore: ['**/vendor.js'] };
 
     async function writeSdkBuild(options: InternalOptions): Promise<void> {
       const vendor = path.join(tmpDir, 'vendor.js');
@@ -390,7 +390,7 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (rollup / rolldown)', () => {
 
     it('reads the function form when it decides', async () => {
       let sdkEnabled: boolean | undefined;
-      const plugins = sdkRollupPlugin({ sourcemaps: { ...sdkSourcemaps, sdkEnabledSourceMaps: () => sdkEnabled } });
+      const plugins = sdkRollupPlugin({ sourcemaps: { ...sdkSourcemaps, sdkDeleteSourceMaps: () => sdkEnabled } });
       sdkEnabled = true;
       const vendor = path.join(tmpDir, 'vendor.js');
       fs.writeFileSync(vendor, 'console.log("vendor");\n');
@@ -400,8 +400,8 @@ describe('sourcemaps.deleteSourcemapsAfterUpload (rollup / rolldown)', () => {
       expect(fs.readdirSync(outDir).sort()).toEqual(['entry.js', 'style.css', 'vendor.js', 'worker.js']);
     });
 
-    it('keeps the maps when `deleteSourcemapsAfterUpload` is not true', async () => {
-      await writeSdkBuild({ sourcemaps: { sdkEnabledSourceMaps: true } });
+    it('keeps the maps when the user sets `deleteSourcemapsAfterUpload: false`', async () => {
+      await writeSdkBuild({ sourcemaps: { deleteSourcemapsAfterUpload: false, sdkDeleteSourceMaps: true } });
 
       expect(
         fs

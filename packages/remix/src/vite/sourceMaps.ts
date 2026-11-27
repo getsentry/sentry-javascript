@@ -1,3 +1,4 @@
+import { hasSourceMapUploadCredentials } from '@sentry/bundler-plugins/core';
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
 import { resolveSourceMapsFeatures } from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
@@ -59,11 +60,10 @@ export function makeAddSentryVitePlugin(
       // Without an upload the user uploads the maps by hand, so they stay.
       // The SDK never read the user's `deleteSourcemapsAfterUpload`. `delete` replaces it.
       // A user's own `filesToDeleteAfterUpload` replaces the SDK's deletion.
-      deleteSourcemapsAfterUpload:
+      sdkDeleteSourceMaps:
         sourcemaps?.delete === undefined && sourcemaps?.filesToDeleteAfterUpload === undefined
           ? () => (state.sdkEnabledSourceMaps && resolveSourceMapsFeatures(sourcemaps).upload ? true : undefined)
           : undefined,
-      sdkEnabledSourceMaps: () => state.sdkEnabledSourceMaps,
     },
     telemetry: telemetry ?? true,
     url: sentryUrl,
@@ -108,7 +108,7 @@ export function makeEnableSourceMapsPlugin(
  *     3. Users didn't set source maps generation
  *       - we enable 'hidden' source maps generation when Sentry uploads the maps, or when
  *         `sourcemaps.delete: false` keeps them for a manual upload. Otherwise we leave it unset
- *       - without `sourcemaps.delete` we pass `deleteSourcemapsAfterUpload: true`, so the maps never
+ *       - without `sourcemaps.delete` we pass `sdkDeleteSourceMaps: true`, so the maps never
  *         reach the build output
  *
  * --> only exported for testing
@@ -151,7 +151,13 @@ export function getUpdatedSourceMapSettings(
 
   // Without an upload, Sentry only turns source maps on when `sourcemaps.delete: false` keeps them.
   // TODO(v12): Remove the `disable-upload` case along with `sourcemaps.disable`.
-  if (!(upload || legacyDisable === 'disable-upload' || (sourcemaps?.delete === false && injectDebugIds))) {
+  if (
+    !(
+      (upload && hasSourceMapUploadCredentials(sentryPluginOptions)) ||
+      legacyDisable === 'disable-upload' ||
+      (sourcemaps?.delete === false && injectDebugIds)
+    )
+  ) {
     return undefined;
   }
 

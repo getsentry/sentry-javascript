@@ -29,6 +29,7 @@
     "extends": "../../package.json"
   },
   "sentryTest": {
-    "optional": true
+    "optional": true,
+    "needsSecrets": true
   }
 }

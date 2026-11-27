@@ -662,6 +662,17 @@ export function createV6CompatibleWrapCreateMemoryRouter<
 }
 
 /**
+ * The options that take React Router's hooks and helpers rather than user code.
+ */
+export const REACT_ROUTER_LIBRARY_OPTIONS = [
+  'useEffect',
+  'useLocation',
+  'useNavigationType',
+  'createRoutesFromChildren',
+  'matchRoutes',
+] as const;
+
+/**
  * Creates a browser tracing integration that can be used with all React Router v6 compatible versions.
  */
 export function createReactRouterV6CompatibleTracingIntegration(

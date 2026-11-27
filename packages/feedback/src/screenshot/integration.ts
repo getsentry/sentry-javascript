@@ -1,10 +1,11 @@
 import type { Attachment, FeedbackScreenshotIntegration, IntegrationFn } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type { h as hType } from 'preact';
 import type * as Hooks from 'preact/hooks';
 import { DOCUMENT } from '../constants';
 import { ScreenshotEditorFactory } from './components/ScreenshotEditor';
 
-export const feedbackScreenshotIntegration = ((): FeedbackScreenshotIntegration => {
+const _feedbackScreenshotIntegration = ((): FeedbackScreenshotIntegration => {
   return {
     name: 'FeedbackScreenshot' as const,
     setupOnce() {},
@@ -40,3 +41,7 @@ export const feedbackScreenshotIntegration = ((): FeedbackScreenshotIntegration 
     },
   };
 }) satisfies IntegrationFn;
+
+export const feedbackScreenshotIntegration = defineIntegration(
+  _feedbackScreenshotIntegration,
+) as typeof _feedbackScreenshotIntegration;
