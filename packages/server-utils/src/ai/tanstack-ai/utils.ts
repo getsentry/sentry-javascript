@@ -41,7 +41,11 @@ export function getInputAttributes(
   };
 }
 
-/** The sampling options are in the provider-specific `modelOptions`, so accept the usual spellings. */
+/**
+ * TanStack AI has no common option for temperature, top p or max tokens. Each adapter takes them in
+ * `modelOptions` and passes them to the provider with the provider's key name (snake_case or camelCase,
+ * and `max_tokens` or `max_output_tokens`). So we take the first of the known keys that has a value.
+ */
 export function getRequestAttributes(modelOptions: Record<string, unknown> = {}): Record<string, number | undefined> {
   const pick = (...keys: string[]): number | undefined => {
     for (const key of keys) {
