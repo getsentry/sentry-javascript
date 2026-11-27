@@ -1,9 +1,11 @@
-import { getTraceMetaTags } from '@sentry/core';
+import { getClient, getTraceMetaTags, SDK_VERSION } from '@sentry/core';
 import { flushIfServerless } from '@sentry/core/server';
 import { captureException } from '@sentry/node';
 import { updateSpanWithRouteParametrization } from './routeParametrization';
 
 declare const __SENTRY_ROUTE_PATTERNS__: string[] | undefined;
+
+const SDK_NAME = 'sentry.javascript.tanstackstart-react';
 
 export type ServerEntry = {
   // `opts` is forwarded verbatim to the wrapped handler, so this must accept whatever shape
@@ -136,6 +138,13 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
     serverEntry.fetch = new Proxy<typeof serverEntry.fetch>(serverEntry.fetch, {
       async apply(target, thisArg, args) {
         try {
+          // With `sentryCloudflareVitePlugin()` of `@sentry/cloudflare/vite`, `@sentry/cloudflare` inits the client.
+          const sdk = getClient()?.getOptions()._metadata?.sdk;
+          if (sdk && sdk.name !== SDK_NAME) {
+            sdk.name = SDK_NAME;
+            sdk.packages = [{ name: 'npm:@sentry/tanstackstart-react', version: SDK_VERSION }, ...(sdk.packages || [])];
+          }
+
           const request: Request = args[0];
           const url = new URL(request.url);
           const method = request.method || 'GET';

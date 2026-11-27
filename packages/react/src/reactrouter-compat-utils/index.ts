@@ -12,6 +12,7 @@ export {
   addResolvedRoutesToParent,
   processResolvedRoutes,
   updateNavigationSpan,
+  REACT_ROUTER_LIBRARY_OPTIONS,
 } from './instrumentation';
 
 // Utility exports

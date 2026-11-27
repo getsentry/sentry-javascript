@@ -1,5 +1,5 @@
 import type { FeedbackFormData, FeedbackModalIntegration, IntegrationFn, User } from '@sentry/core';
-import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
+import { defineIntegration, getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import { h, render } from 'preact';
 import * as hooks from 'preact/hooks';
 import { DOCUMENT } from '../constants';
@@ -19,7 +19,7 @@ function getUser(): User | undefined {
   return globalUser;
 }
 
-export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
+const _feedbackModalIntegration = ((): FeedbackModalIntegration => {
   return {
     name: 'FeedbackModal' as const,
     setupOnce() {},
@@ -131,3 +131,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
     },
   };
 }) satisfies IntegrationFn;
+
+export const feedbackModalIntegration = defineIntegration(
+  _feedbackModalIntegration,
+) as typeof _feedbackModalIntegration;

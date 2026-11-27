@@ -6,7 +6,7 @@ import { startSpan } from '@sentry/node';
 import { _INTERNAL_cronExpressionToMonitorConfig as cronExpressionToMonitorConfig } from '@sentry/server-utils';
 import { DEBUG_BUILD } from './debug-build';
 import { isExpectedError } from './helpers';
-import type { ReflectWithMetadata } from './integrations/helpers';
+import type { ReflectWithMetadata } from './helpers';
 import { copyReflectMetadata, getNestScheduleVersion, markSentryCronMethod } from './integrations/helpers';
 
 /**

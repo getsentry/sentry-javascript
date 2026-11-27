@@ -35,5 +35,7 @@ function _browserTracingIntegration(options: RemixBrowserTracingIntegrationOptio
  * Creates a browser tracing integration for Remix applications.
  * This integration will create pageload and navigation spans.
  */
-export const browserTracingIntegration: typeof _browserTracingIntegration =
-  defineIntegration(_browserTracingIntegration);
+export const browserTracingIntegration: typeof _browserTracingIntegration = defineIntegration(
+  _browserTracingIntegration,
+  { libraryOptions: ['useEffect', 'useLocation', 'useMatches'] },
+);

@@ -152,18 +152,38 @@ describe('Vercel AI SDK cache tokens', () => {
     expect(data[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]).toBe(21);
   });
 
-  it('keeps the aggregated SDK counts on a root operation over last-step providerMetadata', () => {
+  it('sums the counts of every step on a root operation over its last-step providerMetadata', () => {
     const data = runSpan('generateText', {
-      usage: {
+      usage: { inputTokens: 4500, inputTokenDetails: { cacheReadTokens: 3000, cacheWriteTokens: 0 }, outputTokens: 20 },
+      totalUsage: {
         inputTokens: 9500,
         inputTokenDetails: { cacheReadTokens: 8000, cacheWriteTokens: 500 },
         outputTokens: 40,
       },
+      steps: [
+        {
+          usage: {
+            inputTokens: 5000,
+            inputTokenDetails: { cacheReadTokens: 5000, cacheWriteTokens: 500 },
+            outputTokens: 20,
+          },
+          providerMetadata: { anthropic: { cacheReadInputTokens: 5000, cacheCreationInputTokens: 500 } },
+        },
+        {
+          usage: {
+            inputTokens: 4500,
+            inputTokenDetails: { cacheReadTokens: 3000, cacheWriteTokens: 0 },
+            outputTokens: 20,
+          },
+          providerMetadata: { anthropic: { cacheReadInputTokens: 3000, cacheCreationInputTokens: 0 } },
+        },
+      ],
       providerMetadata: {
         anthropic: { cacheReadInputTokens: 3000, cacheCreationInputTokens: 0 },
       },
     });
 
+    expect(data[GEN_AI_USAGE_INPUT_TOKENS]).toBe(9500);
     expect(data[GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]).toBe(8000);
     expect(data[GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]).toBe(500);
   });

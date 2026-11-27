@@ -2,6 +2,7 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import type { Integration } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 
 export * from '@sentry/node';
 
@@ -17,12 +18,19 @@ export { createSentryTunnelRoute, registerSentryServerTunnelRoute, setTunnelRout
  * A no-op stub of the replay integration for the server. Router setup code is shared between client and server,
  * so this stub is needed to prevent build errors during SSR bundling.
  */
-export function replayIntegration(_options?: Record<string, unknown>): Integration {
+export const replayIntegration = defineIntegration((_options?: Record<string, unknown>) => {
   return {
     name: 'Replay',
     setup() {},
   };
-}
+});
+
+const _browserTracingIntegration = defineIntegration((_options?: Record<string, unknown>) => {
+  return {
+    name: 'BrowserTracing',
+    setup() {},
+  };
+});
 
 /**
  * A no-op stub of the browser tracing integration for the server. Router setup code is shared between client and server,
@@ -30,12 +38,9 @@ export function replayIntegration(_options?: Record<string, unknown>): Integrati
  */
 export function tanstackRouterBrowserTracingIntegration(
   _router: unknown,
-  _options?: Record<string, unknown>,
+  options?: Record<string, unknown>,
 ): Integration {
-  return {
-    name: 'BrowserTracing',
-    setup() {},
-  };
+  return _browserTracingIntegration(options);
 }
 
 /**

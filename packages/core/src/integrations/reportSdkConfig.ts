@@ -6,6 +6,7 @@ import { count } from '../metrics/public-api';
 import { Scope } from '../scope';
 import type { Integration, IntegrationFn } from '../types/integration';
 import { debug } from '../utils/debug-logger';
+import { fingerprintFunction } from '../utils/fingerprintFunction';
 import { fnv1a32 } from '../utils/hash';
 import { isPlainObject } from '../utils/is';
 import { isBrowser } from '../utils/isBrowser';
@@ -55,7 +56,7 @@ export const experimentalReportSdkConfigIntegration = defineIntegration(_experim
 // and unsupported values with fingerprints before hashing the config.
 function serialize(value: unknown, ancestors = new Set<object>()): unknown {
   if (typeof value === 'function') {
-    return `[Function:${fnv1a32(Function.prototype.toString.call(value))}]`;
+    return `[Function:${fingerprintFunction(value as (...args: never[]) => unknown)}]`;
   }
 
   // JSON throws on bigints and omits symbols.
@@ -123,7 +124,11 @@ function buildConfigAttributes(client: Client): Record<string, string> {
     options.integrations = integrationsSetByUser.map(name => {
       const integration: (Integration & { isDefaultInstance?: true }) | undefined = client.getIntegrationByName(name);
       // A default instance kept by an `integrations` function got its options from the SDK, not the user.
-      return describeIntegration(name, integration?.isDefaultInstance ? undefined : integration?._options);
+      return describeIntegration(
+        name,
+        integration?.isDefaultInstance ? undefined : integration?._options,
+        integration?._libraryOptions,
+      );
     });
   }
 
@@ -134,7 +139,7 @@ function buildConfigAttributes(client: Client): Record<string, string> {
   if (Array.isArray(options.defaultIntegrations)) {
     // `getIntegrationsToSetup` flags these as default instances, but the user passed them.
     options.defaultIntegrations = options.defaultIntegrations.map((integration: Integration) =>
-      describeIntegration(integration.name, integration._options),
+      describeIntegration(integration.name, integration._options, integration._libraryOptions),
     );
   }
 
@@ -173,7 +178,11 @@ function describeShape(value: unknown, ancestors = new Set<object>()): unknown {
   return shape;
 }
 
-function describeIntegration(name: string, options: unknown): { name: string; options?: unknown } {
+function describeIntegration(
+  name: string,
+  options: unknown,
+  libraryOptions: readonly string[] = [],
+): { name: string; options?: unknown } {
   if (options === undefined) {
     return { name };
   }
@@ -190,10 +199,19 @@ function describeIntegration(name: string, options: unknown): { name: string; op
 
   const described: Record<string, unknown> = {};
   for (const key of keys) {
-    described[key] = describeOptionValue(options[key]);
+    const value = options[key];
+    described[key] = libraryOptions.includes(key) ? describeLibraryValue(value) : describeOptionValue(value);
   }
 
   return { name, options: described };
+}
+
+/**
+ * Library functions and objects change with the library build and the engine, not with the config, so only their kind
+ * is reported. Primitives are stable, so they are kept.
+ */
+function describeLibraryValue(value: unknown): unknown {
+  return typeof value === 'function' ? '[Function]' : redactObject(value);
 }
 
 // Options can hold live objects such as a router, a store or an SDK client, which carry URLs, app state or keys.

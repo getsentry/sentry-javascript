@@ -4,6 +4,35 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 11.20.0
+
+### Important Changes
+
+- **feat(nestjs): Trace WebSocket messages on Nest 12 ([#26768](https://github.com/getsentry/sentry-javascript/pull/26768))**
+
+On Nest 12 and newer, the SDK now creates a `websocket` span for each WebSocket message a gateway handles, named `WS <namespace> <pattern>`. Each message starts its own trace.
+
+### Other Changes
+
+- feat(bundler-plugins): Add the call-site rewriter core ([#26101](https://github.com/getsentry/sentry-javascript/pull/26101))
+- feat(core): Add experimental minification-independent function fingerprint ([#26840](https://github.com/getsentry/sentry-javascript/pull/26840))
+- feat(core): Report library functions in integration options without a fingerprint ([#26898](https://github.com/getsentry/sentry-javascript/pull/26898))
+- fix(core): Clear pending idle span timers when the span ends ([#26938](https://github.com/getsentry/sentry-javascript/pull/26938))
+- fix(nestjs): Register SentryTracingInterceptor only once ([#26775](https://github.com/getsentry/sentry-javascript/pull/26775))
+- fix(nuxt): Avoid duplicate spans when Nitro tracing channels are on ([#26928](https://github.com/getsentry/sentry-javascript/pull/26928))
+- fix(server-utils): Sum Vercel AI reasoning tokens onto invoke_agent spans ([#26904](https://github.com/getsentry/sentry-javascript/pull/26904))
+- fix(tanstackstart-react): Report the TanStack Start SDK name with the Cloudflare Vite plugin ([#26925](https://github.com/getsentry/sentry-javascript/pull/26925))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore(lint): Require integrations to be created with `defineIntegration` ([#26937](https://github.com/getsentry/sentry-javascript/pull/26937))
+- docs: Add a checklist for new major releases ([#26926](https://github.com/getsentry/sentry-javascript/pull/26926))
+
+</details>
+
+Work in this release was contributed by @faizansaiyed123. Thank you for your contribution!
+
 ## 11.19.0
 
 - docs(aws-lambda): Fix the Lambda layer link in the v11 migration guide ([#26912](https://github.com/getsentry/sentry-javascript/pull/26912))

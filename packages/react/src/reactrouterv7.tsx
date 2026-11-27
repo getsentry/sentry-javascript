@@ -9,6 +9,7 @@ import {
   createV6CompatibleWrapCreateBrowserRouter,
   createV6CompatibleWrapCreateMemoryRouter,
   createV6CompatibleWrapUseRoutes,
+  REACT_ROUTER_LIBRARY_OPTIONS,
 } from './reactrouter-compat-utils';
 import type { CreateRouterFunction, Router, RouterState, UseRoutes } from './types';
 
@@ -26,6 +27,7 @@ function _reactRouterV7BrowserTracingIntegration(
  */
 export const reactRouterV7BrowserTracingIntegration: typeof _reactRouterV7BrowserTracingIntegration = defineIntegration(
   _reactRouterV7BrowserTracingIntegration,
+  { libraryOptions: REACT_ROUTER_LIBRARY_OPTIONS },
 );
 
 /**

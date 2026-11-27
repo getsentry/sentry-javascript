@@ -1,5 +1,5 @@
-import type { Integration, SpanJSON, SpanOrigin, StreamedSpanJSON } from '@sentry/core';
-import { safeSetSpanJSONAttributes } from '@sentry/core';
+import type { SpanJSON, SpanOrigin, StreamedSpanJSON } from '@sentry/core';
+import { defineIntegration, safeSetSpanJSONAttributes } from '@sentry/core';
 import { SENTRY_DESCRIPTION, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { FUNCTION } from '@sentry/conventions/op';
 
@@ -8,7 +8,7 @@ import { FUNCTION } from '@sentry/conventions/op';
  * (via Kit's tracing feature since 2.31.0) get the correct Sentry attributes
  * and data.
  */
-export function svelteKitSpansIntegration(): Integration {
+export const svelteKitSpansIntegration = defineIntegration(() => {
   return {
     name: 'SvelteKitSpansEnhancement' as const,
     // Using preprocessEvent to ensure the processing happens before user-configured
@@ -26,7 +26,7 @@ export function svelteKitSpansIntegration(): Integration {
       _enhanceKitSpanStreamed(span);
     },
   };
-}
+});
 
 /**
  * Adds sentry-specific attributes and data to a span emitted by SvelteKit's native tracing (since 2.31.0)

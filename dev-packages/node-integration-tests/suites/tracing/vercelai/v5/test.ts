@@ -14,10 +14,12 @@ import {
   GEN_AI_TOOL_NAME,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
+  GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   GEN_AI_USAGE_TOTAL_TOKENS,
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
+import { GEN_AI_GENERATE_CONTENT, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../../../../../../packages/server-utils/src/ai/core/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 import { getStringAttributeValue } from '../../../../utils';
@@ -26,6 +28,57 @@ describe('Vercel AI integration (v5)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-reasoning-tokens.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('records reasoning tokens on model calls and sums them onto invoke_agent spans', async () => {
+        await createRunner()
+          .unordered()
+          .expect({
+            span: container => {
+              const spans = container.items.filter(
+                span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai',
+              );
+              const byOp = (op: string) => spans.filter(span => span.attributes[SENTRY_OP]?.value === op);
+              const tokens = (span: (typeof spans)[number]) => [
+                span.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]?.value,
+                span.attributes[GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]?.value,
+              ];
+
+              const sorted = (op: string) =>
+                byOp(op)
+                  .map(tokens)
+                  .sort((a, b) => Number(a[0]) - Number(b[0]));
+
+              // Each Google step's output gains its reasoning, which `@ai-sdk/google` 2.x reports separately.
+              expect(sorted(GEN_AI_GENERATE_CONTENT)).toEqual([
+                [50, 30],
+                [100, 80],
+                [100, 80],
+                [120, 100],
+                [120, 100],
+              ]);
+              // One generateText and one streamText operation over the same two Google steps, then one OpenAI call.
+              expect(sorted(GEN_AI_INVOKE_AGENT)).toEqual([
+                [50, 30],
+                [220, 180],
+                [220, 180],
+              ]);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: '5.0.30',
+      },
+    },
+  );
 
   createEsmAndCjsTests(
     __dirname,

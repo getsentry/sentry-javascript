@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { Module } from 'node:module';
-import { GLOBAL_OBJ, type IntegrationFn } from '@sentry/core';
+import { defineIntegration, GLOBAL_OBJ, type IntegrationFn } from '@sentry/core';
 import { collectInstalledModules } from '@sentry/server-utils';
 
 type ModuleInfo = Record<string, string>;
@@ -50,7 +50,7 @@ const _modulesIntegration = (() => {
  * Adds the app's packages to the event. Versions injected at build time (e.g. by the Next.js SDK) are used as is.
  * Otherwise, it uses exact installed versions where they resolve from the entry file, and declared ranges for the rest.
  */
-export const modulesIntegration = _modulesIntegration;
+export const modulesIntegration = defineIntegration(_modulesIntegration);
 
 function readFile(path: string): string | undefined {
   try {

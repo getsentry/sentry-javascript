@@ -94,7 +94,8 @@
       "files": ["**/src/**/*.ts", "**/src/**/*.tsx", "**/addon/**/*.ts"],
       "rules": {
         "sdk/no-unguarded-span-apis": "error",
-        "sdk/no-unguarded-debug-logs": "error"
+        "sdk/no-unguarded-debug-logs": "error",
+        "sdk/require-define-integration": "error"
       }
     },
     {

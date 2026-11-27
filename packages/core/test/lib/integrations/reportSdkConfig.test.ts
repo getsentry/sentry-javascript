@@ -226,6 +226,23 @@ describe('experimentalReportSdkConfigIntegration', () => {
     expect((payload.options as Record<string, unknown>).initialScope).toMatch(/^\[Function:\w+\]$/);
   });
 
+  it('reports callbacks that differ only in their local names as the same function', () => {
+    const report = (beforeSend: (event: unknown) => unknown): Record<string, unknown> =>
+      reportConfig(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          ...captureOptionsSetByUser({ beforeSend, integrations: [experimentalReportSdkConfigIntegration()] }),
+        }),
+      ).options as Record<string, unknown>;
+
+    const original = report(event => event);
+    const renamed = report(e => e);
+    const dropsEverything = report(() => null);
+
+    expect(renamed.beforeSend).toBe(original.beforeSend);
+    expect(dropsEverything.beforeSend).not.toBe(original.beforeSend);
+  });
+
   it('reports the names of the default integrations the user passed', () => {
     const userOptions = captureOptionsSetByUser({
       defaultIntegrations: [experimentalReportSdkConfigIntegration()],
@@ -432,6 +449,62 @@ describe('experimentalReportSdkConfigIntegration', () => {
         },
         { name: 'Supabase', options: { supabaseClient: '[Object]' } },
         { name: 'Store', options: { _s: '[Object]', state: '[Object]' } },
+      ],
+    });
+  });
+
+  it('reports library functions in integration options without a fingerprint, unlike user callbacks', () => {
+    const routerIntegration = defineIntegration(
+      (_options: { useLocation?: () => unknown; shouldCreateSpan?: () => boolean } = {}) => ({ name: 'Router' }),
+      { libraryOptions: ['useLocation'] },
+    );
+    const reportRouter = (useLocation: () => unknown): Record<string, unknown> =>
+      reportConfig(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          ...captureOptionsSetByUser({
+            integrations: [
+              experimentalReportSdkConfigIntegration(),
+              routerIntegration({ useLocation, shouldCreateSpan: () => false }),
+            ],
+          }),
+        }),
+      );
+
+    const payload = reportRouter(() => 'react-router@6');
+
+    expect(payload.options).toEqual({
+      integrations: [
+        { name: 'ExperimentalReportSdkConfig' },
+        {
+          name: 'Router',
+          options: { shouldCreateSpan: expect.stringMatching(/^\[Function:\w+\]$/), useLocation: '[Function]' },
+        },
+      ],
+    });
+    expect(reportRouter(() => 'react-router@7')).toEqual(payload);
+  });
+
+  it('reports library objects as placeholders and keeps library primitives', () => {
+    const routerIntegration = defineIntegration(
+      (_options: { history?: unknown; routes?: unknown[]; version?: string; basename?: string } = {}) => ({
+        name: 'Router',
+      }),
+      { libraryOptions: ['history', 'routes', 'version'] },
+    );
+    const userOptions = captureOptionsSetByUser({
+      integrations: [
+        experimentalReportSdkConfigIntegration(),
+        routerIntegration({ history: { length: 1 }, routes: ['/users'], version: '6.22.0', basename: '/app' }),
+      ],
+    });
+
+    const payload = reportConfig(getDefaultTestClientOptions({ dsn: 'https://username@domain/123', ...userOptions }));
+
+    expect(payload.options).toEqual({
+      integrations: [
+        { name: 'ExperimentalReportSdkConfig' },
+        { name: 'Router', options: { basename: '/app', history: '[Object]', routes: '[Object]', version: '6.22.0' } },
       ],
     });
   });
