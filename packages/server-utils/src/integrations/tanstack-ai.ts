@@ -61,8 +61,7 @@ function warnOtelMiddleware(): void {
   consoleSandbox(() => {
     // eslint-disable-next-line no-console
     console.warn(
-      '[Sentry] A `chat()` call of `@tanstack/ai` uses `otelMiddleware` and the Sentry `tanstackAIIntegration`. ' +
-        'Remove `otelMiddleware` to not record each run twice.',
+      "[Sentry] `tanstackAIIntegration` is active and a `chat()` call also uses TanStack's otelMiddleware, so each run is recorded twice. Remove otelMiddleware to avoid duplicate spans.",
     );
   });
 }
