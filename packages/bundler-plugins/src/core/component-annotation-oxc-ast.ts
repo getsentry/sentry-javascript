@@ -47,12 +47,6 @@ export type ParseAstAsync = (code: string, options: { lang: 'jsx' | 'tsx' }) => 
 export type MagicStringLike = {
   appendLeft(offset: number, content: string): void;
   toString(): string;
-  generateMap?(options: {
-    file?: string;
-    source?: string;
-    includeContent?: boolean;
-    hires?: boolean | 'boundary';
-  }): SourceMap | string;
 };
 
 export type ComponentAnnotationTransformMeta = {
