@@ -1,3 +1,4 @@
+import { getTrustedScriptURL } from '@sentry/browser-utils';
 import type { Integration, IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry/replay';
@@ -94,6 +95,7 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
             ...getCanvasManagerOptions,
             enableManualSnapshot,
             maxCanvasSize,
+            getTrustedScriptURL,
             errorHandler: (err: unknown) => {
               try {
                 if (typeof err === 'object') {
