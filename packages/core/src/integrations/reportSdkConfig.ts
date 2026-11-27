@@ -6,6 +6,7 @@ import { count } from '../metrics/public-api';
 import { Scope } from '../scope';
 import type { Integration, IntegrationFn } from '../types/integration';
 import { debug } from '../utils/debug-logger';
+import { fingerprintFunction } from '../utils/fingerprintFunction';
 import { fnv1a32 } from '../utils/hash';
 import { isPlainObject } from '../utils/is';
 import { isBrowser } from '../utils/isBrowser';
@@ -55,7 +56,7 @@ export const experimentalReportSdkConfigIntegration = defineIntegration(_experim
 // and unsupported values with fingerprints before hashing the config.
 function serialize(value: unknown, ancestors = new Set<object>()): unknown {
   if (typeof value === 'function') {
-    return `[Function:${fnv1a32(Function.prototype.toString.call(value))}]`;
+    return `[Function:${fingerprintFunction(value as (...args: never[]) => unknown)}]`;
   }
 
   // JSON throws on bigints and omits symbols.

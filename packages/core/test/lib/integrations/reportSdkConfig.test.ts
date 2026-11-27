@@ -226,6 +226,23 @@ describe('experimentalReportSdkConfigIntegration', () => {
     expect((payload.options as Record<string, unknown>).initialScope).toMatch(/^\[Function:\w+\]$/);
   });
 
+  it('reports callbacks that differ only in their local names as the same function', () => {
+    const report = (beforeSend: (event: unknown) => unknown): Record<string, unknown> =>
+      reportConfig(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          ...captureOptionsSetByUser({ beforeSend, integrations: [experimentalReportSdkConfigIntegration()] }),
+        }),
+      ).options as Record<string, unknown>;
+
+    const original = report(event => event);
+    const renamed = report(e => e);
+    const dropsEverything = report(() => null);
+
+    expect(renamed.beforeSend).toBe(original.beforeSend);
+    expect(dropsEverything.beforeSend).not.toBe(original.beforeSend);
+  });
+
   it('reports the names of the default integrations the user passed', () => {
     const userOptions = captureOptionsSetByUser({
       defaultIntegrations: [experimentalReportSdkConfigIntegration()],
