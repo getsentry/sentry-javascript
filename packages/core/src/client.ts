@@ -1348,6 +1348,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // The error is never sent, so it must not make a later copy of it a duplicate.
     setDedupeContext(hint, { mode: 'ignore' });
+    // Runs in the promise buffer, so a burst with async processors can still overflow it. `ServerRuntimeClient` avoids
+    // this; in the browser it is rare (one user, mostly sync processors), so we keep the bundle size small instead.
     return this._applyFilters(event, hint, currentScope, isolationScope).then(processedEvent => {
       this._updateSessions(processedEvent, currentScope, isolationScope);
       this.recordDroppedEvent('sample_rate', 'error');
