@@ -42,7 +42,7 @@
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:bundle": "rolldown -c rollup.bundle.config.mjs",
     "build:dev": "pnpm run \"/^build:(transpile|types)$/\"",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsrs --fast -p tsconfig.types.json",
     "build:tarball": "pnpm pack",
     "clean": "node ../../scripts/rm.mjs build sentry-replay-*.tgz",
     "format": "oxfmt \"src/**/*.ts\" \"test/**/*.ts\" --write",

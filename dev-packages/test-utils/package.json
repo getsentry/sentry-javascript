@@ -64,7 +64,7 @@
     "build:tarball": "pnpm pack",
     "build:dev": "pnpm run build",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsrs --fast -p tsconfig.types.json",
     "clean": "node ../../scripts/rm.mjs ./node_modules ./build"
   },
   "peerDependencies": {

@@ -48,7 +48,7 @@
     "lint:fix": "oxlint . --fix --type-aware",
     "build": "pnpm run build:types && pnpm run build:transpile",
     "build:transpile": "pnpm exec rolldown -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsrs --fast -p tsconfig.types.json",
     "build:dev": "pnpm clean && pnpm run build",
     "build:tarball": "pnpm pack"
   },

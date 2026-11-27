@@ -26,7 +26,7 @@
   "scripts": {
     "build": "pnpm run \"/^build:(transpile|types)$/\"",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsrs --fast -p tsconfig.types.json",
     "build:dev": "pnpm run build",
     "clean": "node ../../scripts/rm.mjs build",
     "lint:fix": "oxlint . --fix --type-aware",

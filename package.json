@@ -155,6 +155,7 @@
     "rollup-plugin-license": "^3.7.1",
     "size-limit": "~12.1.0",
     "tslib": "^2.4.1",
+    "tsrs": "7.1.0-beta.tsrs5",
     "tsx": "^4.23.15",
     "typescript": "~7.0.2",
     "vitest": "^4.1.12",
