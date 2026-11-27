@@ -105,6 +105,9 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   // Timer that tracks maxSpanTime for child spans
   let _childSpanTimeoutID: ReturnType<typeof setTimeout> | undefined;
 
+  // Timer that tracks finalTimeout
+  let _finalTimeoutID: ReturnType<typeof setTimeout> | undefined;
+
   // The reason why the span was finished
   let _finishReason: IdleSpanFinishReason = FINISH_REASON_EXTERNAL_FINISH;
 
@@ -290,6 +293,11 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     _finished = true;
     activities.clear();
 
+    // A pending timer keeps the span and its children reachable until it fires
+    _cancelIdleTimeout();
+    _cancelChildSpanTimeout();
+    clearTimeout(_finalTimeoutID);
+
     _cleanupHooks.forEach(cleanup => cleanup());
 
     _setSpanForScope(scope, previousActiveSpan);
@@ -411,7 +419,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     _restartIdleTimeout();
   }
 
-  setTimeout(() => {
+  _finalTimeoutID = setTimeout(() => {
     if (!_finished) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'deadline_exceeded' });
       _finishReason = FINISH_REASON_FINAL_TIMEOUT;
