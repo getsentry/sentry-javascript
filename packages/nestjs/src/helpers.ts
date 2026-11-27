@@ -45,3 +45,14 @@ export function isWsOrRpcException(exception: unknown): boolean {
 
   return typeof exception.getError === 'function' && typeof exception.initMessage === 'function';
 }
+
+/**
+ * The subset of `reflect-metadata`'s `Reflect` augmentation that NestJS
+ * relies on. Methods are optional because `reflect-metadata` may not be
+ * loaded; guard each before use.
+ */
+export interface ReflectWithMetadata {
+  getMetadataKeys?: (target: object) => unknown[];
+  getMetadata?: (key: unknown, target: object) => unknown;
+  defineMetadata?: (key: unknown, value: unknown, target: object) => void;
+}

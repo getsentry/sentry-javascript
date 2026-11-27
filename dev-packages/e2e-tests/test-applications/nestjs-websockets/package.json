@@ -2,19 +2,20 @@
   "name": "nestjs-websockets",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "nest build",
-    "start": "nest start",
+    "start": "node --import ./dist/instrument.js dist/main.js",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0",
-    "@nestjs/platform-express": "^11.0.0",
-    "@nestjs/websockets": "^11.0.0",
-    "@nestjs/platform-socket.io": "^11.0.0",
+    "@nestjs/common": "12.5.1",
+    "@nestjs/core": "12.5.1",
+    "@nestjs/platform-express": "12.5.1",
+    "@nestjs/websockets": "12.5.1",
+    "@nestjs/platform-socket.io": "12.5.1",
     "@sentry/nestjs": "file:../../packed/sentry-nestjs-packed.tgz",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1"
@@ -22,9 +23,9 @@
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
-    "@nestjs/cli": "^11.0.0",
-    "@types/node": "^18.19.1",
+    "@nestjs/cli": "^12.0.0",
+    "@types/node": "^22.0.0",
     "socket.io-client": "^4.0.0",
-    "typescript": "~5.0.0"
+    "typescript": "~5.9.0"
   }
 }

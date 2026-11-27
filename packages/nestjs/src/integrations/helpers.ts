@@ -16,7 +16,8 @@ import {
   isObjectLike,
   withActiveSpan,
 } from '@sentry/core';
-import type { CatchTarget, InjectableTarget, NextFunction, Observable, Subscription } from './types';
+import type { ReflectWithMetadata } from '../helpers';
+import type { CatchTarget, InjectableTarget, NextFunction } from './types';
 
 /** A function of unknown signature, matching the methods/handlers we wrap. */
 export type AnyFn = (this: unknown, ...args: unknown[]) => unknown;
@@ -93,17 +94,6 @@ export function setNestScheduleVersion(method: unknown, version: string | undefi
 /** The `@nestjs/schedule` version that stored these `@Cron()` options, if the SDK saw the decorator run. */
 export function getNestScheduleVersion(cronOptions: object): string | undefined {
   return NEST_SCHEDULE_VERSIONS.get(cronOptions);
-}
-
-/**
- * The subset of `reflect-metadata`'s `Reflect` augmentation that NestJS
- * relies on. Methods are optional because `reflect-metadata` may not be
- * loaded; guard each before use.
- */
-export interface ReflectWithMetadata {
-  getMetadataKeys?: (target: object) => unknown[];
-  getMetadata?: (key: unknown, target: object) => unknown;
-  defineMetadata?: (key: unknown, value: unknown, target: object) => void;
 }
 
 /**
@@ -222,25 +212,6 @@ export function getBullMQProcessSpanOptions(queueName: string | undefined): {
       [MESSAGING_DESTINATION_NAME]: queueName,
     },
   };
-}
-
-/**
- * Adds instrumentation to a js observable and attaches the span to an active
- * parent span.
- */
-export function instrumentObservable(observable: Observable<unknown>, activeSpan: Span | undefined): void {
-  if (activeSpan) {
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    observable.subscribe = new Proxy(observable.subscribe, {
-      apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
-        return withActiveSpan(activeSpan, () => {
-          const subscription: Subscription = originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
-          subscription.add(() => activeSpan.end());
-          return subscription;
-        });
-      },
-    });
-  }
 }
 
 /**

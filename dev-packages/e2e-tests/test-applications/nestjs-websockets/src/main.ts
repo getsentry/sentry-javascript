@@ -1,9 +1,10 @@
-// Import this first
-import './instrument';
+// Loaded via `node --import ./dist/instrument.js` so Sentry's ESM instrumentation
+// hooks register before any application module is linked. Kept here too so the
+// file is part of the build output (ESM caches it, so it is not re-executed).
+import './instrument.js';
 
-// Import other modules
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { AppModule } from './app.module.js';
 
 const PORT = 3030;
 

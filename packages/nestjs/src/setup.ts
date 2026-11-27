@@ -8,9 +8,44 @@ import type {
 } from '@nestjs/common';
 import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
-import { captureException, debug, getDefaultIsolationScope, getIsolationScope, isObjectLike } from '@sentry/core';
-import type { Observable } from 'rxjs';
+import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { WEBSOCKET } from '@sentry/conventions/op';
+import {
+  captureException,
+  debug,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  isObjectLike,
+  SPAN_STATUS_ERROR,
+  startNewTrace,
+  startSpanManual,
+  withIsolationScope,
+} from '@sentry/core';
+import type { ReflectWithMetadata } from './helpers';
 import { isExpectedError, isWsOrRpcException } from './helpers';
+import type { Observable as InstrumentedObservable } from './observable';
+import { instrumentObservable } from './observable';
+
+// `@nestjs/websockets`' metadata key for the `@WebSocketGateway()` options.
+const GATEWAY_OPTIONS = 'websockets:gateway_options';
+
+// TODO: Import these from `@sentry/conventions` once getsentry/sentry-conventions#836 is released.
+const WEBSOCKET_EVENT_NAME = 'websocket.event.name';
+const WEBSOCKET_NAMESPACE = 'websocket.namespace';
+
+/**
+ * Socket.IO resolves regex and function namespaces to the concrete child namespace (e.g. `/tenant-42`),
+ * which would make span names high cardinality.
+ */
+function hasDynamicNamespace(context: ExecutionContext): boolean {
+  const R = Reflect as ReflectWithMetadata;
+  if (typeof R.getMetadata !== 'function') {
+    return false;
+  }
+  const options = R.getMetadata(GATEWAY_OPTIONS, context.getClass());
+  const namespace = isObjectLike(options) ? options.namespace : undefined;
+  return namespace instanceof RegExp || typeof namespace === 'function';
+}
 
 // Partial extract of FastifyRequest interface
 // https://github.com/fastify/fastify/blob/87f9f20687c938828f1138f91682d568d2a31e53/types/request.d.ts#L41
@@ -47,7 +82,71 @@ class SentryTracingInterceptor implements NestInterceptor {
   /**
    * Intercepts HTTP requests to set the transaction name for Sentry tracing.
    */
-  public intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+  public intercept(context: ExecutionContext, next: CallHandler): ReturnType<CallHandler['handle']> {
+    // Nest only applies global interceptors to WebSocket gateways from v12 on.
+    if (context.getType() === 'ws') {
+      const wsHost = context.switchToWs();
+      const client = wsHost.getClient<{ nsp?: { name?: string } }>();
+      const pattern = wsHost.getPattern();
+
+      if (!pattern) {
+        return next.handle();
+      }
+
+      const namespace = hasDynamicNamespace(context) ? undefined : client?.nsp?.name;
+      const transactionName = namespace ? `WS ${namespace} ${pattern}` : `WS ${pattern}`;
+
+      return withIsolationScope(isolationScope => {
+        isolationScope.setTransactionName(transactionName);
+
+        // Messages otherwise share the trace of their long-lived connection, and with Socket.IO's polling
+        // transport they would become children of the HTTP request that delivered them.
+        return startNewTrace(() =>
+          startSpanManual(
+            {
+              name: transactionName,
+              attributes: {
+                [SENTRY_OP]: WEBSOCKET,
+                [SENTRY_ORIGIN]: 'auto.websocket.nestjs.interceptor',
+                [WEBSOCKET_EVENT_NAME]: pattern,
+                [WEBSOCKET_NAMESPACE]: namespace,
+              },
+            },
+            span => {
+              const markSpanAsFailed = (error: unknown): void => {
+                if (!isExpectedError(error)) {
+                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                }
+              };
+
+              try {
+                const observable = next.handle();
+                const instrumentedObservable: InstrumentedObservable<unknown> = observable;
+
+                // Nest runs the handler on subscribe, after `intercept()` has returned.
+                // eslint-disable-next-line @typescript-eslint/unbound-method
+                instrumentedObservable.subscribe = new Proxy(instrumentedObservable.subscribe, {
+                  apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
+                    return withIsolationScope(isolationScope, () =>
+                      originalSubscribe.apply(thisArgSubscribe, argsSubscribe),
+                    );
+                  },
+                });
+
+                instrumentObservable(instrumentedObservable, span, markSpanAsFailed);
+
+                return observable;
+              } catch (error) {
+                markSpanAsFailed(error);
+                span.end();
+                throw error;
+              }
+            },
+          ),
+        );
+      });
+    }
+
     if (getIsolationScope() === getDefaultIsolationScope()) {
       debug.warn('Isolation scope is still the default isolation scope, skipping setting transactionName.');
       return next.handle();
