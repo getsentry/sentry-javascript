@@ -7,6 +7,7 @@ import type { Session } from '../types/session';
 import { debug } from '../utils/debug-logger';
 import { parseSampleRate } from '../utils/parseSampleRate';
 import { safeMathRandom } from '../utils/randomSafeContext';
+import { safeCallback } from '../utils/safeCallback';
 
 /**
  * PoC: session- and conversation-based sampling.
@@ -15,7 +16,10 @@ import { safeMathRandom } from '../utils/randomSafeContext';
  * session or an AI conversation. The SDK makes one decision per unit:
  *
  * - Sampled unit: the SDK sends all spans and errors collected in it and records the replay and profile.
- * - Unsampled unit: the SDK sends no spans and records no replay or profile. Errors follow `sampleRate`.
+ * - Unsampled unit: spans fall back to `tracesSampleRate` and errors to `sampleRate`. No replay or profile.
+ *
+ * The fallback rates are corrected, so that the SDK sends the same share of spans and errors as without
+ * sampling units (see {@link getFallbackSampleRate}). Spans report `max(unitRate, tracesSampleRate)`.
  *
  * Logs and metrics are not sampled by the SDK today, so they are sent in both cases.
  * Telemetry outside of any unit follows the existing options (`tracesSampleRate`, `sampleRate`, ...).
@@ -28,11 +32,14 @@ export interface SamplingUnit {
   sampleRand: number;
   /** The rate that applies to this unit. */
   sampleRate: number;
-  /** `sampleRand < sampleRate` */
+  /** `sampleRand < sampleRate`. Everything collected in a sampled unit is sent. */
   sampled: boolean;
 }
 
-export type SamplingUnitOptions = Pick<CoreOptions, 'sessionSampleRate' | 'conversationSampleRate'>;
+export type SamplingUnitOptions = Pick<
+  CoreOptions,
+  'sessionSampleRate' | 'conversationSampleRate' | 'provideConversationId'
+>;
 
 /**
  * A session keeps the `sample_rand` it was given first. This is `sampleRandFromKey(sid)`, unless the
@@ -86,6 +93,24 @@ function getSessionSampleRand(session: Session, scope: Scope): number {
   return sampleRand;
 }
 
+/**
+ * Asks `provideConversationId` for the conversation of the incoming request. The request is known before the
+ * root span starts, so the conversation can decide for the whole trace.
+ */
+function getProvidedConversationId(options: SamplingUnitOptions, isolationScope: Scope): string | undefined {
+  const { provideConversationId } = options;
+  const { normalizedRequest } = isolationScope.getScopeData().sdkProcessingMetadata;
+  if (!provideConversationId || !normalizedRequest) {
+    return undefined;
+  }
+
+  return safeCallback(
+    DEBUG_BUILD ? 'The `provideConversationId` callback threw an error:' : '',
+    () => provideConversationId(normalizedRequest) || undefined,
+    () => undefined,
+  );
+}
+
 /** The configured units and their rates. With several units, the first one that is available wins. */
 function getUnitRates(options: SamplingUnitOptions): Array<[SamplingUnit['type'], number]> {
   const rates: Array<[SamplingUnit['type'], number]> = [];
@@ -137,7 +162,10 @@ export function resolveSamplingUnit(
         return makeUnit('session', session.sid, getSessionSampleRand(session, scope), sampleRate);
       }
     } else {
-      const key = scope.getScopeData().conversationId || isolationScope.getScopeData().conversationId;
+      const key =
+        scope.getScopeData().conversationId ||
+        isolationScope.getScopeData().conversationId ||
+        getProvidedConversationId(options, isolationScope);
       if (key) {
         return makeUnit('conversation', key, sampleRandFromKey(key), sampleRate);
       }
@@ -148,8 +176,80 @@ export function resolveSamplingUnit(
 }
 
 /**
- * Called before a root span is sampled. Returns the sampling unit that decides for this trace, if the
- * SDK is the head of the trace. The trace then gets the `sample_rand` of the unit.
+ * The rate for the fallback decision in an unsampled unit, for telemetry with its own sample rate.
+ *
+ * Applying the plain rate would send more than before: with a unit rate of 0.1 and `tracesSampleRate: 0.2`,
+ * 10% + 90% * 0.2 = 28% of all spans. The corrected rate keeps the total at the telemetry's own rate:
+ *
+ *   unitRate + (1 - unitRate) * fallback = sampleRate
+ *
+ * If the unit rate is the higher one, there is nothing left for the fallback, and the total is the unit rate.
+ */
+export function getFallbackSampleRate(sampleRate: number, unitRate: number): number {
+  return sampleRate > unitRate ? (sampleRate - unitRate) / (1 - unitRate) : 0;
+}
+
+/**
+ * The rate to sample an error with: all errors of a sampled unit are sent, errors of an unsampled unit
+ * follow the corrected `sampleRate`. Without a unit, `sampleRate` applies as is.
+ */
+export function getErrorSampleRate(sampleRate: number, unit: SamplingUnit | undefined): number {
+  return !unit ? sampleRate : unit.sampled ? 1 : getFallbackSampleRate(sampleRate, unit.sampleRate);
+}
+
+/**
+ * The `sample_rand` of a trace that the SDK starts in the given unit.
+ *
+ * - Sampled unit: the value of the unit, which is below the unit's rate.
+ * - Unsampled unit: a value between the unit's rate and 1, drawn for each trace.
+ *
+ * This way one comparison makes both decisions, see {@link sampleSpanInUnit}.
+ */
+function getTraceSampleRand(unit: SamplingUnit, currentSampleRand?: number): number {
+  if (unit.sampled) {
+    return unit.sampleRand;
+  }
+  // A value that is already in the range was drawn for this trace before. We keep it.
+  if (currentSampleRand !== undefined && currentSampleRand >= unit.sampleRate) {
+    return currentSampleRand;
+  }
+  return unit.sampleRate + safeMathRandom() * (1 - unit.sampleRate);
+}
+
+/**
+ * Makes the sampling decision for a root span in a sampling unit, if the SDK is the head of the trace.
+ * `traceSampleRate` is the rate that `tracesSampler` or `tracesSampleRate` give for this span.
+ *
+ * The span is sampled if `sampleRand < max(unitRate, traceSampleRate)`:
+ * - In a sampled unit, `sampleRand` is below the unit rate, so every span is sampled.
+ * - In an unsampled unit, `sampleRand` is spread between the unit rate and 1, so a span is sampled with the
+ *   corrected fallback rate `(traceSampleRate - unitRate) / (1 - unitRate)`.
+ *
+ * Every span has the same overall chance to be sent, whichever way it took: `max(unitRate, traceSampleRate)`.
+ * This is the sample rate the span reports, so Sentry extrapolates correctly, and
+ * `sample_rand < sample_rate <=> sampled` holds for downstream services.
+ */
+export function sampleSpanInUnit(
+  unit: SamplingUnit,
+  sampleRand: number,
+  traceSampleRate: number | undefined,
+): [sampled: boolean, sampleRate: number, localSampleRateWasApplied: boolean] {
+  const sampleRate = Math.max(unit.sampleRate, traceSampleRate || 0);
+  const sampled = sampleRand < sampleRate;
+
+  DEBUG_BUILD &&
+    debug.log(
+      `[Sampling] Root span is ${sampled ? 'sampled' : 'not sampled'}: ${unit.type} ${unit.key} is ${
+        unit.sampled ? 'sampled' : 'not sampled'
+      } (rate ${unit.sampleRate}), reported sample rate is ${sampleRate}.`,
+    );
+
+  return [sampled, sampleRate, true];
+}
+
+/**
+ * Called before a root span is sampled. Returns the sampling unit that this trace belongs to, if the
+ * SDK is the head of the trace. The trace then gets its `sample_rand` from the unit.
  *
  * Returns `undefined` if the trace is continued from another service or already has a decision. The
  * decision of the head of the trace applies then, as for every other trace.
@@ -179,19 +279,20 @@ export function getSamplingUnitForNewTrace(
   }
 
   if (unit) {
-    propagationContext.sampleRand = unit.sampleRand;
+    propagationContext.sampleRand = getTraceSampleRand(unit, propagationContext.sampleRand);
   }
   return unit;
 }
 
 /**
- * Returns the `sample_rand` for a trace that the SDK is about to start as its head:
- * the value of the current sampling unit, or a random value if there is none.
+ * Returns the `sample_rand` for a trace that the SDK is about to start as its head. In a sampled unit this is
+ * the value of the unit, otherwise a random value (see {@link getTraceSampleRand}).
  */
 export function getSampleRandForNewTrace(
   client: Client | undefined = getClient(),
   scope: Scope = getCurrentScope(),
   isolationScope: Scope = getIsolationScope(),
 ): number {
-  return resolveSamplingUnit(client?.getOptions(), scope, isolationScope)?.sampleRand ?? safeMathRandom();
+  const unit = resolveSamplingUnit(client?.getOptions(), scope, isolationScope);
+  return unit ? getTraceSampleRand(unit) : safeMathRandom();
 }

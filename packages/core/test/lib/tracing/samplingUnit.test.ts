@@ -2,6 +2,7 @@ import { SENTRY_CLIENT_SAMPLE_RATE } from '@sentry/conventions/attributes';
 import { describe, expect, it, vi } from 'vitest';
 import {
   captureException,
+  getIsolationScope,
   hasSpansEnabled,
   setAsyncContextStrategy,
   setConversationId,
@@ -11,9 +12,10 @@ import {
 import { _INTERNAL_captureLog } from '../../../src/logs/internal';
 import { _INTERNAL_captureMetric } from '../../../src/metrics/internal';
 import { continueTrace, getDynamicSamplingContextFromSpan } from '../../../src/tracing';
-import { resolveSamplingUnit, sampleRandFromKey } from '../../../src/tracing/samplingUnit';
+import { getFallbackSampleRate, resolveSamplingUnit, sampleRandFromKey } from '../../../src/tracing/samplingUnit';
 import { startInactiveSpan, startNewTrace } from '../../../src/tracing/trace';
 import type { CoreOptions } from '../../../src/types/options';
+import type { RequestEventData } from '../../../src/types/request';
 import type { Session } from '../../../src/types/session';
 import type { Span } from '../../../src/types/span';
 import { spanIsSampled } from '../../../src/utils/spanUtils';
@@ -108,6 +110,26 @@ describe('sampleRandFromKey', () => {
   });
 });
 
+describe('getFallbackSampleRate', () => {
+  it.each([
+    // [sampleRate, unitRate, fallback]
+    [0.2, 0.1, 1 / 9],
+    [0.5, 0.1, 4 / 9],
+    [1, 0.3, 1],
+    [0.7, 0, 0.7],
+    // The unit rate is the higher one: nothing is left for the fallback
+    [0.1, 0.2, 0],
+    [0.5, 0.5, 0],
+    [1, 1, 0],
+  ])('corrects a rate of %s with a unit rate of %s to %s', (sampleRate, unitRate, fallback) => {
+    expect(getFallbackSampleRate(sampleRate, unitRate)).toBeCloseTo(fallback, 10);
+    if (fallback > 0) {
+      // The total stays at the rate of the telemetry
+      expect(unitRate + (1 - unitRate) * fallback).toBeCloseTo(sampleRate, 10);
+    }
+  });
+});
+
 describe('sessionSampleRate', () => {
   it('turns span recording on without `tracesSampleRate`', () => {
     init({ sessionSampleRate: 0.5 });
@@ -125,12 +147,17 @@ describe('sessionSampleRate', () => {
         const span = startRootSpanInNewTrace();
         const dsc = getDynamicSamplingContextFromSpan(span);
 
+        // There is no `tracesSampleRate` to fall back to, so only sampled sessions send spans
         expect(spanIsSampled(span)).toBe(expectedRand < 0.5);
-        // The trace carries the session's value and rate, so the DSC invariant holds and Sentry extrapolates
-        // with the session rate: sample_rand < sample_rate <=> sampled
-        expect(dsc.sample_rand).toBe(`${expectedRand}`);
+        // The trace reports the session rate, and the DSC invariant holds: sample_rand < sample_rate <=> sampled
         expect(dsc.sample_rate).toBe('0.5');
         expect(dsc.sampled).toBe(`${expectedRand < 0.5}`);
+        if (expectedRand < 0.5) {
+          // All traces of a sampled session carry the session's value
+          expect(dsc.sample_rand).toBe(`${expectedRand}`);
+        } else {
+          expect(Number(dsc.sample_rand)).toBeGreaterThanOrEqual(0.5);
+        }
       }
     }
   });
@@ -150,51 +177,119 @@ describe('sessionSampleRate', () => {
   });
 
   it('sends all spans, errors, logs and metrics of a sampled session', () => {
-    // `tracesSampler` and `sampleRate` would drop everything. Inside a sampled session they are not consulted.
+    // `tracesSampler` and `sampleRate` would drop everything. A sampled session is sent anyway.
     const tracesSampler = vi.fn(() => 0);
     init({ sessionSampleRate: 0.5, tracesSampler, sampleRate: 0 });
     startSessionWithDecision(true, 0.5);
 
     for (let i = 0; i < 3; i++) {
-      expect(spanIsSampled(startRootSpanInNewTrace())).toBe(true);
+      const span = startRootSpanInNewTrace();
+      expect(spanIsSampled(span)).toBe(true);
+      // The session rate is the higher one, so the spans report it
+      expect(getDynamicSamplingContextFromSpan(span).sample_rate).toBe('0.5');
       captureOneOfEach();
     }
 
-    expect(tracesSampler).not.toHaveBeenCalled();
     // Logs and metrics are not sampled, so they carry no sample rate
     expect(logs).toEqual([undefined, undefined, undefined]);
     expect(metrics).toEqual([undefined, undefined, undefined]);
     expect(outcomes()).toEqual({});
   });
 
-  it('sends no spans of an unsampled session, and errors, logs and metrics as before', () => {
-    const tracesSampler = vi.fn(() => 1);
-    init({ sessionSampleRate: 0.5, tracesSampler });
-    startSessionWithDecision(false, 0.5);
+  describe('in an unsampled session', () => {
+    it('falls back to `tracesSampler`, and sends logs and metrics as before', () => {
+      init({ sessionSampleRate: 0.5, tracesSampler: () => 1 });
+      startSessionWithDecision(false, 0.5);
 
-    for (let i = 0; i < 3; i++) {
-      expect(spanIsSampled(startRootSpanInNewTrace())).toBe(false);
-      captureOneOfEach();
-    }
+      for (let i = 0; i < 3; i++) {
+        const span = startRootSpanInNewTrace();
+        expect(spanIsSampled(span)).toBe(true);
+        expect(getDynamicSamplingContextFromSpan(span).sample_rate).toBe('1');
+        captureOneOfEach();
+      }
 
-    expect(tracesSampler).not.toHaveBeenCalled();
-    // Logs and metrics are not sampled, so the session's decision does not apply to them
-    expect(logs).toEqual([undefined, undefined, undefined]);
-    expect(metrics).toEqual([undefined, undefined, undefined]);
-    // Only spans are dropped and reported. Errors are sent: `sampleRate` defaults to 1.
-    expect(outcomes()).toEqual({
-      'sample_rate:transaction': 3,
-      'sample_rate:span': 3,
+      // Logs and metrics are not sampled, so the session's decision does not apply to them
+      expect(logs).toEqual([undefined, undefined, undefined]);
+      expect(metrics).toEqual([undefined, undefined, undefined]);
+      // Errors are sent: `sampleRate` defaults to 1
+      expect(outcomes()).toEqual({});
+    });
+
+    it('sends no spans if the session rate is not below `tracesSampleRate`, and reports the session rate', () => {
+      init({ sessionSampleRate: 0.5, tracesSampleRate: 0.2 });
+      startSessionWithDecision(false, 0.5);
+
+      for (let i = 0; i < 20; i++) {
+        const span = startRootSpanInNewTrace();
+        const dsc = getDynamicSamplingContextFromSpan(span);
+        expect(spanIsSampled(span)).toBe(false);
+        expect(dsc.sample_rate).toBe('0.5');
+        expect(Number(dsc.sample_rand)).toBeGreaterThanOrEqual(0.5);
+      }
+      expect(outcomes()).toEqual({ 'sample_rate:transaction': 20, 'sample_rate:span': 20 });
+    });
+
+    it('applies the corrected `sampleRate` to errors', () => {
+      // 0.5 + (1 - 0.5) * fallback = 0.75 => fallback = 0.5
+      init({ sessionSampleRate: 0.5, sampleRate: 0.75 });
+      startSessionWithDecision(false, 0.5);
+
+      for (let i = 0; i < 2000; i++) {
+        captureException(new Error('boom'));
+      }
+
+      // 1000 expected, the standard deviation is ~22
+      expect(outcomes()['sample_rate:error']).toBeGreaterThan(880);
+      expect(outcomes()['sample_rate:error']).toBeLessThan(1120);
+    });
+
+    it('sends no errors if the session rate is not below `sampleRate`', () => {
+      init({ sessionSampleRate: 0.5, sampleRate: 0.5 });
+      startSessionWithDecision(false, 0.5);
+
+      for (let i = 0; i < 20; i++) {
+        captureException(new Error('boom'));
+      }
+
+      expect(outcomes()['sample_rate:error']).toBe(20);
     });
   });
 
-  it('applies `sampleRate` to errors of an unsampled session', () => {
-    init({ sessionSampleRate: 0.5, sampleRate: 0 });
-    startSessionWithDecision(false, 0.5);
+  it('sends as many spans as `tracesSampleRate` alone, and every span reports `tracesSampleRate`', () => {
+    init({ sessionSampleRate: 0.1, tracesSampleRate: 0.2 });
 
-    captureException(new Error('boom'));
+    let traces = 0;
+    let sent = 0;
+    let sentInSampledSessions = 0;
+    for (let s = 0; s < 4000; s++) {
+      const session = startSession();
+      const sessionSampled = sampleRandFromKey(session.sid) < 0.1;
 
-    expect(outcomes()['sample_rate:error']).toBe(1);
+      for (let t = 0; t < 3; t++) {
+        const span = startRootSpanInNewTrace();
+        const dsc = getDynamicSamplingContextFromSpan(span);
+        traces++;
+
+        // Every span has the same overall chance to be sent, so every span reports the same rate
+        expect(dsc.sample_rate).toBe('0.2');
+        expect(Number(dsc.sample_rand) < 0.2).toBe(spanIsSampled(span));
+
+        if (sessionSampled) {
+          expect(spanIsSampled(span)).toBe(true);
+          sentInSampledSessions++;
+        }
+        if (spanIsSampled(span)) {
+          sent++;
+        }
+      }
+    }
+
+    // 10% of all spans are sent in sampled sessions, another 10% as a fallback with a rate of 0.111.
+    // Without the correction, 28% would be sent.
+    expect(sentInSampledSessions / traces).toBeGreaterThan(0.07);
+    expect(sentInSampledSessions / traces).toBeLessThan(0.13);
+    expect(sent / traces).toBeGreaterThan(0.17);
+    expect(sent / traces).toBeLessThan(0.23);
   });
 
   it('leaves telemetry outside of a session to the existing options', () => {
@@ -247,7 +342,9 @@ describe('sessionSampleRate', () => {
         const navigation = startRootSpanInNewTrace('navigation');
 
         expect(spanIsSampled(navigation)).toBe(spanIsSampled(continued));
-        expect(getDynamicSamplingContextFromSpan(navigation).sample_rand).toBe(`${sampleRand}`);
+        if (sampleRand < 0.5) {
+          expect(getDynamicSamplingContextFromSpan(navigation).sample_rand).toBe(`${sampleRand}`);
+        }
       }
     });
 
@@ -298,6 +395,40 @@ describe('conversationSampleRate', () => {
       // The trace keeps its decision
       expect(spanIsSampled(span)).toBe(true);
     });
+  });
+});
+
+describe('provideConversationId', () => {
+  it('provides the conversation of an incoming request before its trace is sampled', () => {
+    const provideConversationId = vi.fn((request: RequestEventData) => request.headers?.['x-conv-id']);
+    init({ conversationSampleRate: 0.5, provideConversationId });
+
+    // No request yet: there is no conversation
+    expect(resolveSamplingUnit(client.getOptions())).toBeUndefined();
+    expect(provideConversationId).not.toHaveBeenCalled();
+
+    getIsolationScope().setSDKProcessingMetadata({ normalizedRequest: { headers: { 'x-conv-id': 'conv_header' } } });
+
+    const span = startRootSpanInNewTrace('POST /chat');
+    expect(resolveSamplingUnit(client.getOptions())).toMatchObject({ type: 'conversation', key: 'conv_header' });
+    expect(spanIsSampled(span)).toBe(sampleRandFromKey('conv_header') < 0.5);
+
+    // A conversation id that was set explicitly wins
+    setConversationId('conv_explicit');
+    expect(resolveSamplingUnit(client.getOptions())).toMatchObject({ key: 'conv_explicit' });
+  });
+
+  it('falls back to the existing options if the callback throws', () => {
+    init({
+      conversationSampleRate: 0,
+      tracesSampleRate: 1,
+      provideConversationId: () => {
+        throw new Error('nope');
+      },
+    });
+    getIsolationScope().setSDKProcessingMetadata({ normalizedRequest: { headers: {} } });
+
+    expect(spanIsSampled(startRootSpanInNewTrace())).toBe(true);
   });
 });
 

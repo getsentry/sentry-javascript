@@ -9,6 +9,7 @@ import type { Scope } from '../scope';
 import { SENTRY_SEGMENT_NAME_SOURCE, SENTRY_OP } from '@sentry/conventions/attributes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '../semanticAttributes';
 import type { ClientOptions } from '../types/options';
+import type { SamplingContext } from '../types/samplingcontext';
 import type { SentrySpanArguments, Span, SpanTimeInput } from '../types/span';
 import type { StartSpanOptions } from '../types/startSpanOptions';
 import { baggageHeaderToDynamicSamplingContext } from '../utils/baggage';
@@ -32,8 +33,8 @@ import {
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
-import { sampleSpan } from './sampling';
-import { getSampleRandForNewTrace, getSamplingUnitForNewTrace } from './samplingUnit';
+import { getTraceSampleRate, sampleSpan } from './sampling';
+import { getSampleRandForNewTrace, getSamplingUnitForNewTrace, sampleSpanInUnit } from './samplingUnit';
 import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
@@ -492,28 +493,32 @@ function _startRootSpan(
   const finalParentSampled = mutableSpanSamplingData.parentSampled ?? parentSampled;
   const finalAttributes = mutableSpanSamplingData.spanAttributes;
 
-  // PoC: If we are the head of this trace and it belongs to a session or conversation that the SDK samples by,
-  // the decision of that unit applies. `tracesSampleRate` and `tracesSampler` are not consulted.
+  // PoC: If we are the head of this trace and it belongs to a unit that the SDK samples by (session,
+  // conversation, ...), the unit decides first: all spans of a sampled unit are sent. In an unsampled unit,
+  // `tracesSampleRate` and `tracesSampler` apply as a corrected fallback.
   const samplingUnit = getSamplingUnitForNewTrace(options, scope, isolationScope, finalParentSampled);
 
   const currentPropagationContext = scope.getPropagationContext();
   const _isTracingSuppressed = isTracingSuppressed(scope);
 
-  const [sampled, sampleRate, localSampleRateWasApplied, dropReason] = _isTracingSuppressed
-    ? [false]
-    : samplingUnit
-      ? [samplingUnit.sampled, samplingUnit.sampleRate, true]
-      : sampleSpan(
-          options,
-          {
-            name,
-            parentSampled: finalParentSampled,
-            attributes: finalAttributes,
-            normalizedRequest: isolationScope.getScopeData().sdkProcessingMetadata.normalizedRequest,
-            parentSampleRate: parseSampleRate(currentPropagationContext.dsc?.sample_rate),
-          },
-          currentPropagationContext.sampleRand,
-        );
+  const samplingContext: SamplingContext = {
+    name,
+    parentSampled: finalParentSampled,
+    attributes: finalAttributes,
+    normalizedRequest: isolationScope.getScopeData().sdkProcessingMetadata.normalizedRequest,
+    parentSampleRate: parseSampleRate(currentPropagationContext.dsc?.sample_rate),
+  };
+
+  const [sampled, sampleRate, localSampleRateWasApplied, dropReason]: ReturnType<typeof sampleSpan> =
+    _isTracingSuppressed
+      ? [false]
+      : samplingUnit
+        ? sampleSpanInUnit(
+            samplingUnit,
+            currentPropagationContext.sampleRand,
+            getTraceSampleRate(options, samplingContext),
+          )
+        : sampleSpan(options, samplingContext, currentPropagationContext.sampleRand);
 
   const rootSpan = new SentrySpan({
     ...spanArguments,

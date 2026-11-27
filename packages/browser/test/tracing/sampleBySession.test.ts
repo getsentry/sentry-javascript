@@ -105,19 +105,40 @@ describe('sessionSampleRate with browserTracingIntegration', () => {
 
       const spans: Span[] = [startBrowserTracingPageLoadSpan(client, { name: '/' })!];
       for (const name of ['/products', '/cart', '/checkout']) {
-        spans.push(startBrowserTracingNavigationSpan(client, { name })!);
-        // The scope carries the session's value too, for outgoing requests without an active span
-        expect(getCurrentScope().getPropagationContext().sampleRand).toBe(expectedRand);
+        const span = startBrowserTracingNavigationSpan(client, { name })!;
+        spans.push(span);
+        // The scope carries the same value as the span, for outgoing requests without an active span
+        expect(`${getCurrentScope().getPropagationContext().sampleRand}`).toBe(sampleRandOf(span));
       }
 
       for (const span of spans) {
-        expect(sampleRandOf(span)).toBe(`${expectedRand}`);
         expect(spanIsSampled(span)).toBe(expectedRand < 0.5);
+        if (expectedRand < 0.5) {
+          // All traces of a sampled session carry the session's value
+          expect(sampleRandOf(span)).toBe(`${expectedRand}`);
+        } else {
+          expect(Number(sampleRandOf(span))).toBeGreaterThanOrEqual(0.5);
+        }
       }
 
       // Each navigation is still its own trace
       expect(new Set(spans.map(span => span.spanContext().traceId)).size).toBe(4);
     }
+  });
+
+  it('falls back to `tracesSampleRate` for the navigations of an unsampled session', () => {
+    const client = setup({ sessionSampleRate: 0.2, tracesSampleRate: 1 });
+    let session = startSession();
+    while (sampleRandFromKey(session.sid) < 0.2) {
+      session = startSession();
+    }
+
+    for (const name of ['/products', '/cart']) {
+      const span = startBrowserTracingNavigationSpan(client, { name })!;
+      expect(spanIsSampled(span)).toBe(true);
+      expect(getDynamicSamplingContextFromSpan(span).sample_rate).toBe('1');
+    }
+    expect(resolveSamplingUnit(client.getOptions())?.sampled).toBe(false);
   });
 
   describe('server-rendered pageload', () => {
@@ -133,7 +154,9 @@ describe('sessionSampleRate with browserTracingIntegration', () => {
 
         expect(pageload.spanContext().traceId).not.toBe(SERVER_TRACE_ID);
         expect(spanIsSampled(pageload)).toBe(sessionSampled);
-        expect(sampleRandOf(pageload)).toBe(`${sampleRandFromKey(session.sid)}`);
+        if (sessionSampled) {
+          expect(sampleRandOf(pageload)).toBe(`${sampleRandFromKey(session.sid)}`);
+        }
 
         // The link is kept on unsampled spans too, but only sampled spans are sent
         if (sessionSampled) {

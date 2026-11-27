@@ -77,6 +77,18 @@ export function sampleSpan(
 }
 
 /**
+ * PoC: The sample rate that `tracesSampler` or `tracesSampleRate` give for a root span, without a decision.
+ * Returns `undefined` if there is none, or if it is invalid.
+ */
+export function getTraceSampleRate(
+  options: Pick<CoreOptions, 'tracesSampleRate' | 'tracesSampler'>,
+  samplingContext: SamplingContext,
+): number | undefined {
+  const resolved = resolveSampleRate(options, samplingContext);
+  return resolved && parseSampleRate(resolved[0]);
+}
+
+/**
  * Prefers `tracesSampler`. If it throws, falls back to the parent decision, then `tracesSampleRate`.
  * Returns `undefined` when there is nothing to fall back to.
  */
