@@ -1,6 +1,11 @@
-import { HTTP_RESPONSE_STATUS_CODE, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_RESPONSE_STATUS_CODE, SENTRY_ORIGIN, URL_PATH } from '@sentry/conventions/attributes';
 import { expect, test } from '@playwright/test';
-import { waitForEnvelopeItem, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpansUntilSegment,
+  waitForEnvelopeItem,
+  waitForError,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
 import type { SerializedStreamedSpan } from '@sentry-internal/test-utils';
 
 type EnvelopeItem = Parameters<Parameters<typeof waitForEnvelopeItem>[1]>[0];
@@ -77,6 +82,33 @@ test.describe('page that fails during SSR', () => {
 
     expect(rootSpan.status).toBe('error');
     expect(rootSpan.attributes[HTTP_RESPONSE_STATUS_CODE]).toEqual({ type: 'integer', value: 500 });
+  });
+
+  test('sends a span for the failed render and a `renderErrorPage` span for the render of the error page', async ({
+    request,
+  }) => {
+    const spansPromise = collectStreamedSpansUntilSegment(
+      'nuxt-5',
+      span => span.attributes[URL_PATH]?.value === SSR_ERROR_PATH,
+      span => span.name === 'renderErrorPage',
+    );
+
+    await request.get(SSR_ERROR_PATH);
+
+    const spans = await spansPromise;
+    const rootSpan = spans.find(span => span.is_segment);
+    const renderSpans = spans
+      .filter(span => span.attributes[SENTRY_ORIGIN]?.value === 'auto.function.nuxt.render')
+      .map(span => ({
+        name: span.name,
+        status: span.status,
+        isChildOfRoot: span.parent_span_id === rootSpan?.span_id,
+      }));
+
+    expect(renderSpans).toEqual([
+      { name: 'renderPage', status: 'error', isChildOfRoot: true },
+      { name: 'renderErrorPage', status: 'ok', isChildOfRoot: true },
+    ]);
   });
 
   test('names the root span after the page route', async ({ request }) => {

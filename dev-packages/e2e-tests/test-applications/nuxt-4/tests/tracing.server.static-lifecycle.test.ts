@@ -1,4 +1,5 @@
-import { SENTRY_OP, SENTRY_ORIGIN, URL_PATH } from '@sentry/conventions/attributes';
+import { HTTP_ROUTE, SENTRY_OP, SENTRY_ORIGIN, URL_PATH } from '@sentry/conventions/attributes';
+import { FUNCTION } from '@sentry/conventions/op';
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
@@ -19,6 +20,23 @@ test('sends a server action transaction on pageload', async ({ page }) => {
       }),
     }),
   );
+});
+
+test('sends a `renderPage` span for the page render as a child of the server transaction', async ({ request }) => {
+  const transactionPromise = waitForTransaction('nuxt-4', transactionEvent => {
+    return transactionEvent.contexts?.trace?.data?.[URL_PATH] === '/test-param/render-span';
+  });
+
+  await request.get('/test-param/render-span');
+
+  const transaction = await transactionPromise;
+  const renderSpans = transaction.spans?.filter(span => span.origin === 'auto.function.nuxt.render');
+
+  expect(renderSpans).toHaveLength(1);
+  expect(renderSpans?.[0]?.description).toBe('renderPage');
+  expect(renderSpans?.[0]?.op).toBe(FUNCTION);
+  expect(renderSpans?.[0]?.parent_span_id).toBe(transaction.contexts?.trace?.span_id);
+  expect(renderSpans?.[0]?.data[HTTP_ROUTE]).toBe('/test-param/:param()');
 });
 
 [
