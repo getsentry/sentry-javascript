@@ -13,6 +13,7 @@ import deepMerge from 'deepmerge';
 
 import { defineConfig } from 'rolldown';
 import {
+  makeDebugBuildInlinePlugin,
   makeDebugBuildStatementReplacePlugin,
   makeEsmCjsReplacePlugin,
   makeProductionReplacePlugin,
@@ -136,6 +137,7 @@ export function makeBaseNPMConfig(options = {}) {
       // the runtime lookup, so the guard is evaluated by the consumer as it always was.
       define: {
         'process.env.NODE_ENV': 'process.env.NODE_ENV',
+        DEBUG_BUILD: "(typeof __SENTRY_DEBUG__ === 'undefined' || __SENTRY_DEBUG__)",
       },
     },
 
@@ -203,7 +205,7 @@ export function makeBaseNPMConfig(options = {}) {
       },
     },
 
-    plugins: [debugBuildStatementReplacePlugin, rrwebBuildPlugin],
+    plugins: [makeDebugBuildInlinePlugin(), debugBuildStatementReplacePlugin, rrwebBuildPlugin],
 
     // don't include imported modules from outside the package in the final output
     // also treat subpath exports (e.g. `@sentry/core/browser`) as external
