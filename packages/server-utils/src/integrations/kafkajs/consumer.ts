@@ -12,13 +12,20 @@
 
 import { MESSAGING_BATCH_MESSAGE_COUNT } from '@sentry/conventions/attributes';
 import type { Span } from '@sentry/core';
-import { continueTrace, startNewTrace, withActiveSpan } from '@sentry/core';
+import { continueTrace, startNewTrace, startSpan, withActiveSpan } from '@sentry/core';
 import {
   ATTR_MESSAGING_DESTINATION_PARTITION_ID,
   MESSAGING_OPERATION_TYPE_VALUE_PROCESS,
   MESSAGING_OPERATION_TYPE_VALUE_RECEIVE,
 } from './semconv';
-import { endSpansOnPromise, getHeaderAsString, getLinksFromHeaders, startConsumerSpan } from './spans';
+import {
+  applyErrorToSpans,
+  endSpansOnPromise,
+  getConsumerSpanOptions,
+  getHeaderAsString,
+  getLinksFromHeaders,
+  startConsumerSpan,
+} from './spans';
 import type { EachBatchHandler, EachMessageHandler, KafkaMessage } from './types';
 
 // Marks a callback we've already wrapped. A user can reuse one config object across multiple
@@ -40,19 +47,23 @@ export function wrapEachMessage(original: EachMessageHandler): EachMessageHandle
     const baggage = getHeaderAsString(payload.message.headers, 'baggage');
 
     // Continue the producer's trace so the consumer span is parented to the message's producer.
-    return continueTrace({ sentryTrace, baggage }, () => {
-      const span = startConsumerSpan({
-        topic: payload.topic,
-        message: payload.message,
-        operationType: MESSAGING_OPERATION_TYPE_VALUE_PROCESS,
-        attributes: {
-          [ATTR_MESSAGING_DESTINATION_PARTITION_ID]: String(payload.partition),
-        },
-      });
-
-      const promise = withActiveSpan(span, () => original.call(this, payload));
-      return endSpansOnPromise([span], promise);
-    });
+    return continueTrace({ sentryTrace, baggage }, () =>
+      startSpan(
+        getConsumerSpanOptions({
+          topic: payload.topic,
+          message: payload.message,
+          operationType: MESSAGING_OPERATION_TYPE_VALUE_PROCESS,
+          attributes: {
+            [ATTR_MESSAGING_DESTINATION_PARTITION_ID]: String(payload.partition),
+          },
+        }),
+        span =>
+          Promise.resolve(original.call(this, payload)).catch(reason => {
+            applyErrorToSpans([span], reason);
+            throw reason;
+          }),
+      ),
+    );
   };
   wrapped[consumerCallbackWrapped] = true;
   return wrapped;

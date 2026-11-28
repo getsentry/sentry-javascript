@@ -21,7 +21,7 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { QUEUE_PROCESS, QUEUE_PUBLISH, QUEUE_RECEIVE } from '@sentry/conventions/op';
-import type { Span, SpanAttributes, SpanLink } from '@sentry/core';
+import type { Span, SpanAttributes, SpanLink, StartSpanOptions } from '@sentry/core';
 import {
   getClient,
   getTraceData,
@@ -112,7 +112,18 @@ function collectMessageKey(key: unknown, client = getClient()): string | undefin
 }
 
 /** Starts an inactive consumer (process/receive) span carrying the kafkajs messaging attributes. */
-export function startConsumerSpan({ topic, message, operationType, links, attributes }: ConsumerSpanOptions): Span {
+export function startConsumerSpan(options: ConsumerSpanOptions): Span {
+  return startInactiveSpan(getConsumerSpanOptions(options));
+}
+
+/** Builds the options of a consumer (process/receive) span carrying the kafkajs messaging attributes. */
+export function getConsumerSpanOptions({
+  topic,
+  message,
+  operationType,
+  links,
+  attributes,
+}: ConsumerSpanOptions): StartSpanOptions {
   // The batch "receive" span is named `poll`; per-message spans use the operation type verbatim.
   const operationName = operationType === MESSAGING_OPERATION_TYPE_VALUE_RECEIVE ? 'poll' : operationType;
 
@@ -120,7 +131,7 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
 
   const client = getClient();
 
-  return startInactiveSpan({
+  return {
     name: client && hasSpanStreamingEnabled(client) ? `${operationType} ${topic}` : `${operationName} ${topic}`,
     links,
     attributes: {
@@ -138,7 +149,7 @@ export function startConsumerSpan({ topic, message, operationType, links, attrib
       // receiving span, which carries no message) with the auto origin.
       ...(message ? { [SENTRY_ORIGIN]: CONSUMER_ORIGIN } : {}),
     },
-  });
+  };
 }
 
 /** Starts an inactive producer span and propagates its trace into the message headers. */

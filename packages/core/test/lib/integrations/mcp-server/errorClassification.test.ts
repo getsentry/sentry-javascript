@@ -22,7 +22,7 @@ describe('MCP server response error classification', () => {
 
   async function createRequest(method: string) {
     const span = new SentrySpan({ name: method });
-    vi.spyOn(tracing, 'startInactiveSpan').mockReturnValue(span);
+    vi.spyOn(tracing, 'startSpanManual').mockImplementation((_options, callback) => callback(span, () => {}));
     const server = wrapMcpServerWithSentry(createMockMcpServer(), { recordOutputs: false });
     const transport = createMockTransport();
     const send = transport.send;
@@ -160,7 +160,7 @@ describe('MCP server response error classification', () => {
     const { transport } = await createRequest('resources/list');
     await transport.send({ jsonrpc: '2.0', id: 'request-1', error: { code: -32601, message: 'Method not found' } });
     const span = new SentrySpan({ name: 'tools/call' });
-    vi.mocked(tracing.startInactiveSpan).mockReturnValue(span);
+    vi.mocked(tracing.startSpanManual).mockImplementation((_options, callback) => callback(span, () => {}));
     transport.onmessage({ jsonrpc: '2.0', id: 'request-2', method: 'tools/call' }, {});
 
     await transport.send({ jsonrpc: '2.0', id: 'request-2', result: { isError: false, content: [] } });

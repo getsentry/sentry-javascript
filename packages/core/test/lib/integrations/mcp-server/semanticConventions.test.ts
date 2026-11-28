@@ -2,11 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as currentScopes from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
 import * as tracingModule from '../../../../src/tracing/trace';
+import type { Span } from '../../../../src/types/span';
 import { createMockClient, createMockMcpServer, createMockTransport } from './testUtils';
 
 describe('MCP Server Semantic Conventions', () => {
   const startSpanSpy = vi.spyOn(tracingModule, 'startSpan');
-  const startInactiveSpanSpy = vi.spyOn(tracingModule, 'startInactiveSpan');
+  const startSpanManualSpy = vi.spyOn(tracingModule, 'startSpanManual');
   const getClientSpy = vi.spyOn(currentScopes, 'getClient');
 
   beforeEach(() => {
@@ -45,25 +46,28 @@ describe('MCP Server Semantic Conventions', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, extraWithClientInfo);
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
-        name: 'tools/call get-weather',
-        forceTransaction: true,
-        attributes: {
-          'mcp.method.name': 'tools/call',
-          'mcp.tool.name': 'get-weather',
-          'mcp.request.id': 'req-1',
-          'mcp.session.id': 'test-session-123',
-          'client.address': '192.168.1.100',
-          'client.port': 54321,
-          'mcp.transport': 'StreamableHTTPServerTransport',
-          'network.transport': 'tcp',
-          'network.protocol.version': '2.0',
-          'mcp.request.argument.location': '"Seattle, WA"',
-          'sentry.op': 'mcp.server',
-          'sentry.origin': 'auto.function.mcp_server',
-          'sentry.segment.name.source': 'route',
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
+        {
+          name: 'tools/call get-weather',
+          forceTransaction: true,
+          attributes: {
+            'mcp.method.name': 'tools/call',
+            'mcp.tool.name': 'get-weather',
+            'mcp.request.id': 'req-1',
+            'mcp.session.id': 'test-session-123',
+            'client.address': '192.168.1.100',
+            'client.port': 54321,
+            'mcp.transport': 'StreamableHTTPServerTransport',
+            'network.transport': 'tcp',
+            'network.protocol.version': '2.0',
+            'mcp.request.argument.location': '"Seattle, WA"',
+            'sentry.op': 'mcp.server',
+            'sentry.origin': 'auto.function.mcp_server',
+            'sentry.segment.name.source': 'route',
+          },
         },
-      });
+        expect.any(Function),
+      );
     });
 
     it('should create spans with correct attributes for resource operations', async () => {
@@ -78,23 +82,26 @@ describe('MCP Server Semantic Conventions', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
-        name: 'resources/read file:///docs/api.md',
-        forceTransaction: true,
-        attributes: {
-          'mcp.method.name': 'resources/read',
-          'mcp.resource.uri': 'file:///docs/api.md',
-          'mcp.request.id': 'req-2',
-          'mcp.session.id': 'test-session-123',
-          'mcp.transport': 'StreamableHTTPServerTransport',
-          'network.transport': 'tcp',
-          'network.protocol.version': '2.0',
-          'mcp.request.argument.uri': '"file:///docs/api.md"',
-          'sentry.op': 'mcp.server',
-          'sentry.origin': 'auto.function.mcp_server',
-          'sentry.segment.name.source': 'route',
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
+        {
+          name: 'resources/read file:///docs/api.md',
+          forceTransaction: true,
+          attributes: {
+            'mcp.method.name': 'resources/read',
+            'mcp.resource.uri': 'file:///docs/api.md',
+            'mcp.request.id': 'req-2',
+            'mcp.session.id': 'test-session-123',
+            'mcp.transport': 'StreamableHTTPServerTransport',
+            'network.transport': 'tcp',
+            'network.protocol.version': '2.0',
+            'mcp.request.argument.uri': '"file:///docs/api.md"',
+            'sentry.op': 'mcp.server',
+            'sentry.origin': 'auto.function.mcp_server',
+            'sentry.segment.name.source': 'route',
+          },
         },
-      });
+        expect.any(Function),
+      );
     });
 
     it('should create spans with correct attributes for prompt operations', async () => {
@@ -109,23 +116,26 @@ describe('MCP Server Semantic Conventions', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith({
-        name: 'prompts/get analyze-code',
-        forceTransaction: true,
-        attributes: {
-          'mcp.method.name': 'prompts/get',
-          'mcp.prompt.name': 'analyze-code',
-          'mcp.request.id': 'req-3',
-          'mcp.session.id': 'test-session-123',
-          'mcp.transport': 'StreamableHTTPServerTransport',
-          'network.transport': 'tcp',
-          'network.protocol.version': '2.0',
-          'mcp.request.argument.name': '"analyze-code"',
-          'sentry.op': 'mcp.server',
-          'sentry.origin': 'auto.function.mcp_server',
-          'sentry.segment.name.source': 'route',
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
+        {
+          name: 'prompts/get analyze-code',
+          forceTransaction: true,
+          attributes: {
+            'mcp.method.name': 'prompts/get',
+            'mcp.prompt.name': 'analyze-code',
+            'mcp.request.id': 'req-3',
+            'mcp.session.id': 'test-session-123',
+            'mcp.transport': 'StreamableHTTPServerTransport',
+            'network.transport': 'tcp',
+            'network.protocol.version': '2.0',
+            'mcp.request.argument.name': '"analyze-code"',
+            'sentry.op': 'mcp.server',
+            'sentry.origin': 'auto.function.mcp_server',
+            'sentry.segment.name.source': 'route',
+          },
         },
-      });
+        expect.any(Function),
+      );
     });
 
     it('should create spans with correct attributes for notifications (no request id)', async () => {
@@ -176,7 +186,7 @@ describe('MCP Server Semantic Conventions', () => {
 
       mockTransport.onmessage?.(jsonRpcRequest, {});
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/list',
           forceTransaction: true,
@@ -194,6 +204,7 @@ describe('MCP Server Semantic Conventions', () => {
             'sentry.segment.name.source': 'route',
           }),
         }),
+        expect.any(Function),
       );
     });
 
@@ -395,8 +406,8 @@ describe('MCP Server Semantic Conventions', () => {
         setStatus: setStatusSpy,
         end: endSpy,
       };
-      startInactiveSpanSpy.mockReturnValueOnce(
-        mockSpan as unknown as ReturnType<typeof tracingModule.startInactiveSpan>,
+      startSpanManualSpy.mockImplementationOnce((_options, callback) =>
+        callback(mockSpan as unknown as Span, () => {}),
       );
 
       const toolCallRequest = {
@@ -413,7 +424,7 @@ describe('MCP Server Semantic Conventions', () => {
       mockTransport.onmessage?.(toolCallRequest, {});
 
       // Verify span was created for the request
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'tools/call weather-lookup',
           forceTransaction: true,
@@ -424,6 +435,7 @@ describe('MCP Server Semantic Conventions', () => {
             'sentry.op': 'mcp.server',
           }),
         }),
+        expect.any(Function),
       );
 
       // Simulate tool execution response with results
@@ -470,8 +482,8 @@ describe('MCP Server Semantic Conventions', () => {
         setStatus: setStatusSpy,
         end: endSpy,
       };
-      startInactiveSpanSpy.mockReturnValueOnce(
-        mockSpan as unknown as ReturnType<typeof tracingModule.startInactiveSpan>,
+      startSpanManualSpy.mockImplementationOnce((_options, callback) =>
+        callback(mockSpan as unknown as Span, () => {}),
       );
 
       const promptCallRequest = {
@@ -486,7 +498,7 @@ describe('MCP Server Semantic Conventions', () => {
 
       mockTransport.onmessage?.(promptCallRequest, {});
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'prompts/get code-review',
           forceTransaction: true,
@@ -497,6 +509,7 @@ describe('MCP Server Semantic Conventions', () => {
             'sentry.op': 'mcp.server',
           }),
         }),
+        expect.any(Function),
       );
 
       const promptResponse = {
@@ -538,8 +551,8 @@ describe('MCP Server Semantic Conventions', () => {
 
       const setAttributesSpy = vi.fn();
       const mockSpan = { setAttributes: setAttributesSpy, setStatus: vi.fn(), end: vi.fn() };
-      startInactiveSpanSpy.mockReturnValueOnce(
-        mockSpan as unknown as ReturnType<typeof tracingModule.startInactiveSpan>,
+      startSpanManualSpy.mockImplementationOnce((_options, callback) =>
+        callback(mockSpan as unknown as Span, () => {}),
       );
 
       transport.onmessage?.({ jsonrpc: '2.0', method: 'tools/call', id: 'req-1', params: { name: 'tool' } }, {});
@@ -565,8 +578,8 @@ describe('MCP Server Semantic Conventions', () => {
 
       const setAttributesSpy = vi.fn();
       const mockSpan = { setAttributes: setAttributesSpy, setStatus: vi.fn(), end: vi.fn() };
-      startInactiveSpanSpy.mockReturnValueOnce(
-        mockSpan as unknown as ReturnType<typeof tracingModule.startInactiveSpan>,
+      startSpanManualSpy.mockImplementationOnce((_options, callback) =>
+        callback(mockSpan as unknown as Span, () => {}),
       );
 
       transport.onmessage?.({ jsonrpc: '2.0', method: 'prompts/get', id: 'req-1', params: { name: 'prompt' } }, {});
@@ -633,11 +646,12 @@ describe('MCP Server Semantic Conventions', () => {
         {},
       );
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'resources/read',
           attributes: expect.objectContaining({ 'mcp.resource.uri': 'file:///docs/api.md' }),
         }),
+        expect.any(Function),
       );
     });
 
@@ -650,7 +664,10 @@ describe('MCP Server Semantic Conventions', () => {
 
       mockTransport.onmessage?.({ jsonrpc: '2.0', method, id: 'req-1', params }, {});
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(expect.objectContaining({ name: expected }));
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ name: expected }),
+        expect.any(Function),
+      );
     });
   });
 });

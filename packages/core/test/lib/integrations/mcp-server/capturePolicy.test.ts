@@ -3,6 +3,7 @@ import { getCurrentScope, withScope } from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
 import { Scope } from '../../../../src/scope';
 import * as tracingModule from '../../../../src/tracing/trace';
+import type { Span } from '../../../../src/types/span';
 import type { DataCollection } from '../../../../src/types/datacollection';
 import {
   createMockClient,
@@ -18,7 +19,7 @@ describe('MCP Server Capture Policy', () => {
   type WrapperOptions = Parameters<typeof wrapMcpServerWithSentry>[1];
 
   const startSpanSpy = vi.spyOn(tracingModule, 'startSpan');
-  const startInactiveSpanSpy = vi.spyOn(tracingModule, 'startInactiveSpan');
+  const startSpanManualSpy = vi.spyOn(tracingModule, 'startSpanManual');
   const connectedTransports: MockTransport[] = [];
 
   beforeEach(() => {
@@ -50,7 +51,7 @@ describe('MCP Server Capture Policy', () => {
 
   function queueInactiveSpan(): MockSpan {
     const span = createMockSpan();
-    startInactiveSpanSpy.mockReturnValueOnce(span as unknown as ReturnType<typeof tracingModule.startInactiveSpan>);
+    startSpanManualSpy.mockImplementationOnce((_options, callback) => callback(span as unknown as Span, () => {}));
     return span;
   }
 
@@ -167,13 +168,14 @@ describe('MCP Server Capture Policy', () => {
       text: 'Forecast for Paris',
     });
 
-    expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
-    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+    expect(startSpanManualSpy).toHaveBeenCalledOnce();
+    expect(startSpanManualSpy).toHaveBeenCalledWith(
       buildToolSpanConfig({
         id: 'default-policy-request',
         sessionId: 'capture-policy-defaults',
         location: 'Paris, France',
       }),
+      expect.any(Function),
     );
     expectToolResult(span, 'Forecast for Paris');
   });
@@ -187,9 +189,10 @@ describe('MCP Server Capture Policy', () => {
       location: 'Madrid, Spain',
     });
 
-    expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
-    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+    expect(startSpanManualSpy).toHaveBeenCalledOnce();
+    expect(startSpanManualSpy).toHaveBeenCalledWith(
       buildToolSpanConfig({ id: 'private-input-request', sessionId: 'capture-policy-input' }),
+      expect.any(Function),
     );
   });
 
@@ -221,18 +224,20 @@ describe('MCP Server Capture Policy', () => {
       location: 'Berlin, Germany',
     });
 
-    expect(startInactiveSpanSpy).toHaveBeenCalledTimes(2);
-    expect(startInactiveSpanSpy).toHaveBeenNthCalledWith(
+    expect(startSpanManualSpy).toHaveBeenCalledTimes(2);
+    expect(startSpanManualSpy).toHaveBeenNthCalledWith(
       1,
       buildToolSpanConfig({ id: 'private-scope-request', sessionId: 'capture-policy-scopes' }),
+      expect.any(Function),
     );
-    expect(startInactiveSpanSpy).toHaveBeenNthCalledWith(
+    expect(startSpanManualSpy).toHaveBeenNthCalledWith(
       2,
       buildToolSpanConfig({
         id: 'recording-scope-request',
         sessionId: 'capture-policy-scopes',
         location: 'Berlin, Germany',
       }),
+      expect.any(Function),
     );
   });
 
@@ -263,13 +268,14 @@ describe('MCP Server Capture Policy', () => {
       text: 'Private forecast for Lisbon',
     });
 
-    expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
-    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+    expect(startSpanManualSpy).toHaveBeenCalledOnce();
+    expect(startSpanManualSpy).toHaveBeenCalledWith(
       buildToolSpanConfig({
         id: 'explicit-options-request',
         sessionId: 'capture-policy-explicit-options',
         location: 'Lisbon, Portugal',
       }),
+      expect.any(Function),
     );
     expectToolResult(span);
   });
@@ -359,12 +365,13 @@ describe('MCP Server Capture Policy', () => {
       text: 'Recorded forecast for Tallinn',
     });
 
-    expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
-    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+    expect(startSpanManualSpy).toHaveBeenCalledOnce();
+    expect(startSpanManualSpy).toHaveBeenCalledWith(
       buildToolSpanConfig({
         id: 'partial-output-override-request',
         sessionId: 'capture-policy-partial-output-override',
       }),
+      expect.any(Function),
     );
     expectToolResult(span, 'Recorded forecast for Tallinn');
   });
@@ -388,9 +395,10 @@ describe('MCP Server Capture Policy', () => {
       text: 'Private forecast for Reykjavik',
     });
 
-    expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
-    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+    expect(startSpanManualSpy).toHaveBeenCalledOnce();
+    expect(startSpanManualSpy).toHaveBeenCalledWith(
       buildToolSpanConfig({ id: 'first-wrap-request', sessionId: 'capture-policy-first-wrap' }),
+      expect.any(Function),
     );
     expectToolResult(span);
   });
@@ -415,9 +423,10 @@ describe('MCP Server Capture Policy', () => {
       text: 'Private forecast for Riga',
     });
 
-    expect(startInactiveSpanSpy).toHaveBeenCalledOnce();
-    expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+    expect(startSpanManualSpy).toHaveBeenCalledOnce();
+    expect(startSpanManualSpy).toHaveBeenCalledWith(
       buildToolSpanConfig({ id: 'auto-override-request', sessionId: 'capture-policy-auto-override' }),
+      expect.any(Function),
     );
     expectToolResult(span);
   });
@@ -457,12 +466,13 @@ describe('MCP Server Capture Policy', () => {
       receiveToolCall(transport, scope, { id: 'precedence-request', location: 'Vienna, Austria' });
       await sendToolResult(transport, scope, { id: 'precedence-request', text: 'Forecast for Vienna' });
 
-      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+      expect(startSpanManualSpy).toHaveBeenCalledWith(
         buildToolSpanConfig({
           id: 'precedence-request',
           sessionId,
           ...(expected.inputs && { location: 'Vienna, Austria' }),
         }),
+        expect.any(Function),
       );
       expectToolResult(span, expected.outputs ? 'Forecast for Vienna' : undefined);
     });

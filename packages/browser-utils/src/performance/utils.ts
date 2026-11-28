@@ -30,6 +30,7 @@ export function startAndEndSpan(
   }
 
   // The return value only exists for tests
+  // Not `parentSpan`: that skips `parentSpanIsAlwaysRootSpan`, which keeps these spans under the root span.
   return withActiveSpan(parentSpan, () => {
     const span = startInactiveSpan({
       startTime: startTimeInSeconds,

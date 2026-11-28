@@ -23,9 +23,9 @@ describe('MCP OAuth client attribution', () => {
     inactiveSpan = undefined;
     transport = createMockTransport();
     getCurrentScope().setClient(createMockClient(false));
-    vi.spyOn(tracing, 'startInactiveSpan').mockImplementation(options => {
+    vi.spyOn(tracing, 'startSpanManual').mockImplementation((options, callback) => {
       inactiveSpan = new SentrySpan(options);
-      return inactiveSpan;
+      return callback(inactiveSpan, () => {});
     });
   });
 

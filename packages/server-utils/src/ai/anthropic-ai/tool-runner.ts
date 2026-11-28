@@ -10,11 +10,10 @@ import {
   getOriginalFunction,
   handleCallbackErrors,
   SPAN_STATUS_ERROR,
-  startInactiveSpan,
   startNewTrace,
   startSpan,
+  startSpanManual,
   stringify,
-  withActiveSpan,
   withScope,
 } from '@sentry/core';
 import {
@@ -130,18 +129,21 @@ function startSession(
         scope.setConversationId(sessionId);
       }
 
-      const span = startInactiveSpan({
-        name: 'invoke_agent',
-        op: GEN_AI_INVOKE_AGENT,
-        attributes: {
-          [SENTRY_ORIGIN]: ANTHROPIC_AI_ORIGIN,
-          [GEN_AI_OPERATION_NAME]: 'invoke_agent',
-          [GEN_AI_PROVIDER_NAME]: 'anthropic',
-          ...(sessionId ? { [GEN_AI_CONVERSATION_ID]: sessionId } : {}),
-        },
-      });
       // `async`, so a `next()` that throws rejects `firstResult` and still ends the span.
-      return { span, firstResult: withActiveSpan(span, async () => sdkIterator.next()) };
+      const next = async (): Promise<IteratorResult<unknown>> => sdkIterator.next();
+      return startSpanManual(
+        {
+          name: 'invoke_agent',
+          op: GEN_AI_INVOKE_AGENT,
+          attributes: {
+            [SENTRY_ORIGIN]: ANTHROPIC_AI_ORIGIN,
+            [GEN_AI_OPERATION_NAME]: 'invoke_agent',
+            [GEN_AI_PROVIDER_NAME]: 'anthropic',
+            ...(sessionId ? { [GEN_AI_CONVERSATION_ID]: sessionId } : {}),
+          },
+        },
+        span => ({ span, firstResult: next() }),
+      );
     });
 
   // At top level all sessions would share the process's trace, so each gets its own; anywhere else it stays in the

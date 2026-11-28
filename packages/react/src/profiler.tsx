@@ -89,6 +89,8 @@ class Profiler extends React.Component<ProfilerProps> {
       const changedProps = Object.keys(updateProps).filter(k => updateProps[k] !== this.props.updateProps[k]);
       if (changedProps.length > 0) {
         const now = timestampInSeconds();
+        // Not `parentSpan: this._mountSpan`: that skips `parentSpanIsAlwaysRootSpan` and would nest these
+        // spans under the already-ended mount span instead of the pageload/navigation root span.
         this._updateSpan = withActiveSpan(this._mountSpan, () => {
           const client = getClient();
           const hasSpanStreaming = !!client && hasSpanStreamingEnabled(client);
