@@ -767,6 +767,44 @@ export function registerVercelAiGenerationTests(version: '6' | '7', vercelAiVers
   );
   createEsmTests(
     __dirname,
+    'scenario-v2-model.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      // ai 7 has no `resolveLanguageModel` hook.
+      test.skipIf(version === '7')('spans model calls on a spec-v2 model without mutating it', async () => {
+        await createRunner()
+          .expect({
+            span: container => {
+              const segment = container.items.find(span => span.is_segment && span.name === 'main')!;
+              expect(segment.attributes['test.model_mutated']).toEqual({ type: 'boolean', value: false });
+
+              const modelCalls = container.items.filter(
+                span =>
+                  span.attributes[SENTRY_ORIGIN]?.value === 'auto.ai.vercelai' &&
+                  span.attributes[SENTRY_OP]?.value === 'gen_ai.generate_content',
+              );
+              expect(modelCalls).toHaveLength(2);
+              for (const span of modelCalls) {
+                expect(span.name).toBe('generate_content mock-model-v2');
+                expect(span.status).toBe('ok');
+                expect(span.attributes[GEN_AI_USAGE_INPUT_TOKENS]).toEqual({ type: 'integer', value: 10 });
+                expect(span.attributes[GEN_AI_USAGE_OUTPUT_TOKENS]).toEqual({ type: 'integer', value: 20 });
+              }
+            },
+          })
+          .unordered()
+          .start()
+          .completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: vercelAiVersion,
+      },
+    },
+  );
+  createEsmTests(
+    __dirname,
     'scenario-provider-metadata.mjs',
     'instrument.mjs',
     (createRunner, test) => {

@@ -43,8 +43,8 @@ import { asString, isReadableStream, tapModelCallStream } from './util';
  *
  * The model call (`languageModelCall` / `generate_content` span) has no
  * injectable definition in `ai`. On v5/v6 we wrap `resolveLanguageModel` (the
- * single chokepoint every model call flows through) and monkey-patch
- * `doGenerate`/`doStream` on the returned model. v4 has no `resolveLanguageModel`
+ * single chokepoint every model call flows through) and return a wrapper whose
+ * `doGenerate`/`doStream` emit the span. v4 has no `resolveLanguageModel`
  * — the passed `LanguageModelV1` (`specificationVersion: 'v1'`) is called directly —
  * so we patch its `doGenerate`/`doStream` at the operation start instead (see
  * `buildOperationSpan`), gated on `'v1'` so it never touches v5/v6 models.
@@ -70,11 +70,7 @@ interface ResolvedModel {
   doStream?: (...args: unknown[]) => Promise<unknown>;
 }
 
-const PATCHED = Symbol('SentryVercelAiModelPatched');
 const TOOL_PATCHED = Symbol('SentryVercelAiToolPatched');
-
-/** A resolved model with our patch bookkeeping (idempotency flag). */
-type PatchableModel = ResolvedModel & { [PATCHED]?: boolean };
 
 /** A tool definition off an operation's `tools`, with our patch bookkeeping. */
 type PatchableTool = { execute?: (...args: unknown[]) => unknown; [TOOL_PATCHED]?: boolean };
@@ -97,6 +93,8 @@ const operationSpans = new WeakSet<Span>();
 // therefore the active parent), so a resolved parent in this set means v6 already spanned the call.
 const toolCallSpans = new WeakSet<Span>();
 const callIdBySpan = new WeakMap<Span, string>();
+// v5/v6 wrappers and v4 models patched in place, so none is instrumented twice (ai 6 re-resolves per step).
+const instrumentedModels = new WeakSet<object>();
 // The operation's per-call recording flags (`experimental_telemetry.recordInputs/recordOutputs`), keyed by
 // its span. A model call carries no telemetry of its own, so it inherits the enclosing operation's flags —
 // otherwise a per-call `recordInputs: true` would record inputs on the `invoke_agent` span but not on the
@@ -271,13 +269,10 @@ function bindOperation(
       if (isObjectLike(callOptions.tools)) {
         patchOperationTools(callOptions.tools, options);
       }
-      // v4 has no `resolveLanguageModel` chokepoint — the passed `LanguageModelV1` is called directly — so
-      // patch its `doGenerate`/`doStream` here, at the operation start, instead. v5/v6 models are patched via
-      // `resolveLanguageModel`, so restricting to v4 keeps this strictly additive and avoids double-patching.
-      // Embedding models are also `'v1'` but expose no `doGenerate`/`doStream`, so the patch is a no-op for
-      // `embed`/`embedMany`.
+      // v4 has no `resolveLanguageModel`, so patch the passed model here. Embedding `'v1'` models have no
+      // `doGenerate`/`doStream`, so this is a no-op for `embed`/`embedMany`.
       if (isV4) {
-        patchModelMethods(callOptions.model as PatchableModel, options);
+        patchModelMethods(callOptions.model as ResolvedModel, options);
       }
     }
     return span;
@@ -315,7 +310,7 @@ function bindOperation(
         );
         // A `streamText`/`streamObject` model call runs after this (synchronously-returning) operation's
         // span has already ended, so its `callId` entry must outlive the operation — it's cleared once the
-        // model call settles (see `patchModelMethod`). Every other operation can clear here.
+        // model call settles (see `wrapModelMethod`). Every other operation can clear here.
         if (!isStream) {
           clearOperationId(message);
         }
@@ -434,7 +429,7 @@ function suppressNativeTelemetry(callOptions: Record<string, unknown>, telemetry
 
 /**
  * `resolveLanguageModel` returns the model every call flows through. We don't span it — on `end` we
- * monkey-patch `doGenerate`/`doStream` on the returned model so each invocation produces a
+ * swap the returned model for a wrapper whose `doGenerate`/`doStream` each produce a
  * `languageModelCall` span parented to the enclosing invoke_agent span.
  */
 function subscribeResolveLanguageModel(
@@ -448,10 +443,11 @@ function subscribeResolveLanguageModel(
       if (!isObjectLike(ctx.result)) {
         return;
       }
-      // Patch the model's `doGenerate`/`doStream` once. The model call recovers its parent from the
-      // active async context at call time (the operation span `bindTracingChannelToSpan` bound), which
-      // propagates into the model call for `streamText` too, so there is nothing to capture on the model here.
-      patchModelMethods(ctx.result, options);
+      // Return a wrapper instead of assigning onto the model: ai 6 hands back a get-only `Proxy` for v2
+      // models, so an assignment lands on its target and the wrapper ends up calling itself.
+      if (!instrumentedModels.has(ctx.result)) {
+        ctx.result = wrapResolvedModel(ctx.result, options);
+      }
     },
     start() {
       /* no-op */
@@ -490,30 +486,48 @@ function resolveModelCallParent(): Span | undefined {
   return active && operationSpans.has(active) ? active : undefined;
 }
 
-/**
- * Idempotently patch a resolved model's `doGenerate`/`doStream` so each invocation emits a
- * `languageModelCall` span. Shared by the v5/v6 `resolveLanguageModel` path and the v4 path (which
- * patches the passed model at the operation start, as v4 has no `resolveLanguageModel`).
- */
-function patchModelMethods(model: PatchableModel, options: VercelAiChannelOptions): void {
-  if (model[PATCHED]) {
-    return;
-  }
-  model[PATCHED] = true;
-  patchModelMethod(model, 'doGenerate', options);
-  patchModelMethod(model, 'doStream', options);
+/** Wrap a v5/v6 resolved model so its `doGenerate`/`doStream` emit `languageModelCall` spans. */
+function wrapResolvedModel(model: ResolvedModel, options: VercelAiChannelOptions): ResolvedModel {
+  const wrapped = new Proxy(model, {
+    get(target, prop) {
+      // No receiver, so getters run against the real model.
+      const value: unknown = Reflect.get(target, prop);
+      if ((prop !== 'doGenerate' && prop !== 'doStream') || typeof value !== 'function') {
+        return value;
+      }
+      // A Proxy must return a read-only, non-configurable data property unchanged.
+      const descriptor = Reflect.getOwnPropertyDescriptor(target, prop);
+      if (descriptor && !descriptor.configurable && !descriptor.writable) {
+        return value;
+      }
+      return wrapModelMethod(target, prop, value.bind(target), options);
+    },
+  });
+  instrumentedModels.add(wrapped);
+  return wrapped;
 }
 
-function patchModelMethod(
-  model: PatchableModel,
-  method: 'doGenerate' | 'doStream',
-  options: VercelAiChannelOptions,
-): void {
-  const original = model[method];
-  if (typeof original !== 'function') {
+/** Idempotently patch a v4 model's `doGenerate`/`doStream` in place (v4 has no `resolveLanguageModel`). */
+function patchModelMethods(model: ResolvedModel, options: VercelAiChannelOptions): void {
+  if (instrumentedModels.has(model)) {
     return;
   }
-  model[method] = function (this: unknown, ...args: unknown[]): Promise<unknown> {
+  instrumentedModels.add(model);
+  for (const method of ['doGenerate', 'doStream'] as const) {
+    const original = model[method];
+    if (typeof original === 'function') {
+      model[method] = wrapModelMethod(model, method, original, options);
+    }
+  }
+}
+
+function wrapModelMethod(
+  model: ResolvedModel,
+  method: 'doGenerate' | 'doStream',
+  original: (...args: unknown[]) => Promise<unknown>,
+  options: VercelAiChannelOptions,
+): (...args: unknown[]) => Promise<unknown> {
+  return function (this: unknown, ...args: unknown[]): Promise<unknown> {
     const parent = resolveModelCallParent();
     // No enclosing operation span (e.g. telemetry disabled for the call) → don't open a model-call span.
     if (!parent) {

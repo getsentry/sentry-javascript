@@ -9,8 +9,8 @@ export const vercelAiConfig = [
   ),
   // Vercel AI v6: mirror the v7 native `ai:telemetry` channel by injecting
   // channels into the top-level entry points. `resolveLanguageModel` is wrapped
-  // not to span it, but so the subscriber can monkey-patch `doGenerate`/
-  // `doStream` on the returned model (the only way to span the model call,
+  // not to span it, but so the subscriber can return a wrapper whose `doGenerate`/
+  // `doStream` span the model call (the only way to span the model call,
   // which is an inline call with no injectable definition in `ai`).
   // `streamText` and `streamObject` return their result synchronously (streaming
   // is lazy), so they're `Sync`; the subscriber binds the span via
