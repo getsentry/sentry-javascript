@@ -27,6 +27,37 @@ function getRequestErrorMechanismType(context: ExecutionContextCompat | undefine
   return isDurableObjectContext(context) ? 'auto.faas.cloudflare.durable_object' : 'auto.http.cloudflare';
 }
 
+/**
+ * vinext's Workers Cache adapter issues its response-stage request with internal data:
+ * `__vinext_*` query parameters and `x-vinext-internal-*` headers, which can carry unfiltered
+ * query values. The SDK must not record them. Returns the original request when it carries no
+ * vinext data, so non-vinext traffic is untouched.
+ */
+function stripVinextInternalData(
+  request: Request<unknown, IncomingRequestCfProperties<unknown> | CfProperties<unknown>>,
+): Request<unknown, IncomingRequestCfProperties<unknown> | CfProperties<unknown>> {
+  if (!request.url.includes('__vinext_cache_key=')) {
+    return request;
+  }
+
+  try {
+    const url = new URL(request.url);
+    url.searchParams.delete('__vinext_cache_key');
+
+    const headers = new Headers(request.headers);
+    for (const name of [...headers.keys()]) {
+      if (name.startsWith('x-vinext-internal-')) {
+        headers.delete(name);
+      }
+    }
+
+    // No body: the handler reads the body of the original request.
+    return new Request(url.toString(), { method: request.method, headers, cf: request.cf });
+  } catch {
+    return request;
+  }
+}
+
 export interface RequestHandlerWrapperOptions {
   options: CloudflareOptions;
   request: Request<unknown, IncomingRequestCfProperties<unknown> | CfProperties<unknown>>;
@@ -119,7 +150,7 @@ export function wrapRequestHandlerWithInit(
     // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
     return wrapServerRequestHandler(
       {
-        request,
+        request: stripVinextInternalData(request),
         client,
         // Without `AsyncLocalStorage`, `withInvocationIsolationScope` does not fork, and the scope it
         // passes in is not the current one. The request data has to go on the current scope, where

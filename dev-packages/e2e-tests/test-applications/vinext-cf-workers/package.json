@@ -37,7 +37,7 @@
     "optionalVariants": [
       {
         "build-command": "E2E_VINEXT_WORKERS_CACHE=1 pnpm test:build",
-        "assert-command": "pnpm test tests/page-errors.test.ts",
+        "assert-command": "E2E_VINEXT_WORKERS_CACHE=1 pnpm test tests/page-errors.test.ts",
         "label": "vinext-cf-workers (workers cache)"
       }
     ]
