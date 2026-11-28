@@ -1,10 +1,28 @@
 import { expect, test } from '@playwright/test';
-import { getSpanOp, waitForError, waitForStreamedSpan } from '@sentry-internal/test-utils';
+import {
+  collectStreamedSpansUntilSegment,
+  getSpanOp,
+  waitForError,
+  waitForStreamedSpan,
+} from '@sentry-internal/test-utils';
+import {
+  HTTP_ROUTE,
+  SENTRY_OP,
+  SENTRY_ORIGIN,
+  SENTRY_SEGMENT_ID,
+  SENTRY_SEGMENT_NAME_SOURCE,
+  URL_PATH,
+} from '@sentry/conventions/attributes';
+import { FUNCTION, HTTP_SERVER, PAGELOAD } from '@sentry/conventions/op';
 
 test('Sends client-side error to Sentry with auto-instrumentation', async ({ page }) => {
   const errorEventPromise = waitForError('tanstackstart-react', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Sentry Client Test Error';
   });
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'tanstackstart-react',
+    span => getSpanOp(span) === PAGELOAD && span.name === '/',
+  );
 
   await page.goto(`/`);
 
@@ -33,7 +51,9 @@ test('Sends client-side error to Sentry with auto-instrumentation', async ({ pag
     },
   });
 
-  expect(errorEvent.transaction).toBe('/');
+  const pageloadSpan = (await spansPromise).find(span => span.is_segment && getSpanOp(span) === PAGELOAD)!;
+  expect(pageloadSpan.attributes[SENTRY_SEGMENT_NAME_SOURCE]).toEqual({ type: 'string', value: 'route' });
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(pageloadSpan.trace_id);
 });
 
 test('Sends server-side function error to Sentry with auto-instrumentation', async ({ page }) => {
@@ -46,6 +66,12 @@ test('Sends server-side function error to Sentry with auto-instrumentation', asy
       errorEvent?.exception?.values?.[0]?.mechanism?.type === 'auto.middleware.tanstackstart.server_function'
     );
   });
+  const spansPromise = collectStreamedSpansUntilSegment(
+    'tanstackstart-react',
+    span => getSpanOp(span) === HTTP_SERVER && String(span.attributes[URL_PATH]?.value).startsWith('/_serverFn/'),
+    span =>
+      getSpanOp(span) === FUNCTION && span.attributes[SENTRY_ORIGIN]?.value === 'auto.function.tanstackstart.server',
+  );
 
   await page.goto(`/`);
 
@@ -70,7 +96,19 @@ test('Sends server-side function error to Sentry with auto-instrumentation', asy
     },
   });
 
-  expect(errorEvent.transaction).toEqual(expect.stringContaining('GET /_serverFn/'));
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(
+    span => span.is_segment && String(span.attributes[URL_PATH]?.value).startsWith('/_serverFn/'),
+  )!;
+  const functionSpan = spans.find(
+    span =>
+      getSpanOp(span) === FUNCTION && span.attributes[SENTRY_ORIGIN]?.value === 'auto.function.tanstackstart.server',
+  )!;
+  expect(functionSpan.attributes[SENTRY_SEGMENT_ID]).toEqual({ type: 'string', value: segmentSpan.span_id });
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(segmentSpan.trace_id);
+  expect(
+    spans.filter(span => span.attributes[SENTRY_SEGMENT_ID]?.value === segmentSpan.span_id).map(span => span.span_id),
+  ).toContain(errorEvent.contexts?.trace?.span_id);
 });
 
 test('Sends API route error to Sentry with auto-instrumentation', async ({ page }) => {
@@ -82,6 +120,7 @@ test('Sends API route error to Sentry with auto-instrumentation', async ({ page 
       errorEvent?.exception?.values?.[0]?.mechanism?.type === 'auto.middleware.tanstackstart.request'
     );
   });
+  const spansPromise = collectStreamedSpansUntilSegment('tanstackstart-react', 'GET /api/error');
 
   await page.goto(`/`);
 
@@ -106,7 +145,17 @@ test('Sends API route error to Sentry with auto-instrumentation', async ({ page 
     },
   });
 
-  expect(errorEvent.transaction).toBe('GET /api/error');
+  const spans = await spansPromise;
+  const segmentSpan = spans.find(span => span.is_segment && span.name === 'GET /api/error')!;
+  expect(segmentSpan.attributes).toMatchObject({
+    [SENTRY_OP]: { type: 'string', value: HTTP_SERVER },
+    [SENTRY_SEGMENT_NAME_SOURCE]: { type: 'string', value: 'route' },
+    [HTTP_ROUTE]: { type: 'string', value: '/api/error' },
+  });
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(segmentSpan.trace_id);
+  expect(
+    spans.filter(span => span.attributes[SENTRY_SEGMENT_ID]?.value === segmentSpan.span_id).map(span => span.span_id),
+  ).toContain(errorEvent.contexts?.trace?.span_id);
 });
 
 // the sentry global middleware does not capture errors from SSR loader errors since they are serialized before they reach the middleware layer

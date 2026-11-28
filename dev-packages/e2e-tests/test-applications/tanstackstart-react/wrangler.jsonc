@@ -1,10 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "tanstackstart-react-cloudflare",
-  "compatibility_date": "2026-05-04",
+  "name": "tanstackstart-react",
+  "compatibility_date": "2026-06-29",
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
-  "observability": {
-    "enabled": true,
-  },
 }

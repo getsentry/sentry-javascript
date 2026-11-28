@@ -7,6 +7,9 @@
     "build": "node start-mock-sentry-server.mjs & vite build > .tmp_build_stdout 2> .tmp_build_stderr; BUILD_EXIT=$?; kill %1 2>/dev/null; if [ $BUILD_EXIT -ne 0 ]; then cat .tmp_build_stdout; cat .tmp_build_stderr >&2; fi; exit $BUILD_EXIT",
     "dev": "vite dev",
     "start": "node .output/server/index.mjs",
+    "start:bun": "bun .output/server/index.mjs",
+    "start:deno": "deno run -A .output/server/index.mjs",
+    "start:cloudflare": "wrangler dev --config ./dist/server/wrangler.json --port 3000 --var E2E_TEST_DSN:$E2E_TEST_DSN",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
@@ -17,6 +20,9 @@
   },
   "//": "Need to use ioredis 5.10.1 because that's the last version before they support tracing channels",
   "dependencies": {
+    "@sentry/bun": "file:../../packed/sentry-bun-packed.tgz",
+    "@sentry/cloudflare": "file:../../packed/sentry-cloudflare-packed.tgz",
+    "@sentry/deno": "file:../../packed/sentry-deno-packed.tgz",
     "@sentry/tanstackstart-react": "file:../../packed/sentry-tanstackstart-react-packed.tgz",
     "@tanstack/react-start": "1.169.5",
     "@tanstack/react-router": "1.170.46",
@@ -27,6 +33,7 @@
     "mysql": "^2.18.1"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.47.0",
     "@sentry/conventions": "0.36.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
@@ -36,7 +43,8 @@
     "vite": "8.3.4",
     "vite-tsconfig-paths": "^6.1.1",
     "@playwright/test": "1.64.1",
-    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz"
+    "@sentry-internal/test-utils": "file:../../packed/sentry-internal-test-utils-packed.tgz",
+    "wrangler": "^4.120.0"
   },
   "sentryTest": {
     "variants": [
@@ -49,6 +57,22 @@
       {
         "build-command": "pnpm test:build-latest",
         "label": "tanstackstart-react (latest)"
+      },
+      {
+        "runtime": "bun",
+        "assert-command": "pnpm test",
+        "label": "tanstackstart-react (bun)"
+      },
+      {
+        "runtime": "deno",
+        "deno-version": "v2.9.0",
+        "assert-command": "pnpm test",
+        "label": "tanstackstart-react (deno)"
+      },
+      {
+        "runtime": "cloudflare",
+        "assert-command": "pnpm test",
+        "label": "tanstackstart-react (cloudflare)"
       }
     ]
   }

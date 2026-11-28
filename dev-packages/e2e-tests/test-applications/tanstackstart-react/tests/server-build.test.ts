@@ -2,6 +2,9 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { bundleReferencesModule } from '@sentry-internal/test-utils';
+import { RUNTIME } from './constants';
+
+test.skip(RUNTIME === 'cloudflare', 'The Cloudflare build has no Nitro output');
 
 // Nitro can't follow the `__require()` calls that Vite 8 emits for external requires in bundled
 // CommonJS, so the deployed server fails with `Cannot find module`. Only flat installs (the hoisted
