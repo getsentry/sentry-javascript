@@ -48,12 +48,14 @@ function makeSourceMapDeletionOptions(
   const keepSdkEnabledSourceMaps = keepWhenUploadDisabled && !!resolveSourceMapsFeatures(sourcemaps).legacyDisable;
 
   return {
+    // oxlint-disable-next-line typescript/no-deprecated
     deleteSourcemapsAfterUpload: sourcemaps?.deleteSourcemapsAfterUpload,
     sdkDeleteSourceMaps:
       sourcemaps?.delete === undefined
         ? environment =>
             sdkEnabledSourceMaps(environment) &&
             !keepSdkEnabledSourceMaps &&
+            // oxlint-disable-next-line typescript/no-deprecated
             sourcemaps?.filesToDeleteAfterUpload === undefined
               ? true
               : undefined

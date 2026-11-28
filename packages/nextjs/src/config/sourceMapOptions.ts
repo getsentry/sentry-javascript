@@ -36,6 +36,7 @@ export function setSdkDeletesSourceMaps(options: SentryBuildOptions): void {
 export function getDeleteSourceMapsOption(options: SentryBuildOptions): boolean | undefined {
   const { sourcemaps } = options;
   return (
+    // oxlint-disable-next-line typescript/no-deprecated
     sourcemaps?.delete ?? sourcemaps?.deleteSourcemapsAfterUpload ?? (sdkDeletesSourceMaps.has(options) || undefined)
   );
 }
@@ -68,6 +69,8 @@ export function getSourceMapFeatureOptions(
     return { upload: false, injectDebugIds: false };
   }
 
+  // oxlint-disable-next-line typescript/no-deprecated
   const { disable, upload, injectDebugIds } = userSourcemaps ?? {};
+  // oxlint-disable-next-line typescript/no-deprecated
   return { disable, upload, injectDebugIds };
 }

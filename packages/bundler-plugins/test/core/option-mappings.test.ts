@@ -425,12 +425,12 @@ describe('validateOptions', () => {
   });
 
   it.each([undefined, 'disable-upload'] as const)(
-    'does not warn when `deleteSourcemapsAfterUpload` is set and `sourcemaps.disable` is `%s`',
+    'does not warn about a conflict when `deleteSourcemapsAfterUpload` is set and `sourcemaps.disable` is `%s`',
     disable => {
       const options = normalizeUserOptions({ sourcemaps: { disable, deleteSourcemapsAfterUpload: true } });
 
       expect(validateOptions(options, mockedLogger)).toBe(true);
-      expect(mockedLogger.warn).not.toHaveBeenCalled();
+      expect(mockedLogger.warn).not.toHaveBeenCalledWith(expect.stringMatching(/ is ignored | still | is set, but /));
     },
   );
 

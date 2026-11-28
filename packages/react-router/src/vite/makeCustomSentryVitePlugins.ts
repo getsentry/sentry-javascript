@@ -60,6 +60,7 @@ export async function makeCustomSentryVitePlugins(options: SentryReactRouterBuil
       injectDebugIds: false,
       // The plugin deletes these in a `finally` block that runs regardless of the options above, which
       // would remove the maps before `sentryOnBuildEnd` gets to upload them. Deletion happens there instead.
+      // oxlint-disable-next-line typescript/no-deprecated
       filesToDeleteAfterUpload: undefined,
     },
   }) as Plugin[];

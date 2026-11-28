@@ -22,6 +22,12 @@ async function mock(mockedUri: string, stub: any) {
   };
 }
 
+// `gatsby-node.js` remembers the warnings it logged.
+async function loadFreshGatsbyNode(): Promise<typeof onCreateWebpackConfig> {
+  vi.resetModules();
+  return (await import('../gatsby-node')).onCreateWebpackConfig;
+}
+
 describe('onCreateWebpackConfig', () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { sentryWebpackPlugin } = require('@sentry/bundler-plugins/webpack');
@@ -290,18 +296,67 @@ describe('onCreateWebpackConfig', () => {
       logSpy.mockRestore();
     });
 
-    it('warns once when `sourcemaps.delete` and the flat option are both set', () => {
+    it('warns once when `sourcemaps.delete` and the flat option are both set', async () => {
+      const freshOnCreateWebpackConfig = await loadFreshGatsbyNode();
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const getConfig = vi.fn().mockReturnValue({ devtool: 'source-map' });
       const options = { deleteSourcemapsAfterUpload: true, sourcemaps: { delete: false } };
 
       for (const stage of ['build-javascript', 'build-html']) {
-        onCreateWebpackConfig({ actions: { setWebpackConfig: vi.fn() }, getConfig, stage }, options);
+        freshOnCreateWebpackConfig({ actions: { setWebpackConfig: vi.fn() }, getConfig, stage }, options);
+      }
+
+      expect(warnSpy).toHaveBeenCalledTimes(2);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('`deleteSourcemapsAfterUpload` is ignored because `sourcemaps.delete` is set'),
+      );
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('`deleteSourcemapsAfterUpload` is deprecated'));
+      warnSpy.mockRestore();
+    });
+
+    it('warns once that the flat `deleteSourcemapsAfterUpload` is deprecated', async () => {
+      const freshOnCreateWebpackConfig = await loadFreshGatsbyNode();
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const getConfig = vi.fn().mockReturnValue({ devtool: 'source-map' });
+
+      for (const stage of ['build-javascript', 'build-html']) {
+        freshOnCreateWebpackConfig(
+          { actions: { setWebpackConfig: vi.fn() }, getConfig, stage },
+          { deleteSourcemapsAfterUpload: false },
+        );
       }
 
       expect(warnSpy).toHaveBeenCalledTimes(1);
       expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('`deleteSourcemapsAfterUpload` is ignored because `sourcemaps.delete` is set'),
+        '[Sentry] `deleteSourcemapsAfterUpload` is deprecated and will be removed in the next major version. Use `sourcemaps.delete` instead.',
+      );
+      warnSpy.mockRestore();
+    });
+
+    it('warns that `sourcemaps.disable` is deprecated', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const getConfig = vi.fn().mockReturnValue({ devtool: 'source-map' });
+
+      onCreateWebpackConfig(
+        { actions: { setWebpackConfig: vi.fn() }, getConfig, stage: 'build-javascript' },
+        { sourcemaps: { disable: 'disable-upload' } },
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/^\[Sentry\] `sourcemaps\.disable` is deprecated/));
+      warnSpy.mockRestore();
+    });
+
+    it.each([true, 'disable-upload'] as const)('passes `sourcemaps.disable: %j` to the plugin', disable => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const getConfig = vi.fn().mockReturnValue({ devtool: 'source-map' });
+
+      onCreateWebpackConfig(
+        { actions: { setWebpackConfig: vi.fn() }, getConfig, stage: 'build-javascript' },
+        { sourcemaps: { disable } },
+      );
+
+      expect(sentryWebpackPlugin).toHaveBeenCalledWith(
+        expect.objectContaining({ sourcemaps: expect.objectContaining({ disable }) }),
       );
       warnSpy.mockRestore();
     });

@@ -1,5 +1,5 @@
 import { sentryVitePlugin } from '@sentry/bundler-plugins/vite';
-import { resolveSourceMapsFeatures, warnOnRemovedBuildOptions } from '@sentry/core';
+import { resolveSourceMapsFeatures, warnOnConflictingSourceMapOptions, warnOnRemovedBuildOptions } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { AstroConfig, AstroIntegration } from 'astro';
 import * as fs from 'fs';
@@ -59,6 +59,8 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions', 'sourceMapsUploadOptions'], message =>
           logger.warn(message),
         );
+        // The Sentry plugin is not added with `sourcemaps.disable: true`.
+        warnOnConflictingSourceMapOptions(sourcemaps, message => logger.warn(message));
 
         const sdkEnabled = {
           client: typeof enabled === 'boolean' ? enabled : (enabled?.client ?? true),
@@ -81,6 +83,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           // A user's own glob replaces the SDK's deletion. Maps in a Cloudflare `_worker.js` folder
           // stay, so that wrangler can read them for `upload_source_maps`.
           const sdkDeleteSourceMaps =
+            // oxlint-disable-next-line typescript/no-deprecated
             sourcemaps?.delete === undefined && sourcemaps?.filesToDeleteAfterUpload === undefined
               ? (environment?: string) =>
                   sdkEnabledSourceMaps(environment) && !buildState.writesCloudflareWorker ? true : undefined

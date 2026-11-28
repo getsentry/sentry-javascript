@@ -316,6 +316,7 @@ export function getBuildPluginOptions({
 
   const finalIgnorePatterns = mergeIgnorePatterns(sourcemapUploadIgnore, sentryBuildOptions.sourcemaps?.ignore);
 
+  // oxlint-disable-next-line typescript/no-deprecated
   const userFilesToDeleteAfterUpload = sentryBuildOptions.sourcemaps?.filesToDeleteAfterUpload;
 
   if (sentryBuildOptions.debug && userFilesToDeleteAfterUpload !== undefined && userFilesReplaceDeletion) {

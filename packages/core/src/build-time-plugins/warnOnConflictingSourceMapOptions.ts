@@ -1,6 +1,6 @@
 import { consoleSandbox } from '../utils/debug-logger';
 
-/** The source map options that can conflict with each other. */
+/** The source map options that can conflict with each other or are deprecated. */
 export interface ConflictingSourceMapOptions {
   disable?: boolean | 'disable-upload';
   upload?: boolean;
@@ -14,8 +14,8 @@ export interface ConflictingSourceMapOptions {
 const loggedWarnings = new Set<string>();
 
 /**
- * Warns about `sourcemaps` options that conflict with each other. It logs
- * each warning once per process.
+ * Warns about deprecated `sourcemaps` options and about options that conflict with each other. It
+ * logs each warning once per process.
  *
  * The bundler plugin calls this for the options it gets. SDKs that apply some of the options
  * themselves call it with the user's options, because the plugin does not see them all.
@@ -45,6 +45,23 @@ export function warnOnConflictingSourceMapOptions(
       logWarning(message);
     }
   };
+
+  // TODO(v12): Remove along with the deprecated options.
+  if (sourcemaps.disable !== undefined) {
+    warn(
+      "`sourcemaps.disable` is deprecated and will be removed in the next major version. Use `sourcemaps.upload: false` instead of `'disable-upload'`, and `sourcemaps.injectDebugIds: false` instead of `true`.",
+    );
+  }
+  if (sourcemaps.deleteSourcemapsAfterUpload !== undefined) {
+    warn(
+      '`sourcemaps.deleteSourcemapsAfterUpload` is deprecated and will be removed in the next major version. Use `sourcemaps.delete` instead.',
+    );
+  }
+  if (sourcemaps.filesToDeleteAfterUpload !== undefined) {
+    warn(
+      '`sourcemaps.filesToDeleteAfterUpload` is deprecated and will be removed in the next major version. Use `sourcemaps.delete` instead. To delete other files, run a script after the build.',
+    );
+  }
 
   const usesFeatureOptions = sourcemaps.upload !== undefined || sourcemaps.injectDebugIds !== undefined;
   // TODO(v12): Remove along with `sourcemaps.disable`.

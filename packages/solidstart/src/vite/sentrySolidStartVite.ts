@@ -1,4 +1,9 @@
-import { resolveSourceMapsFeatures, stringifyForCodeInjection, warnOnRemovedBuildOptions } from '@sentry/core';
+import {
+  resolveSourceMapsFeatures,
+  stringifyForCodeInjection,
+  warnOnConflictingSourceMapOptions,
+  warnOnRemovedBuildOptions,
+} from '@sentry/core';
 import type { Plugin, UserConfig } from 'vite';
 import { makeBuildInstrumentationFilePlugin } from './buildInstrumentationFile';
 import type { SourceMapState } from './sourceMaps';
@@ -14,6 +19,8 @@ export const sentrySolidStartVite = (
   runtimeRelease?: string,
 ): Plugin[] => {
   warnOnRemovedBuildOptions(options, ['unstable_sentryVitePluginOptions']);
+  // The Sentry plugin is not added with `sourcemaps.disable: true`.
+  warnOnConflictingSourceMapOptions(options.sourcemaps);
 
   const sentryPlugins: Plugin[] = [
     {

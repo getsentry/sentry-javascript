@@ -1,5 +1,5 @@
 import type { BuildTimeOptionsBase, ReactComponentAnnotationOptions } from '@sentry/core';
-import { resolveSourceMapsFeatures } from '@sentry/core';
+import { resolveSourceMapsFeatures, warnOnConflictingSourceMapOptions } from '@sentry/core';
 import { sentryOrchestrionPlugin } from '@sentry/server-utils/orchestrion/vite';
 import type { Plugin } from 'vite';
 import { makeAutoInstrumentMiddlewarePlugin } from './autoInstrumentMiddleware';
@@ -112,6 +112,9 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   if (isDevelopment) {
     return plugins;
   }
+
+  // The bundler plugin does not get `sourcemaps.deleteSourcemapsAfterUpload`.
+  warnOnConflictingSourceMapOptions(options.sourcemaps);
 
   plugins.push(makeServerInstrumentationPlugin({ debug: options.debug, release }));
 
