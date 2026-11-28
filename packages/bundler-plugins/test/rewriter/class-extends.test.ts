@@ -64,6 +64,18 @@ describe('findClassesExtending', () => {
     expect(findClassesExtending(parseModule(code.join('\n'), 'module.ts'), BASE)).toEqual(new Set());
   });
 
+  it('finds a class whose base is cached in an assignment', () => {
+    const code = [
+      "import { WorkerEntrypoint } from 'cloudflare:workers';",
+      "import * as cf from 'cloudflare:workers';",
+      'var _WE, _cf;',
+      'class A extends (_WE = WorkerEntrypoint) {}',
+      'class B extends (_cf = cf.WorkerEntrypoint) {}',
+      'class C extends (_WE = A) {}',
+    ];
+    expect(find(code.join('\n'))).toEqual(new Set(['A', 'B', 'C']));
+  });
+
   it('ignores classes without the base import', () => {
     expect(find('class A extends B {}')).toEqual(new Set());
   });
