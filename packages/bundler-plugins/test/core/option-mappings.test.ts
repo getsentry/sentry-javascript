@@ -388,6 +388,24 @@ describe('validateOptions', () => {
     );
   });
 
+  it('should return `true` but warn if `uploadLegacySourcemaps` is set', () => {
+    const options = { release: { uploadLegacySourcemaps: './dist' } };
+
+    expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(true);
+    expect(mockedLogger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/uploadLegacySourcemaps.*deprecated.*v12/),
+      expect.stringMatching(/Sentry CLI/),
+      expect.stringMatching(/sentry sourcemap upload.*--no-rewrite/),
+    );
+  });
+
+  it('should not warn about `uploadLegacySourcemaps` if it is not set', () => {
+    const options = { release: {} };
+
+    expect(validateOptions(options as unknown as NormalizedOptions, mockedLogger)).toBe(true);
+    expect(mockedLogger.warn).not.toHaveBeenCalled();
+  });
+
   it('should return `true` but warn if `setCommits` is set and both auto nor manual options are set', () => {
     const options = { release: { setCommits: { auto: true, repo: 'myRepo', commit: 'myCommit' } } };
 

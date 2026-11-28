@@ -358,6 +358,9 @@ export interface Options {
      *
      * The modern version of doing source maps upload is more robust and way easier to get working but has to inject a very small snippet of JavaScript into your output bundles.
      * In situations where this leads to problems (e.g subresource integrity) you can use this option as a fallback.
+     *
+     * @deprecated This option will be removed in v12. Upload with the Sentry CLI after the build instead:
+     * `sentry sourcemap upload <directory> --release <name> --url-prefix <prefix> --no-rewrite`
      */
     uploadLegacySourcemaps?: string | IncludeEntry | Array<string | IncludeEntry>;
   };
