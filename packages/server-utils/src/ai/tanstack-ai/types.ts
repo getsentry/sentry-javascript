@@ -6,7 +6,7 @@
 
 import type { TANSTACK_AI_MIDDLEWARE_BRAND } from './constants';
 
-/** The options of a `chat()` call. */
+/** The options of a `chat()` call. The recording options and the span hooks get this object. */
 export interface TanstackAICallInfo {
   threadId?: string;
   stream?: boolean;
@@ -74,6 +74,10 @@ export interface TanstackAIChunk {
   input?: unknown;
   /** `{ type: 'interrupt' }` on the `RUN_FINISHED` chunk of a run that stops at an interrupt. */
   outcome?: { type: string };
+  /** The error of a `RUN_ERROR` chunk. */
+  error?: { message: string; code?: string };
+  message?: string;
+  code?: string;
 }
 
 export interface TanstackAIToolCallHookContext {
@@ -101,5 +105,5 @@ export interface TanstackAIChatMiddleware {
   onAfterToolCall(ctx: TanstackAIMiddlewareContext, info: TanstackAIAfterToolCallInfo): void;
   onFinish(ctx: TanstackAIMiddlewareContext): void;
   onAbort(ctx: TanstackAIMiddlewareContext): void;
-  onError(ctx: TanstackAIMiddlewareContext): void;
+  onError(ctx: TanstackAIMiddlewareContext, info: { error: unknown }): void;
 }

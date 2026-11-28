@@ -25,9 +25,11 @@ import {
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
 import { GEN_AI_TOOL_CALL_ID_ATTRIBUTE } from '../core/gen-ai-attributes';
+import type { GenAiSpanHooks } from '../core/span-hooks';
+import { runGenAiSpanEnd, runGenAiSpanStart } from '../core/span-hooks';
 import { recordTimeToFirstChunk } from '../core/time-to-first-chunk';
-import type { GenAiOptions } from '../core/utils';
-import { getErrorStatus, getGenAiSpanOp, resolveAIRecordingOptions, setOutputMessagesAttribute } from '../core/utils';
+import type { GenAiCallOptions } from '../core/utils';
+import { getErrorStatus, getGenAiSpanOp, resolveGenAiCallRecording, setOutputMessagesAttribute } from '../core/utils';
 import { TANSTACK_AI_MIDDLEWARE_BRAND, TANSTACK_AI_ORIGIN } from './constants';
 import type {
   TanstackAICallInfo,
@@ -35,9 +37,15 @@ import type {
   TanstackAIMiddlewareConfig,
   TanstackAIMiddlewareContext,
 } from './types';
-import { getInputAttributes, getProviderName, getRequestAttributes, getUsageAttributes } from './utils';
+import { getInputAttributes, getProviderName, getRequestAttributes, getRunError, getUsageAttributes } from './utils';
 
-export type TanstackAIOptions = GenAiOptions;
+/**
+ * `call` is the options object of the `chat()` call. The recording options run when `chat()` is
+ * called. The hooks run for every span (`invoke_agent`, `chat` and `execute_tool`) while the run is
+ * read, which can be in another async context than the call. `onSpanEnd` gets the `error` of a
+ * failed run or tool.
+ */
+export type TanstackAIOptions = GenAiCallOptions<TanstackAICallInfo> & GenAiSpanHooks<TanstackAICallInfo>;
 
 // The chunks that carry model output. The adapters send `RUN_STARTED` before the provider answers.
 const OUTPUT_CHUNK_TYPES = new Set(['TEXT_MESSAGE_CONTENT', 'TOOL_CALL_START', 'REASONING_MESSAGE_CONTENT']);
@@ -53,7 +61,7 @@ export function createTanstackAIMiddleware(
   call: TanstackAICallInfo,
 ): TanstackAIChatMiddleware {
   const parentSpan = getActiveSpan() ?? null;
-  const { recordInputs, recordOutputs } = resolveAIRecordingOptions(options);
+  const { recordInputs, recordOutputs } = resolveGenAiCallRecording(options, call);
   // `ctx.streaming` is also true when `chat()` returns a promise, because `chat()` reads the same stream
   // inside. With `outputSchema`, `chat()` streams only with `stream: true`.
   const streaming = call.outputSchema ? call.stream === true : call.stream !== false;
@@ -66,30 +74,37 @@ export function createTanstackAIMiddleware(
   const toolCallNames = new Map<string, string>();
   const toolSpans = new Map<string, Span>();
 
-  const endSpan = (span: Span, status?: SpanStatus): void => {
+  const startSpan = (spanOptions: Parameters<typeof startInactiveSpan>[0]): Span => {
+    const span = startInactiveSpan(spanOptions);
+    runGenAiSpanStart(options, span, call);
+    return span;
+  };
+
+  const endSpan = (span: Span, status?: SpanStatus, error?: unknown): void => {
     if (status) {
       span.setStatus(status);
     }
+    runGenAiSpanEnd(options, span, call, status ? { error } : {});
     span.end();
   };
 
-  const endChatSpan = (status?: SpanStatus): void => {
+  const endChatSpan = (status?: SpanStatus, error?: unknown): void => {
     if (chatSpan) {
-      endSpan(chatSpan, status);
+      endSpan(chatSpan, status, error);
       chatSpan = undefined;
     }
   };
 
-  const endRun = (status?: SpanStatus): void => {
+  const endRun = (status?: SpanStatus, error?: unknown): void => {
     if (!agentSpan) {
       return;
     }
     for (const span of toolSpans.values()) {
-      endSpan(span, status);
+      endSpan(span, status, error);
     }
     toolSpans.clear();
-    endChatSpan(status);
-    endSpan(agentSpan, status);
+    endChatSpan(status, error);
+    endSpan(agentSpan, status, error);
     agentSpan = undefined;
   };
 
@@ -98,7 +113,7 @@ export function createTanstackAIMiddleware(
     outputToolCalls = [];
     toolCallNames.clear();
 
-    return startInactiveSpan({
+    return startSpan({
       name: `chat ${ctx.model}`,
       op: getGenAiSpanOp('chat'),
       parentSpan: agentSpan,
@@ -132,7 +147,7 @@ export function createTanstackAIMiddleware(
       // `init` runs once per run, before `onStart` and before any tool can run.
       if (ctx.phase === 'init' && !agentSpan) {
         const agentName = ctx.subagentName;
-        agentSpan = startInactiveSpan({
+        agentSpan = startSpan({
           name: agentName ? `invoke_agent ${agentName}` : 'invoke_agent',
           op: getGenAiSpanOp('invoke_agent'),
           parentSpan,
@@ -173,7 +188,7 @@ export function createTanstackAIMiddleware(
       // A provider error ends the run with this chunk. `chat({ stream: false })` then throws and
       // stops reading, so TanStack calls no terminal hook.
       if (chunk.type === 'RUN_ERROR') {
-        endRun(getErrorStatus(ctx.signal));
+        endRun(getErrorStatus(ctx.signal), getRunError(chunk));
         return;
       }
       // A run that stops at an interrupt ends with this chunk. For an interrupt at `beforeModel` or
@@ -245,7 +260,7 @@ export function createTanstackAIMiddleware(
       }
       toolSpans.set(
         toolCallId,
-        startInactiveSpan({
+        startSpan({
           name: `execute_tool ${toolName}`,
           op: getGenAiSpanOp('execute_tool'),
           parentSpan: agentSpan,
@@ -285,7 +300,7 @@ export function createTanstackAIMiddleware(
           captureException(error, { mechanism: { type: TANSTACK_AI_ORIGIN, handled: false } });
         });
       }
-      endSpan(span, status);
+      endSpan(span, status, error);
     },
 
     onFinish() {
@@ -297,8 +312,8 @@ export function createTanstackAIMiddleware(
       endRun({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
     },
 
-    onError(ctx) {
-      endRun(getErrorStatus(ctx.signal));
+    onError(ctx, { error }) {
+      endRun(getErrorStatus(ctx.signal), error);
     },
   };
 }
