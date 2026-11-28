@@ -2,14 +2,18 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parse } from 'acorn';
-import { describe, expect, it } from 'vitest';
+import { loadParser, parseModule } from '@sentry/bundler-plugins/rewriter';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { applyAutoInstrumentTransforms, type ClassWrapperKind, type TransformContext } from '../../src/vite/transform';
 import { DEFAULT_EXPORT } from '../../src/vite/wranglerConfig';
 
 function parseJS(code: string) {
-  return parse(code, { ecmaVersion: 'latest', sourceType: 'module' }) as unknown as { body: any[] };
+  return parseModule(code, 'module.js') as unknown as { body: any[] };
 }
+
+beforeAll(async () => {
+  await loadParser();
+});
 
 /** Build a `classWrappers` map with every given class name marked as a DO. */
 function doWrappers(...names: string[]): Map<string, ClassWrapperKind> {
@@ -1062,17 +1066,17 @@ describe('agent class wrapping', () => {
         "import { Agent } from 'agents';",
         "import { AIChatAgent } from '@cloudflare/ai-chat';",
         "import { DurableObject } from 'cloudflare:workers';",
+        'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
         'class MyAgent extends Agent {}',
         'const __SENTRY_WRAPPED_MyAgent__ = __SENTRY__.instrumentAgentWithSentry((env) => ({ dsn: env.SENTRY_DSN }), MyAgent);',
-        'export { __SENTRY_WRAPPED_MyAgent__ as MyAgent };',
         '',
+        'export { __SENTRY_WRAPPED_MyChat__ as MyChat };',
         'class MyChat extends AIChatAgent {}',
         'const __SENTRY_WRAPPED_MyChat__ = __SENTRY__.instrumentAgentWithSentry((env) => ({ dsn: env.SENTRY_DSN }), MyChat);',
-        'export { __SENTRY_WRAPPED_MyChat__ as MyChat };',
         '',
+        'export { __SENTRY_WRAPPED_MyDO__ as MyDO };',
         'class MyDO extends DurableObject {}',
         'const __SENTRY_WRAPPED_MyDO__ = __SENTRY__.instrumentDurableObjectWithSentry((env) => ({ dsn: env.SENTRY_DSN }), MyDO);',
-        'export { __SENTRY_WRAPPED_MyDO__ as MyDO };',
         '',
         'var __SENTRY_DEFAULT_EXPORT__ = { fetch() {} };',
         'export { __SENTRY_DEFAULT_EXPORT__ as default };',
