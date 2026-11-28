@@ -185,9 +185,9 @@ export function checkSubresourceIntegrity(outDir: string): IntegrityCheck[] {
 
   for (const html of htmlFiles) {
     const content = readFileSync(join(outDir, html), "utf-8");
-    for (const [tag] of content.matchAll(/<(?:script|link)\b[^>]*>/g)) {
-      const integrity = tag.match(/\sintegrity="([^"]+)"/)?.[1];
-      const url = tag.match(/\s(?:src|href)="([^"]+)"/)?.[1];
+    for (const [tag] of content.matchAll(/<(?:script|link)\b[^>]*>/gi)) {
+      const integrity = tag.match(/\sintegrity="([^"]+)"/i)?.[1];
+      const url = tag.match(/\s(?:src|href)="([^"]+)"/i)?.[1];
       if (!integrity || !url) {
         continue;
       }

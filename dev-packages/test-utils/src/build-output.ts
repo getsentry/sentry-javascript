@@ -247,9 +247,9 @@ export function findHtmlIntegrities(outputDir: string): Record<string, string> {
   const integrities: Record<string, string> = {};
 
   for (const file of walkFiles(outputDir, ['.html'])) {
-    for (const [tag] of fs.readFileSync(file, 'utf8').matchAll(/<(?:script|link)\b[^>]*>/g)) {
-      const integrity = tag.match(/\sintegrity="([^"]+)"/)?.[1];
-      const url = tag.match(/\s(?:src|href)="([^"]+)"/)?.[1];
+    for (const [tag] of fs.readFileSync(file, 'utf8').matchAll(/<(?:script|link)\b[^>]*>/gi)) {
+      const integrity = tag.match(/\sintegrity="([^"]+)"/i)?.[1];
+      const url = tag.match(/\s(?:src|href)="([^"]+)"/i)?.[1];
       if (!integrity || !url || /^(?:[a-z]+:)?\/\//i.test(url)) {
         continue;
       }
