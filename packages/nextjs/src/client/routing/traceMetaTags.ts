@@ -40,15 +40,24 @@ export function readTraceMetaTags(): TraceMetaTagValues | undefined {
   return document && sentryTrace ? { sentryTrace, baggage: lastMetaContent(document, 'baggage') } : undefined;
 }
 
+function getServerTimingEntry(name: string): PerformanceServerTiming | undefined {
+  // The cast is required for the declaration build, which resolves `getEntriesByType('navigation')`
+  // to `PerformanceEntry[]` without `serverTiming`.
+  const navigation = WINDOW.performance?.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined;
+  return navigation?.serverTiming?.find(entry => entry.name === name);
+}
+
 /**
  * Whether the response carried the trace in a `Server-Timing` header. The generic browser tracing
  * integration continues it when it starts the pageload, so there is nothing to wait for.
  */
 export function hasServerTimingTraceContext(): boolean {
-  // The cast is required for the declaration build, which resolves `getEntriesByType('navigation')`
-  // to `PerformanceEntry[]` without `serverTiming`.
-  const navigation = WINDOW.performance?.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined;
-  return !!navigation?.serverTiming?.some(entry => entry.name === 'sentry-trace');
+  return !!getServerTimingEntry('sentry-trace');
+}
+
+/** The `sentry-trace` value of the `Server-Timing` header of the document, which a self-hosted server sends. */
+export function getServerTimingSentryTrace(): string | undefined {
+  return getServerTimingEntry('sentry-trace')?.description || undefined;
 }
 
 /**

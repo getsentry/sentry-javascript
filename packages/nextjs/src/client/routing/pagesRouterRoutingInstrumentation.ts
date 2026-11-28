@@ -1,11 +1,18 @@
 import type { Client } from '@sentry/core';
-import { debug, hasSpanStreamingEnabled, PAGELOAD_SPAN_NAME_FALLBACK, parseBaggageHeader } from '@sentry/core';
+import {
+  debug,
+  extractTraceparentData,
+  hasSpanStreamingEnabled,
+  PAGELOAD_SPAN_NAME_FALLBACK,
+  parseBaggageHeader,
+} from '@sentry/core';
 import { startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import type { ParsedUrlQuery } from 'querystring';
 import { DEBUG_BUILD } from '../../common/debug-build';
 import { SENTRY_OP, SENTRY_SEGMENT_NAME_SOURCE, URL_TEMPLATE, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import { PAGELOAD } from '@sentry/conventions/op';
+import { getServerTimingSentryTrace } from './traceMetaTags';
 
 const globalObject = WINDOW;
 
@@ -113,8 +120,44 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
         ...(params && { ...params }),
       },
     },
-    { sentryTrace, baggage },
+    // Turbopack does not wrap data fetchers, so `__NEXT_DATA__` has no trace and the header has to tell the tags apart.
+    getForeignTraceMetaTags(sentryTrace || getServerTimingSentryTrace()) ?? { sentryTrace, baggage },
   );
+}
+
+/**
+ * Finds `sentry-trace` and `baggage` meta tags that belong to another trace than the one of the server
+ * request. Next.js renders the trace of the request into the same kind of tags, so a
+ * tag is only known to come from somewhere else, e.g. from a mobile SDK that wants its WebView to
+ * continue the trace of the app, when its trace ID differs.
+ */
+function getForeignTraceMetaTags(
+  serverSentryTrace: string | undefined,
+): { sentryTrace: string; baggage: string } | undefined {
+  const serverTraceId = extractTraceparentData(serverSentryTrace)?.traceId;
+  if (!serverTraceId) {
+    return undefined;
+  }
+
+  const metaContents = (name: string): string[] =>
+    Array.from(globalObject.document.querySelectorAll(`meta[name="${name}"]`))
+      .map(tag => tag.getAttribute('content'))
+      .filter((content): content is string => !!content);
+
+  for (const sentryTrace of metaContents('sentry-trace')) {
+    const traceId = extractTraceparentData(sentryTrace)?.traceId;
+    // Without a baggage of its own, the browser SDK would fall back to the first `baggage` tag of the
+    // document, which can be the one of the server trace, and combine two traces.
+    const baggage =
+      traceId && traceId !== serverTraceId
+        ? metaContents('baggage').find(value => parseBaggageHeader(value)?.['sentry-trace_id'] === traceId)
+        : undefined;
+    if (baggage) {
+      return { sentryTrace, baggage };
+    }
+  }
+
+  return undefined;
 }
 
 /**
