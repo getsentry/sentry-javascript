@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['pg-cloudflare'],
   experimental: {
     authInterrupts: true,
+    webpackBuildWorker: true,
+    parallelServerCompiles: true,
+    parallelServerBuildTraces: true,
     sri: {
       algorithm: 'sha256',
     },

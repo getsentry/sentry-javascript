@@ -4,7 +4,13 @@ const { withSentryConfig } = require('@sentry/nextjs/config');
 process.env.VERCEL = '1';
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  experimental: {
+    webpackBuildWorker: true,
+    parallelServerCompiles: true,
+    parallelServerBuildTraces: true,
+  },
+};
 
 module.exports = withSentryConfig(nextConfig, {
   silent: true,
