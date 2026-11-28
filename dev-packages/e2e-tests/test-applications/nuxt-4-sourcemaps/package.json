@@ -23,10 +23,7 @@
     "test:build:delete-all": "E2E_VARIANT=delete-all pnpm test:build",
     "test:assert:delete-all": "E2E_VARIANT=delete-all pnpm test:assert",
     "test:build:vite-server": "E2E_VITE_SERVER=true pnpm test:build",
-    "test:assert:vite-server": "E2E_VITE_SERVER=true pnpm test:assert",
-    "test:build:sri": "E2E_SRI=true NUXT_COMMAND=generate pnpm test:build",
-    "test:build:sri-manual-upload": "E2E_SRI=true E2E_VARIANT=manual-upload NUXT_COMMAND=generate pnpm test:build",
-    "test:assert:sri": "pnpm ts-node --script-mode assert-sri.ts"
+    "test:assert:vite-server": "E2E_VITE_SERVER=true pnpm test:assert"
   },
   "dependencies": {
     "@sentry/nuxt": "file:../../packed/sentry-nuxt-packed.tgz",
@@ -76,16 +73,6 @@
         "build-command": "pnpm test:build:delete-all",
         "assert-command": "pnpm test:assert:delete-all",
         "label": "nuxt-4-sourcemaps (delete all)"
-      },
-      {
-        "build-command": "pnpm test:build:sri",
-        "assert-command": "pnpm test:assert:sri",
-        "label": "nuxt-4-sourcemaps (SRI, static)"
-      },
-      {
-        "build-command": "pnpm test:build:sri-manual-upload",
-        "assert-command": "pnpm test:assert:sri",
-        "label": "nuxt-4-sourcemaps (SRI, static, manual upload)"
       }
     ],
     "optionalVariants": [

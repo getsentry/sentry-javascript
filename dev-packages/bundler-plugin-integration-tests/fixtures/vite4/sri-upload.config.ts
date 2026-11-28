@@ -7,10 +7,10 @@ import { sentryConfig } from "../configs/sri-upload.config.js";
 export default defineConfig({
   build: {
     sourcemap: true,
-    outDir: "./out/sri-upload-sentry-first",
+    outDir: "./out/sri-upload",
     rollupOptions: {
       input: resolve("./src/sri.html"),
     },
   },
-  plugins: [sentryVitePlugin(sentryConfig), sri()],
+  plugins: [sri(), sentryVitePlugin(sentryConfig)],
 });

@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { SourcemapEntry } from './sourcemap-upload-utils';
@@ -236,4 +237,44 @@ export function findFilesWithForeignSourcemaps(
   }
 
   return offenders;
+}
+
+/**
+ * Returns the `integrity` attributes of the local scripts and stylesheets in the HTML files of
+ * `outputDir`, keyed by the path of the file they point to, relative to `outputDir`.
+ */
+export function findHtmlIntegrities(outputDir: string): Record<string, string> {
+  const integrities: Record<string, string> = {};
+
+  for (const file of walkFiles(outputDir, ['.html'])) {
+    for (const [tag] of fs.readFileSync(file, 'utf8').matchAll(/<(?:script|link)\b[^>]*>/g)) {
+      const integrity = tag.match(/\sintegrity="([^"]+)"/)?.[1];
+      const url = tag.match(/\s(?:src|href)="([^"]+)"/)?.[1];
+      if (!integrity || !url || /^(?:[a-z]+:)?\/\//i.test(url)) {
+        continue;
+      }
+
+      const target = url.startsWith('/') ? path.join(outputDir, url) : path.join(path.dirname(file), url);
+      integrities[path.relative(outputDir, target)] = integrity;
+    }
+  }
+
+  return integrities;
+}
+
+/**
+ * Returns the files in `integrities` whose bytes on disk no longer match their Subresource
+ * Integrity hash. `integrities` maps paths relative to `outputDir` to `integrity` values.
+ */
+export function findSubresourceIntegrityMismatches(outputDir: string, integrities: Record<string, string>): string[] {
+  return Object.entries(integrities)
+    .filter(([file, integrity]) => {
+      const content = fs.readFileSync(path.join(outputDir, file));
+      // A browser accepts the file when one of the listed hashes matches.
+      return !integrity.split(/\s+/).some(hash => {
+        const algorithm = hash.split('-')[0] as string;
+        return hash === `${algorithm}-${crypto.createHash(algorithm).update(content).digest('base64')}`;
+      });
+    })
+    .map(([file]) => file);
 }

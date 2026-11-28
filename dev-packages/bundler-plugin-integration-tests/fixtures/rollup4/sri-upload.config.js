@@ -7,7 +7,7 @@ import { sentryConfig } from "../configs/sri-upload.config.js";
 export default defineConfig({
   input: "src/dynamic-import.js",
   output: {
-    dir: "out/sri-upload-sentry-last",
+    dir: "out/sri-upload",
     format: "es",
     sourcemap: true,
   },

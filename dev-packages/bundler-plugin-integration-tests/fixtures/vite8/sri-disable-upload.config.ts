@@ -7,7 +7,7 @@ import { sentryConfig } from "../configs/sri-disable-upload.config.js";
 export default defineConfig({
   build: {
     sourcemap: true,
-    outDir: "./out/sri-disable-upload-sentry-last",
+    outDir: "./out/sri-disable-upload",
     rollupOptions: {
       input: resolve("./src/sri.html"),
     },

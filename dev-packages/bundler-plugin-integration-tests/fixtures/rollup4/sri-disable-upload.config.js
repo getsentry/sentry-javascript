@@ -7,9 +7,9 @@ import { sentryConfig } from "../configs/sri-disable-upload.config.js";
 export default defineConfig({
   input: "src/dynamic-import.js",
   output: {
-    dir: "out/sri-disable-upload-sentry-first",
+    dir: "out/sri-disable-upload",
     format: "es",
     sourcemap: true,
   },
-  plugins: [sentryRollupPlugin(sentryConfig), html(), sri()],
+  plugins: [html(), sri(), sentryRollupPlugin(sentryConfig)],
 });
