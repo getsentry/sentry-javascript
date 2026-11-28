@@ -51,3 +51,24 @@ export interface UnstorageTraceContext {
   base?: string;
   driver?: { name?: string };
 }
+
+/** Minimal shape of Nitro's `CapturedErrorContext`, passed to the `error` hook. */
+export interface NitroCapturedErrorContext {
+  event?: { req: { method: string; url: string } };
+  tags?: string[];
+}
+
+/** Minimal shape of a Nitro task (`nitro/types`' `Task`). */
+export interface NitroTask {
+  run: (event: unknown) => unknown;
+}
+
+/** Minimal shape of the `tasks` registry that `#nitro/virtual/tasks` exports. */
+export type NitroTaskRegistry = Record<string, { resolve?: () => Promise<NitroTask> }>;
+
+/** Minimal shape of the `nitroApp` that Nitro passes to a runtime plugin. */
+export interface NitroAppLike {
+  hooks: {
+    hook: (name: 'error', callback: (error: unknown, context: NitroCapturedErrorContext) => unknown) => unknown;
+  };
+}

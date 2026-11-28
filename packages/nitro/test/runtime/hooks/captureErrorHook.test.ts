@@ -1,173 +1,37 @@
 import * as SentryCore from '@sentry/core';
-import * as SentryCoreServer from '@sentry/core/server';
-import { HTTPError } from 'nitro/h3';
+import * as SentryServerUtils from '@sentry/server-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { captureErrorHook } from '../../../src/runtime/hooks/captureErrorHook';
 
-vi.mock('@sentry/core', async importOriginal => {
-  const mod = await importOriginal();
-  return {
-    ...(mod as any),
-    captureException: vi.fn(),
-    getClient: vi.fn(),
-    getCurrentScope: vi.fn(() => ({
-      setTransactionName: vi.fn(),
-    })),
-  };
-});
-
-vi.mock('@sentry/core/server', async importOriginal => {
-  const mod = await importOriginal();
-  return {
-    ...(mod as any),
-    flushIfServerless: vi.fn(),
-  };
-});
+vi.mock('@sentry/core', async importOriginal => ({ ...(await importOriginal()), getClient: vi.fn() }));
+vi.mock('@sentry/server-utils', async importOriginal => ({
+  ...(await importOriginal()),
+  captureNitroRequestError: vi.fn(),
+}));
 
 describe('captureErrorHook', () => {
-  const mockErrorContext = {
-    event: {
-      req: { method: 'GET', url: 'http://localhost/test-path' },
-    },
-  };
+  const error = new Error('Test error');
+  const errorContext = { event: { req: { method: 'GET', url: 'http://localhost/test-path' } } };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (SentryCore.getClient as any).mockReturnValue({
-      getOptions: () => ({}),
-    });
-    (SentryCoreServer.flushIfServerless as any).mockResolvedValue(undefined);
   });
 
-  it('should capture regular errors', async () => {
-    const error = new Error('Test error');
+  it('captures the error', async () => {
+    vi.mocked(SentryCore.getClient).mockReturnValue({ getOptions: () => ({}) } as SentryCore.Client);
 
-    await captureErrorHook(error, mockErrorContext);
+    await captureErrorHook(error, errorContext as never);
 
-    expect(SentryCore.captureException).toHaveBeenCalledWith(
-      error,
-      expect.objectContaining({
-        mechanism: { handled: false, type: 'auto.function.nitro.captureErrorHook' },
-      }),
-    );
+    expect(SentryServerUtils.captureNitroRequestError).toHaveBeenCalledWith(error, errorContext);
   });
 
-  it('should include structured context with method and path', async () => {
-    const error = new Error('Test error');
-
-    await captureErrorHook(error, mockErrorContext);
-
-    expect(SentryCore.captureException).toHaveBeenCalledWith(
-      error,
-      expect.objectContaining({
-        captureContext: {
-          contexts: {
-            nitro: { method: 'GET', path: '/test-path' },
-          },
-        },
-      }),
-    );
-  });
-
-  it('should skip HTTPError with 4xx status codes', async () => {
-    const error = new HTTPError({ status: 404, message: 'Not found' });
-
-    await captureErrorHook(error, mockErrorContext);
-
-    expect(SentryCore.captureException).not.toHaveBeenCalled();
-  });
-
-  it('should skip HTTPError with 3xx status codes', async () => {
-    const error = new HTTPError({ status: 302, message: 'Redirect' });
-
-    await captureErrorHook(error, mockErrorContext);
-
-    expect(SentryCore.captureException).not.toHaveBeenCalled();
-  });
-
-  it('should capture HTTPError with 5xx status codes', async () => {
-    const error = new HTTPError({ status: 500, message: 'Server error' });
-
-    await captureErrorHook(error, mockErrorContext);
-
-    expect(SentryCore.captureException).toHaveBeenCalledWith(
-      error,
-      expect.objectContaining({
-        mechanism: { handled: false, type: 'auto.function.nitro.captureErrorHook' },
-      }),
-    );
-  });
-
-  it('should skip HTTPError whose cause was already captured', async () => {
-    const cause = new Error('Task error');
-    Object.defineProperty(cause, '__sentry_captured__', { value: true });
-    const error = new HTTPError(cause);
-
-    await captureErrorHook(error, mockErrorContext);
-
-    expect(SentryCore.captureException).not.toHaveBeenCalled();
-  });
-
-  it('should skip when enableNitroErrorHandler is false', async () => {
-    (SentryCore.getClient as any).mockReturnValue({
+  it('does not capture when enableNitroErrorHandler is false', async () => {
+    vi.mocked(SentryCore.getClient).mockReturnValue({
       getOptions: () => ({ enableNitroErrorHandler: false }),
-    });
+    } as unknown as SentryCore.Client);
 
-    const error = new Error('Test error');
+    await captureErrorHook(error, errorContext as never);
 
-    await captureErrorHook(error, mockErrorContext);
-
-    expect(SentryCore.captureException).not.toHaveBeenCalled();
-  });
-
-  it('should call flushIfServerless after capturing', async () => {
-    const error = new Error('Test error');
-
-    await captureErrorHook(error, mockErrorContext);
-
-    expect(SentryCoreServer.flushIfServerless).toHaveBeenCalled();
-  });
-
-  it('should handle missing event in error context', async () => {
-    const error = new Error('Test error');
-    const contextWithoutEvent = {
-      event: undefined,
-    };
-
-    await captureErrorHook(error, contextWithoutEvent);
-
-    expect(SentryCore.captureException).toHaveBeenCalledWith(
-      error,
-      expect.objectContaining({
-        captureContext: {
-          contexts: {
-            nitro: {},
-          },
-        },
-      }),
-    );
-  });
-
-  it('should include tags in structured context when available', async () => {
-    const error = new Error('Test error');
-    const contextWithTags = {
-      event: {
-        req: { method: 'POST', url: 'http://localhost/api/test' },
-      } as any,
-      tags: ['tag1', 'tag2'],
-    };
-
-    await captureErrorHook(error, contextWithTags);
-
-    expect(SentryCore.captureException).toHaveBeenCalledWith(
-      error,
-      expect.objectContaining({
-        captureContext: {
-          contexts: {
-            nitro: { method: 'POST', path: '/api/test', tags: ['tag1', 'tag2'] },
-          },
-        },
-      }),
-    );
+    expect(SentryServerUtils.captureNitroRequestError).not.toHaveBeenCalled();
   });
 });

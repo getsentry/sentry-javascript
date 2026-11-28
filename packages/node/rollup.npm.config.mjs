@@ -51,6 +51,7 @@ export default [
           'bundler-plugin/rollup': 'src/bundler-plugin/rollup.ts',
           'bundler-plugin/webpack': 'src/bundler-plugin/webpack.ts',
           'bundler-plugin/esbuild': 'src/bundler-plugin/esbuild.ts',
+          nitro: 'src/nitro.ts',
         },
         packageSpecificConfig: {
           external: [/^@sentry\/opentelemetry/],

@@ -1,15 +1,12 @@
-import { captureException } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/server';
-import type { Task } from 'nitro/types';
-
-type TaskRegistry = Record<string, { resolve?: () => Promise<Task> }>;
+import { captureNitroTaskError } from './captureErrors';
+import type { NitroTaskRegistry } from './nitroTypes';
 
 /**
  * Wraps the `run` function of every registered Nitro task to capture errors it throws.
  *
  * Nitro's scheduler catches task errors and only logs them, so they never reach the `error` hook.
  */
-export function instrumentTasks(tasks: TaskRegistry): void {
+export function instrumentNitroTasks(tasks: NitroTaskRegistry): void {
   for (const [name, task] of Object.entries(tasks)) {
     const originalResolve = task.resolve;
     if (!originalResolve) {
@@ -25,15 +22,11 @@ export function instrumentTasks(tasks: TaskRegistry): void {
       // `resolve` returns the same cached module object on every call, so return a copy instead of wrapping `run` again.
       return {
         ...handler,
-        run: async event => {
+        run: async (event: unknown) => {
           try {
             return await handler.run(event);
           } catch (error) {
-            captureException(error, {
-              captureContext: { contexts: { nitro: { task: name } } },
-              mechanism: { handled: false, type: 'auto.function.nitro.task' },
-            });
-            await flushIfServerless();
+            await captureNitroTaskError(error, name);
             throw error;
           }
         },

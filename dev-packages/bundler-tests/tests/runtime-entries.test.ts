@@ -139,6 +139,7 @@ const BUILD_TIME_CASES: Case[] = [
   { specifier: '@sentry/node/rollup', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/node/webpack', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/node/esbuild', conditions: NODE, formats: BOTH },
+  { specifier: '@sentry/node/nitro', conditions: NODE, formats: ESM },
   { specifier: '@sentry/bun/plugin', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/cloudflare/vite', conditions: NODE, formats: BOTH },
   { specifier: '@sentry/nextjs/config', conditions: NODE, formats: BOTH },

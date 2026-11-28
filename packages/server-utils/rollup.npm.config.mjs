@@ -75,6 +75,9 @@ export default [
           'orchestrion/bundler/load-hook': 'src/orchestrion/bundler/load-hook.ts',
           'orchestrion/bundler/esbuild': 'src/orchestrion/bundler/esbuild.ts',
           'orchestrion/bundler/bun': 'src/orchestrion/bundler/bun.ts',
+          'nitro/module': 'src/nitro/module.ts',
+          // Not reachable from `src/index.ts`; `nitro/module` injects its absolute path into the Nitro build.
+          'integrations/nitro/runtimePlugin': 'src/integrations/nitro/runtimePlugin.ts',
         },
         packageSpecificConfig: {
           plugins: [

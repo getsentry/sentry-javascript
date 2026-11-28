@@ -71,6 +71,12 @@
         "types": "./build/types/bundler-plugin/esbuild.d.ts",
         "default": "./build/cjs/bundler-plugin/esbuild.js"
       }
+    },
+    "./nitro": {
+      "import": {
+        "types": "./build/types/nitro.d.ts",
+        "default": "./build/esm/nitro.js"
+      }
     }
   },
   "publishConfig": {

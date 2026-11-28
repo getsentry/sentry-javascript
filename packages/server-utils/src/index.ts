@@ -99,5 +99,7 @@ export { expressErrorHandler, setupExpressErrorHandler } from './integrations/ex
 export { firebaseIntegration } from './integrations/firebase';
 export { nitroIntegration } from './integrations/nitro';
 export type { NitroIntegrationOptions } from './integrations/nitro';
+export { captureNitroRequestError } from './integrations/nitro/captureErrors';
+export { instrumentNitroTasks } from './integrations/nitro/instrumentTasks';
 
 export { getTracingIntegrations, getErrorIntegrations } from './integrations';

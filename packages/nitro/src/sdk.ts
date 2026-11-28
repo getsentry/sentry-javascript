@@ -5,10 +5,25 @@ import { getDefaultIntegrations as getDefaultNodeIntegrations, httpIntegration, 
 import { isNitroDevServer } from './devServer';
 
 /**
+ * Options for the Nitro SDK's `init()`.
+ */
+export interface NitroOptions extends NodeOptions {
+  /**
+   * Enables the Sentry error handler for the Nitro error hook.
+   *
+   * When enabled, errors that Nitro handles are sent to Sentry with the request and Nitro error context.
+   * Disable it only if you capture these errors yourself.
+   *
+   * @default true
+   */
+  enableNitroErrorHandler?: boolean;
+}
+
+/**
  * Initializes the Nitro SDK
  */
-export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
-  const opts: NodeOptions = {
+export function init(options: NitroOptions | undefined = {}): NodeClient | undefined {
+  const opts: NitroOptions = {
     ..._INTERNAL_captureOptionsSetByUser(options),
   };
 
