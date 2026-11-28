@@ -49,6 +49,8 @@ test.describe('prerendered ISR pages', () => {
 });
 
 test('should create unique transactions for ISR pages on each visit', async ({ page, baseURL }) => {
+  test.skip(!isProductionBuild, 'ISR cache behavior requires a production build');
+
   const traceIds: string[] = [];
   const url = '/isr-test/laptop?test=unique-isr-traces';
 
