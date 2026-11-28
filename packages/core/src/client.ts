@@ -421,6 +421,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     }
 
     const clientFinished = await this._isClientDoneProcessing(timeout);
+    // Flush outcomes only once processing has settled, so that drops recorded during async event
+    // processing (e.g. `beforeSend` returning `null`) are part of this flush instead of lost on `close()`.
+    if (this._options.sendClientReports) {
+      this._flushOutcomes();
+    }
     const transportFlushed = await transport.flush(timeout);
 
     return clientFinished && transportFlushed;

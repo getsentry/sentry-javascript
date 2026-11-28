@@ -34,6 +34,40 @@ async function waitForClientReport(clientReports: ClientReport[]): Promise<void>
   }
 }
 
+Deno.test('sends a client report for dropped events on flush', async () => {
+  const clientReports = initWithClientReports();
+
+  getCurrentScope().captureMessage('dropped');
+  await close();
+
+  assertEquals(
+    clientReports.map(report => report.discarded_events),
+    [[{ reason: 'before_send', category: 'error', quantity: 1 }]],
+  );
+});
+
+Deno.test('sends a client report for events dropped after async processing on flush', async () => {
+  const clientReports = initWithClientReports({
+    integrations: [
+      {
+        name: 'AsyncProcessor',
+        processEvent: async event => {
+          await Promise.resolve();
+          return event;
+        },
+      },
+    ],
+  });
+
+  getCurrentScope().captureMessage('dropped');
+  await close();
+
+  assertEquals(
+    clientReports.map(report => report.discarded_events),
+    [[{ reason: 'before_send', category: 'error', quantity: 1 }]],
+  );
+});
+
 Deno.test('sends client reports on the flush interval', async () => {
   const clientReports = initWithClientReports({ clientReportFlushInterval: 50 });
 
