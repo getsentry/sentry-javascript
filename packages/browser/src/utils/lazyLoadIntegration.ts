@@ -1,12 +1,13 @@
+import { getCdnBaseUrl, getTrustedScriptURL } from '@sentry/browser-utils';
 import type { IntegrationFn } from '@sentry/core';
-import { getClient, SDK_VERSION } from '@sentry/core';
-import type { BrowserClient } from '../client';
+import { SDK_VERSION } from '@sentry/core';
 import { WINDOW } from '../helpers';
 
 // Single source of truth: as const array provides both the runtime list and the type.
 // Bundle file names are derived: strip 'Integration' suffix, lowercase.
 // Exceptions (hyphenated bundle names) are listed in HYPHENATED_BUNDLES.
-const LAZY_LOADABLE_NAMES = [
+/** Exported only for tests. */
+export const LAZY_LOADABLE_NAMES = [
   'replayIntegration',
   'replayCanvasIntegration',
   'feedbackIntegration',
@@ -72,7 +73,7 @@ export async function lazyLoadIntegration(
 
   const url = getScriptURL(bundle);
   const script = WINDOW.document.createElement('script');
-  script.src = url;
+  script.src = getTrustedScriptURL(url);
   script.crossOrigin = 'anonymous';
   script.referrerPolicy = 'strict-origin';
 
@@ -110,8 +111,5 @@ export async function lazyLoadIntegration(
 }
 
 function getScriptURL(bundle: string): string {
-  const client = getClient<BrowserClient>();
-  const baseURL = client?.getOptions()?.cdnBaseUrl || 'https://browser.sentry-cdn.com';
-
-  return new URL(`/${SDK_VERSION}/${bundle}.min.js`, baseURL).toString();
+  return new URL(`/${SDK_VERSION}/${bundle}.min.js`, getCdnBaseUrl()).toString();
 }
