@@ -52,7 +52,8 @@
       {
         "build-command": "pnpm install",
         "label": "nextjs-15 (development)",
-        "assert-command": "pnpm test:dev"
+        "assert-command": "pnpm test:dev",
+        "test-shards": 2
       },
       {
         "build-command": "E2E_RELEASE_NOT_INJECTED=1 pnpm test:build",
