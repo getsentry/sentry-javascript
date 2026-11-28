@@ -9,7 +9,7 @@ import type {
   MemberExpressionNode,
   ProgramBody,
 } from './ast';
-import { exportedName, isTypeOnlyExport } from './ast';
+import { exportedName, isTypeOnlyExport, superClassTarget } from './ast';
 import { langFromId, parseModule } from './parse';
 
 /** Binding name used for a module's default export. */
@@ -109,7 +109,8 @@ export function shapeFromSource(code: string, id: string): ModuleShape | undefin
   return undefined;
 }
 
-function superRefFromNode(superClass: BaseNode | null | undefined): SuperRef | undefined {
+function superRefFromNode(node: BaseNode | null | undefined): SuperRef | undefined {
+  const superClass = superClassTarget(node);
   if (!superClass) return undefined;
 
   if (superClass.type === 'Identifier') {
