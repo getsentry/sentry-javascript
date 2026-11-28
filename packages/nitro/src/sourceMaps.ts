@@ -118,7 +118,7 @@ export function getPluginOptions(
       : (userFilesToDelete ?? defaultFilesToDelete);
 
   if (options?.debug && defaultFilesToDelete && userFilesToDelete === undefined) {
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time output
     console.log(
       `[@sentry/nitro] Setting \`sourcemaps.filesToDeleteAfterUpload: ["${defaultFilesToDelete[0]}"]\` to delete generated source maps after they were uploaded to Sentry.`,
     );
@@ -183,7 +183,7 @@ export function configureSourcemapSettings(
 
   if (userSourcemap === false) {
     usesSourceMaps &&
-      // eslint-disable-next-line no-console
+      // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time output
       console.warn(
         '[@sentry/nitro] You have explicitly disabled source maps (`sourcemap: false`). Sentry will not upload source maps, and errors will not be unminified. To let Sentry handle source maps, remove the `sourcemap` option from your Nitro config, or use `sourcemaps: { disable: true }` in your Sentry options to silence this warning.',
       );
@@ -192,7 +192,7 @@ export function configureSourcemapSettings(
 
   if (userSourcemap === 'inline') {
     usesSourceMaps &&
-      // eslint-disable-next-line no-console
+      // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time output
       console.warn(
         '[@sentry/nitro] You have set `sourcemap: "inline"`. Inline source maps are embedded in the output bundle, so there are no `.map` files to upload. Sentry will not upload source maps. Set `sourcemap: "hidden"` (or leave it unset) to let Sentry upload source maps and un-minify errors.',
       );
@@ -202,7 +202,7 @@ export function configureSourcemapSettings(
   let sentryEnabledSourcemaps = false;
   if (userSourcemap === true || userSourcemap === 'hidden') {
     if (moduleOptions?.debug) {
-      // eslint-disable-next-line no-console
+      // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time output
       console.log(
         `[@sentry/nitro] Source maps are already enabled (\`sourcemap: ${JSON.stringify(userSourcemap)}\`). Sentry will upload them for error unminification.`,
       );
@@ -213,7 +213,7 @@ export function configureSourcemapSettings(
     (config as { sourcemap?: unknown }).sourcemap = 'hidden';
     sentryEnabledSourcemaps = true;
     if (moduleOptions?.debug) {
-      // eslint-disable-next-line no-console
+      // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time output
       console.log(
         '[@sentry/nitro] Enabled hidden source map generation for Sentry. Source map files will be deleted after upload.',
       );

@@ -93,7 +93,6 @@ export type PlaceholderCommitEnvVarHandler = (name: string) => void;
 
 function warnAboutPlaceholderCommitEnvVar(name: string): void {
   consoleSandbox(() => {
-    // eslint-disable-next-line no-console
     console.warn(
       `[Sentry] Ignoring the ${name} environment variable as a release name, because its value is its own name. Set the release explicitly, or fix the variable in your build environment.`,
     );

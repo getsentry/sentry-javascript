@@ -127,7 +127,6 @@ function _init(
 
   if (getEntryPointType() === 'require') {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn(
         '[Sentry] Initializing the SDK via the Node `--require` flag is no longer supported, because Node re-runs `--require` preloads on its module loader thread. Use `--import` instead: `node --import ./instrument.js app.js`',
       );
@@ -147,7 +146,6 @@ function _init(
     } else {
       // use `console.warn` rather than `debug.warn` since non-debug bundles have all `debug.x` statements stripped
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
       });
     }

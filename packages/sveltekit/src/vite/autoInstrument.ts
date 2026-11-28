@@ -84,7 +84,6 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
         (await canWrapLoad(id, debug));
 
       if (applyUniversalLoadWrapper) {
-        // eslint-disable-next-line no-console
         debug && console.log(`Wrapping ${id} with Sentry load wrapper`);
         return getWrapperCode('wrapLoadWithSentry', `${id}${WRAPPED_MODULE_SUFFIX}`);
       }
@@ -101,7 +100,6 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
         (await canWrapLoad(id, debug));
 
       if (applyServerLoadWrapper) {
-        // eslint-disable-next-line no-console
         debug && console.log(`Wrapping ${id} with Sentry load wrapper`);
         return getWrapperCode('wrapServerLoadWithSentry', `${id}${WRAPPED_MODULE_SUFFIX}`);
       }
@@ -130,7 +128,6 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
   // We need to check for that here, otherwise users get get a build errors.
   if (!fs.existsSync(id)) {
     debug &&
-      // eslint-disable-next-line no-console
       console.log(
         `Skipping wrapping ${id} because it doesn't exist. A 3rd party plugin might have added this as a virtual file to the build`,
       );
@@ -147,7 +144,6 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
       locations: true,
     });
   } catch {
-    // eslint-disable-next-line no-console
     debug && console.log(`Skipping wrapping ${id} because it doesn't contain valid JavaScript or TypeScript`);
     return false;
   }
@@ -184,7 +180,6 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
     });
 
   if (!hasLoadDeclaration) {
-    // eslint-disable-next-line no-console
     debug && console.log(`Skipping wrapping ${id} because it doesn't declare a \`load\` function`);
     return false;
   }

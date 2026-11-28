@@ -120,7 +120,7 @@ export function init(userOptions: NodeOptions): NodeClient | undefined {
 
   if (!DEBUG_BUILD && options.debug) {
     // TODO(v12): Remove the `webpack.treeshake` mention together with that option
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line sdk/no-unsandboxed-console -- runs before `init()` instruments the console
     console.warn(
       '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `bundleSizeOptimizations.excludeDebugStatements: true` or `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
     );

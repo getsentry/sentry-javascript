@@ -44,7 +44,7 @@ const triggeredThreads = new Set<string>();
 
 function log(...msg: unknown[]): void {
   if (debug) {
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line sdk/no-unsandboxed-console -- runs in a worker thread, where the SDK does not instrument the console
     console.log('[Sentry Event Loop Blocked Watchdog]', ...msg);
   }
 }

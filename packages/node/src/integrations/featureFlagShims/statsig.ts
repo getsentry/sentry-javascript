@@ -7,7 +7,6 @@ import { consoleSandbox, defineIntegration, isBrowser } from '@sentry/core';
 export const statsigIntegrationShim = defineIntegration((_options?: unknown) => {
   if (!isBrowser()) {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn('The statsigIntegration() can only be used in the browser.');
     });
   }

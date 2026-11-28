@@ -9,7 +9,6 @@ import { DEBUG_BUILD } from './debug-build';
 function metricShim(_name: unknown, _value?: unknown, _options?: unknown): void {
   DEBUG_BUILD &&
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn('You are using Sentry.metrics.* even though this bundle does not include metrics.');
     });
 }

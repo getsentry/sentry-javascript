@@ -35,7 +35,6 @@ export function validateDifferentSourceMapSettings({
   otherSettingValue?: SourceMapSetting;
 }): void {
   if (nuxtSettingValue !== otherSettingValue) {
-    // eslint-disable-next-line no-console
     console.warn(
       `[Sentry] Source map generation settings are conflicting. Sentry uses \`${nuxtSettingKey}: ${nuxtSettingValue}\`. However, a conflicting setting was discovered (\`${otherSettingKey}: ${otherSettingValue}\`). This setting was probably explicitly set in your configuration. Sentry won't override this setting but it may affect source maps generation and upload. Without source maps, code snippets on the Sentry Issues page will remain minified.`,
     );
@@ -64,7 +63,6 @@ export function logKeepEnabledSourceMapSetting(
   settingValue: string,
 ): void {
   if (sentryNuxtModuleOptions.debug) {
-    // eslint-disable-next-line no-console
     console.log(
       `[Sentry] \`${settingKey}\` is enabled with \`${settingValue}\`. This will correctly un-minify the code snippet on the Sentry Issue Details page.`,
     );
@@ -74,18 +72,15 @@ export function logKeepEnabledSourceMapSetting(
 /** Warns that the user turned source maps off. */
 export function warnExplicitlyDisabledSourceMap(settingKey: string, isDebug: boolean | undefined): void {
   if (isDebug) {
-    // eslint-disable-next-line no-console
     console.warn(
       `[Sentry] Source map generation is currently disabled in your Vite configuration (\`${settingKey}: false \`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
     );
   } else {
-    // eslint-disable-next-line no-console
     console.warn(`[Sentry] Source map generation (\`${settingKey}\`) is disabled in your Vite configuration.`);
   }
 }
 
 /** Logs that Sentry turned source maps on. */
 export function logSentryEnablesSourceMap(settingKey: string, settingValue: string): void {
-  // eslint-disable-next-line no-console
   console.log(`[Sentry] Enabled source map generation in the build options with \`${settingKey}: ${settingValue}\`.`);
 }

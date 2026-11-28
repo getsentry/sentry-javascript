@@ -64,7 +64,6 @@ function warnIfPiAiNotInstrumented(): void {
   }
 
   consoleSandbox(() => {
-    // eslint-disable-next-line no-console
     console.warn(
       '[Sentry] Flue model calls are not being traced: `@earendil-works/pi-ai` was not instrumented, so ' +
         `Flue agents record agent and tool spans but no \`gen_ai.chat\` spans. ${getPiAiInstrumentationHint()}`,

@@ -18,7 +18,6 @@ export function maybeWarnAboutIgnoredTransactionOptions(options: ClientOptions):
   }
 
   consoleSandbox(() => {
-    // oxlint-disable-next-line no-console
     console.warn(
       "[Sentry] `beforeSendTransaction` and `ignoreTransactions` are ignored with `traceLifecycle: 'stream'` (enabled by default). Use `beforeSendSpan` and `ignoreSpans` instead, or set `traceLifecycle: 'static'`.",
     );

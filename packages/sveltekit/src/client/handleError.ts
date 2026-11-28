@@ -21,7 +21,6 @@ function defaultErrorHandler({ kind, error }: SentryHandleClientErrorInput): voi
   }
 
   consoleSandbox(() => {
-    // eslint-disable-next-line no-console
     console.error(error);
   });
 }

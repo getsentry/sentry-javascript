@@ -16,7 +16,6 @@ const _piniaIntegration = ((
     setup() {
       if (!pinia || (typeof pinia === 'object' && !('use' in pinia))) {
         consoleSandbox(() => {
-          // eslint-disable-next-line no-console
           console.warn(
             '[Sentry] The Pinia integration was added, but the passed parameter `pinia` has the wrong value. Make sure to enable Pinia by adding `"@pinia/nuxt"` to the Nuxt modules array and pass pinia to Sentry with `piniaIntegration(usePinia())`. Current value of `pinia`:',
             pinia,

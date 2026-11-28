@@ -105,7 +105,6 @@ function warnOnDeprecatedInjectMode(moduleOptions: SentryNuxtModuleOptions): voi
 
 function warn(message: string): void {
   consoleSandbox(() => {
-    // eslint-disable-next-line no-console
     console.warn(`[Sentry] ${message}`);
   });
 }

@@ -7,7 +7,6 @@ import { consoleSandbox, defineIntegration, isBrowser } from '@sentry/core';
 export const unleashIntegrationShim = defineIntegration((_options?: unknown) => {
   if (!isBrowser()) {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn('The unleashIntegration() can only be used in the browser.');
     });
   }

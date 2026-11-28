@@ -8,7 +8,6 @@ import { FAKE_FUNCTION } from './common';
 export const launchDarklyIntegrationShim = defineIntegration((_options?: unknown) => {
   if (!isBrowser()) {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn('The launchDarklyIntegration() can only be used in the browser.');
     });
   }
@@ -24,7 +23,6 @@ export const launchDarklyIntegrationShim = defineIntegration((_options?: unknown
 export function buildLaunchDarklyFlagUsedHandlerShim(): unknown {
   if (!isBrowser()) {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn('The buildLaunchDarklyFlagUsedHandler() can only be used in the browser.');
     });
   }

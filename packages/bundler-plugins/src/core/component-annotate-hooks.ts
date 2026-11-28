@@ -25,7 +25,7 @@ export function createComponentNameAnnotateHooks(
         if (options.logger) {
           options.logger.warn(PARSER_UNAVAILABLE_MESSAGE);
         } else {
-          // eslint-disable-next-line no-console
+          // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time plugin output
           console.warn(`[@sentry/bundler-plugins] ${PARSER_UNAVAILABLE_MESSAGE}`);
         }
       }

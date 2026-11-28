@@ -16,7 +16,6 @@ export function init(options: HonoBunOptions): Client | undefined {
   const existingClient = getClient();
   if (existingClient) {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn(
         '[Sentry] Sentry is already initialized. Sentry should only be initialized once, through the `sentry()` middleware. Remove the `Sentry.init()` call, if one exists.',
       );

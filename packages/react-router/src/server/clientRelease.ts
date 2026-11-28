@@ -19,7 +19,6 @@ export function injectClientRelease(entry: ServerBuildEntry | undefined, release
   if (!entry || typeof handleRequest !== 'function') {
     // The client build left the release out, so without the tag browser events have no release.
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn(
         '[Sentry] Could not find the request handler in the React Router server build, so browser events will not have a release. Pass `release` to `Sentry.init` in `entry.client`.',
       );

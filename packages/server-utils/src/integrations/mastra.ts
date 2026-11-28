@@ -229,7 +229,6 @@ function warnAboutMissingObservability(): void {
   warnedAboutMissingObservability = true;
 
   consoleSandbox(() => {
-    // eslint-disable-next-line no-console
     console.warn(
       '[Sentry] Mastra has no observability pipeline and `@mastra/observability` could not be loaded, ' +
         'so the Mastra integration will not create spans. Install `@mastra/observability`, or pass an ' +
@@ -247,7 +246,6 @@ function warnAboutCommunityExporter(): void {
   warnedAboutCommunityExporter = true;
 
   consoleSandbox(() => {
-    // eslint-disable-next-line no-console
     console.warn(
       '[Sentry] The `@mastra/sentry` package is registered alongside the built-in Mastra integration, ' +
         'and both are now exporting spans. Its exporter also calls `Sentry.init()` itself: depending on which ' +

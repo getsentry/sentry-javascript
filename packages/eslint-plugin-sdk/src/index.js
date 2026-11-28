@@ -17,6 +17,7 @@ module.exports = {
     'no-focused-tests': require('./rules/no-focused-tests'),
     'no-skipped-tests': require('./rules/no-skipped-tests'),
     'no-unsafe-random-apis': require('./rules/no-unsafe-random-apis'),
+    'no-unsandboxed-console': require('./rules/no-unsandboxed-console'),
     'no-unfiltered-url-attributes': require('./rules/no-unfiltered-url-attributes'),
     'no-unguarded-span-apis': require('./rules/no-unguarded-span-apis'),
     'no-unsafe-html-writes': require('./rules/no-unsafe-html-writes'),

@@ -163,7 +163,6 @@ function hasNitroSourceMapSetting(config: NitroSourceMapConfig | null | undefine
 /** Logs a message when the `debug` option is enabled. */
 export function logDebug(debug: boolean | undefined, message: string): void {
   if (debug) {
-    // eslint-disable-next-line no-console
     console.log(`[Sentry] ${message}`);
   }
 }

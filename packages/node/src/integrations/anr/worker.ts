@@ -27,7 +27,7 @@ let mainDebugImages: Record<string, string> = {};
 
 function log(msg: string): void {
   if (options.debug) {
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line sdk/no-unsandboxed-console -- runs in a worker thread, where the SDK does not instrument the console
     console.log(`[ANR Worker] ${msg}`);
   }
 }

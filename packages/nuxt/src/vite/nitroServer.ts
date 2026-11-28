@@ -86,7 +86,6 @@ export function setupNitroServer(
 
     if (moduleOptions.debug) {
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.log(
           `[Sentry] Bundled \`${serverConfigFile}\` into the Nitro server build. The SDK initializes itself at server startup — no \`node --import\` preload needed.`,
         );
@@ -103,7 +102,6 @@ function setupDeprecatedInjectMode(
   moduleOptions: NitroModuleOptions,
 ): void {
   consoleSandbox(() => {
-    // eslint-disable-next-line no-console
     console.warn(
       `[Sentry] \`autoInjectServerSentry: '${injectMode}'\` is deprecated and will be removed in a future major version. The Sentry server config is bundled into the Nitro server build by default now. Remove the option to use the default behavior.`,
     );
@@ -122,7 +120,6 @@ function setupDeprecatedInjectMode(
 
     if (moduleOptions.debug) {
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.log(
           '[Sentry] Wrapping the server entry file with a dynamic `import()`, so Sentry can be preloaded before the server initializes.',
         );

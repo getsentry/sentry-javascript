@@ -69,7 +69,6 @@ export function makeGlobalValuesInjectionPlugin(options: GlobalValuesInjectionOp
       };
 
       if (debug) {
-        // eslint-disable-next-line no-console
         console.log('[Sentry SvelteKit] Global values:', globalSentryValues);
       }
 
@@ -114,7 +113,6 @@ export function makeGlobalValuesInjectionPlugin(options: GlobalValuesInjectionOp
 
       if (isServerEntryFile(id)) {
         if (debug) {
-          // eslint-disable-next-line no-console
           console.log('[Global Values Plugin] Injecting global values into', id);
         }
         const ms = new MagicString(code);

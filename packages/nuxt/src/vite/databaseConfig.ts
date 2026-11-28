@@ -20,7 +20,6 @@ export function addDatabaseInstrumentation(
     // So we have to pass in the module options to the build time script
     moduleOptions?.debug &&
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.log(
           '[Sentry] [Nitro Database Plugin]: No database configuration found. Skipping database instrumentation.',
         );

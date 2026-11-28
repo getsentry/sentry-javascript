@@ -88,7 +88,6 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   const { tunnelRoute } = options;
   if (tunnelRoute !== undefined && !showedDeprecatedTunnelRouteWarning) {
     showedDeprecatedTunnelRouteWarning = true;
-    // eslint-disable-next-line no-console
     console.warn(
       '[@sentry/tanstackstart-react] The `tunnelRoute` option is deprecated. Set `tunnel: true` in the browser `Sentry.init` and add `serveTunnelIntegration()` to the server `Sentry.init` instead.',
     );

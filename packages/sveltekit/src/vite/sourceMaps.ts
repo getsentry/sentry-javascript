@@ -117,7 +117,6 @@ export async function makeCustomSentryVitePlugins(
 
   if (!sentryMainPlugin) {
     debug &&
-      // eslint-disable-next-line no-console
       console.warn(
         '@sentry/bundler-plugins/vite not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
@@ -178,7 +177,6 @@ export async function makeCustomSentryVitePlugins(
         const defaultFileDeletionGlob = ['./.*/**/*.map', `./${adapterOutputDir}/**/*.map`];
 
         debug &&
-          // eslint-disable-next-line no-console
           console.info(
             `[Sentry] Automatically setting \`sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
               .map(file => `"${file}"`)
@@ -204,7 +202,6 @@ export async function makeCustomSentryVitePlugins(
     warn: () => undefined,
     debug: () => undefined,
     error: (message: string, ...params: unknown[]) => {
-      // eslint-disable-next-line no-console
       debug && console.error(`[Source Maps Plugin] ${message}`, ...params);
     },
   };
@@ -216,11 +213,9 @@ export async function makeCustomSentryVitePlugins(
     sourceMapsUploaded = true;
 
     const outDir = path.resolve(process.cwd(), await getAdapterOutputDir());
-    // eslint-disable-next-line no-console
     debug && console.log('[Source Maps Plugin] Looking up source maps in', outDir);
 
     const jsFiles = getFiles(outDir).filter(file => file.endsWith('.js'));
-    // eslint-disable-next-line no-console
     debug && console.log('[Source Maps Plugin] Flattening source maps');
 
     // @ts-expect-error - we're using dynamic import here and TS complains about that. It works though.
@@ -245,7 +240,6 @@ export async function makeCustomSentryVitePlugins(
         // This mostly happens when sorcery tries to resolve a source map while flattening that doesn't exist.
         const isKnownError = e instanceof Error && e.message.includes('ENOENT: no such file or directory, open');
         if (debug && !isKnownError) {
-          // eslint-disable-next-line no-console
           console.error('[Source Maps Plugin] error while flattening', file, e);
         }
       }
@@ -282,13 +276,10 @@ export async function makeCustomSentryVitePlugins(
         await originalWriteBundle({ dir: outDir });
       }
     } catch {
-      // eslint-disable-next-line no-console
       console.warn('[Source Maps Plugin] Failed to upload source maps!');
-      // eslint-disable-next-line no-console
       console.log(
         '[Source Maps Plugin] Please make sure you specified a valid Sentry auth token, as well as your org and project slugs.',
       );
-      // eslint-disable-next-line no-console
       console.log(
         '[Source Maps Plugin] Further information: https://github.com/getsentry/sentry-javascript/blob/develop/packages/sveltekit/README.md#uploading-source-maps',
       );
@@ -376,12 +367,10 @@ export function _getUpdatedSourceMapSettings(
 
     if (debug) {
       // Longer debug message with more details
-      // eslint-disable-next-line no-console
       console.warn(
         `[Sentry] Source map generation is currently disabled in your Vite configuration (\`${settingKey}: false \`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
       );
     } else {
-      // eslint-disable-next-line no-console
       console.warn('[Sentry] Source map generation is disabled in your Vite configuration.');
     }
   } else if (viteSourceMap === true && deleteOption === true) {
@@ -389,7 +378,6 @@ export function _getUpdatedSourceMapSettings(
     updatedSourceMapSetting = 'hidden';
 
     debug &&
-      // eslint-disable-next-line no-console
       console.log(
         `[Sentry] Switched \`${settingKey}\` from \`true\` to \`'hidden'\` because \`sourcemaps.delete\` is set. The source maps will be removed from the build output.`,
       );
@@ -397,7 +385,6 @@ export function _getUpdatedSourceMapSettings(
     updatedSourceMapSetting = viteSourceMap;
 
     debug &&
-      // eslint-disable-next-line no-console
       console.log(
         `[Sentry] We discovered \`${settingKey}\` is set to \`${viteSourceMap.toString()}\`. Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
       );
@@ -410,7 +397,6 @@ export function _getUpdatedSourceMapSettings(
     updatedSourceMapSetting = 'hidden';
 
     debug &&
-      //  eslint-disable-next-line no-console
       console.log(
         deleteOption === false
           ? `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps stay in the build output because \`sourcemaps.delete\` is \`false\`.`

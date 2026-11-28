@@ -31,7 +31,6 @@ export function warnOnConflictingSourceMapOptions(
   sourcemaps: ConflictingSourceMapOptions | undefined,
   logWarning: (message: string) => void = message =>
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn(`[Sentry] ${message}`);
     }),
 ): void {

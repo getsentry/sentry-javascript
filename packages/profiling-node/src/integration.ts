@@ -443,7 +443,6 @@ class ContinuousProfiler {
 export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> => {
   if (![16, 18, 20, 22, 24, 26].includes(NODE_MAJOR)) {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn(
         `[Sentry Profiling] You are using a Node.js version that does not have prebuilt binaries (${NODE_MAJOR}).`,
         'The @sentry/profiling-node package only has prebuilt support for the following LTS versions of Node.js: 16, 18, 20, 22, 24, 26.',

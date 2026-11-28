@@ -13,6 +13,5 @@ const SILENT_BUILD_LOGGER: BuildLogger = { debug: noop, error: noop, log: noop, 
  * Next.js SDK prints itself.
  */
 export function getBuildLogger(silent: boolean | undefined): BuildLogger {
-  // eslint-disable-next-line no-console
   return silent ? SILENT_BUILD_LOGGER : console;
 }

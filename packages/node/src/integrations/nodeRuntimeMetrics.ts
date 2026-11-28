@@ -20,14 +20,14 @@ export function _INTERNAL_normalizeCollectionInterval(
   defaultInterval: number,
 ): number {
   if (!Number.isFinite(rawInterval)) {
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line sdk/no-unsandboxed-console -- runs when the integration is created, usually before `init()` instruments the console
     console.warn(
       `[Sentry] ${integrationName}: collectionIntervalMs (${rawInterval}) is invalid. Using default of ${defaultInterval}ms.`,
     );
     return defaultInterval;
   }
   if (rawInterval < MIN_COLLECTION_INTERVAL_MS) {
-    // eslint-disable-next-line no-console
+    // oxlint-disable-next-line sdk/no-unsandboxed-console -- runs when the integration is created, usually before `init()` instruments the console
     console.warn(
       `[Sentry] ${integrationName}: collectionIntervalMs (${rawInterval}) is below the minimum of ${MIN_COLLECTION_INTERVAL_MS}ms. Using minimum of ${MIN_COLLECTION_INTERVAL_MS}ms.`,
     );

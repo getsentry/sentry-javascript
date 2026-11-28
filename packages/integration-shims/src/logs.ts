@@ -11,7 +11,6 @@ import { DEBUG_BUILD } from './debug-build';
 function logShim(_message: unknown, _attributes?: unknown): void {
   DEBUG_BUILD &&
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn('You are using Sentry.logger.* even though this bundle does not include logs.');
     });
 }
@@ -24,7 +23,6 @@ function logShim(_message: unknown, _attributes?: unknown): void {
 function fmtShim(_strings: TemplateStringsArray, ..._values: unknown[]): ParameterizedString {
   DEBUG_BUILD &&
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn('You are using Sentry.logger.fmt even though this bundle does not include logs.');
     });
   return '';
@@ -48,7 +46,6 @@ export const loggerShim = {
 export const consoleLoggingIntegrationShim = defineIntegration((_options?: unknown) => {
   DEBUG_BUILD &&
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn('You are using consoleLoggingIntegration() even though this bundle does not include logs.');
     });
 

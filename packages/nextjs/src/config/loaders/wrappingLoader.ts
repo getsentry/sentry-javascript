@@ -176,7 +176,7 @@ export default function wrappingLoader(
       );
     } else {
       if (!showedMissingAsyncStorageModuleWarning && !silent) {
-        // eslint-disable-next-line no-console
+        // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time output
         console.warn(
           "[@sentry/nextjs] The Sentry SDK could not access the 'RequestAsyncStorage' module. Certain features may not work. There is nothing you can do to fix this yourself, but future SDK updates may resolve this.",
         );
@@ -240,7 +240,7 @@ export default function wrappingLoader(
     })
     .catch(err => {
       if (!silent) {
-        // eslint-disable-next-line no-console
+        // oxlint-disable-next-line sdk/no-unsandboxed-console -- build-time output
         console.warn(
           `[@sentry/nextjs] Could not instrument ${this.resourcePath}. An error occurred while auto-wrapping:\n${err}`,
         );

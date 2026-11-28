@@ -9,7 +9,6 @@ const options: LocalVariablesWorkerArgs = workerData;
 
 function log(...args: unknown[]): void {
   if (options.debug) {
-    // eslint-disable-next-line no-console
     consoleSandbox(() => console.log('[LocalVariables Worker]', ...args));
   }
 }

@@ -72,7 +72,6 @@ export function isViteBuilder(nuxt: { options: { builder?: unknown } }): boolean
 export function logSentryEnabledSourceMaps(fallback: DeletionFallback, deleteOption?: boolean): void {
   for (const side of ['client', 'server'] as const) {
     if (fallback[side] && deleteOption !== undefined) {
-      // eslint-disable-next-line no-console
       console.log(
         `[Sentry] We enabled \`'hidden'\` source maps for your ${side}-side build. ${
           deleteOption
@@ -81,7 +80,6 @@ export function logSentryEnabledSourceMaps(fallback: DeletionFallback, deleteOpt
         }`,
       );
     } else if (fallback[side]) {
-      // eslint-disable-next-line no-console
       console.log(
         `[Sentry] We enabled \`'hidden'\` source maps for your ${side}-side build. Sentry deletes them after the upload, unless you set \`sourcemaps.filesToDeleteAfterUpload\`.`,
       );
@@ -213,7 +211,6 @@ export async function deletePublicSourceMaps(options: Options, publicDir: string
 
 function logDebug(options: Options, ...messages: unknown[]): void {
   if (options.debug) {
-    // eslint-disable-next-line no-console
     console.log('[Sentry]', ...messages);
   }
 }

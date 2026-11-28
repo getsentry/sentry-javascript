@@ -259,19 +259,16 @@ export function getUpdatedSourceMapSettings(
 
     if (debug) {
       // Longer debug message with more details
-      // eslint-disable-next-line no-console
       console.warn(
         `[Sentry] Source map generation is currently disabled in your SolidStart configuration (\`${settingKey}: false \`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
       );
     } else {
-      // eslint-disable-next-line no-console
       console.warn('[Sentry] Source map generation is disabled in your SolidStart configuration.');
     }
   } else if (viteSourceMap && ['hidden', 'inline', true].includes(viteSourceMap)) {
     updatedSourceMapSetting = viteSourceMap;
 
     debug &&
-      // eslint-disable-next-line no-console
       console.log(
         `[Sentry] We discovered \`${settingKey}\` is set to \`${viteSourceMap.toString()}\`. Sentry will keep this source map setting. This will un-minify the code snippet on the Sentry Issue page.`,
       );
@@ -297,7 +294,6 @@ export function getUpdatedSourceMapSettings(
           : ' Sentry removes the source maps from the build output.';
 
       debug &&
-        //  eslint-disable-next-line no-console
         console.log(
           `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`.${deletionMessage}`,
         );

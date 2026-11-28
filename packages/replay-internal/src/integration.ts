@@ -444,7 +444,6 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions,
 
   if (replaysSessionSampleRate == null && replaysOnErrorSampleRate == null) {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn(
         'Replay is disabled because neither `replaysSessionSampleRate` nor `replaysOnErrorSampleRate` are set.',
       );

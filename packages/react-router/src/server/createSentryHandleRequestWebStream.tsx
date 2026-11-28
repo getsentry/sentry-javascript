@@ -63,7 +63,7 @@ export function createSentryHandleRequestWebStream(
           statusCode = 500;
           // Shell errors reject the render promise and get logged by the caller.
           if (shellRendered) {
-            // eslint-disable-next-line no-console
+            // oxlint-disable-next-line sdk/no-unsandboxed-console -- mirrors React Router's default error logging
             console.error(error);
           }
         },

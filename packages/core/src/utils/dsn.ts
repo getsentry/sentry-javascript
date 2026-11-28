@@ -42,7 +42,6 @@ export function dsnFromString(str: string): DsnComponents | undefined {
   if (!match) {
     // This should be logged to the console
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.error(`Invalid Sentry Dsn: ${str}`);
     });
     return undefined;

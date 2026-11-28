@@ -131,7 +131,6 @@ export function setupSourceMaps(
       applyNitroSourceMapSettings(nitroConfig, shouldDeleteFilesFallback, moduleOptions.sourcemaps?.delete);
 
       if (isDebug) {
-        // eslint-disable-next-line no-console
         console.log('[Sentry] Adding Sentry Rollup plugin to the server runtime.');
       }
 
@@ -283,7 +282,6 @@ function resolveFilesToDeleteAfterUpload(
   }
 
   if (typeof filesToDeleteAfterUpload === 'undefined' && shouldDeleteFilesAfterUpload && moduleOptions.debug) {
-    // eslint-disable-next-line no-console
     console.log(
       `[Sentry] Setting \`sentry.sourcemaps.filesToDeleteAfterUpload: [${fallbackFilesToDelete
         // Logging it as strings in the array
@@ -430,7 +428,6 @@ export function validateNitroSourceMapSettings(
   // `node_modules` sources, and Nitro 3 also deletes `sourcesContent`, which overrides `sourcemapExcludeSources`.
   nitroConfig.experimental = { ...nitroConfig.experimental, sourcemapMinify: false };
   if (isDebug) {
-    // eslint-disable-next-line no-console
     console.log(
       '[Sentry] Set `sourcemapExcludeSources: false` (`nitro.rollupConfig.output`) and `sourcemapMinify: false` (`nitro.experimental`) in the Nuxt config. Source maps will now include the actual code to be able to un-minify code snippets in Sentry.',
     );

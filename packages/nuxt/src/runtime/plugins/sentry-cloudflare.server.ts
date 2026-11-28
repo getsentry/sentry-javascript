@@ -83,7 +83,6 @@ export const sentryCloudflareNitroPlugin =
   (nitroApp: NitroApp): void => {
     if (isCloudflareEntryWrapped()) {
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.warn(
           '[Sentry] `sentryCloudflareNitroPlugin` does nothing, because Sentry sets up the SDK from `sentry.cloudflare.config.ts`. Remove the plugin.',
         );

@@ -31,7 +31,6 @@ export function setupCloudflareEntry(nuxt: Nuxt, optionsFile: string): void {
     // The entry of this service worker preset of Nitro 2 has no default export.
     if (nitro.options.preset.replace(/-/g, '_') === 'cloudflare_worker') {
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.warn(
           '[Sentry] The Worker of the `cloudflare-worker` preset has no default export, so Sentry cannot wrap it with `withSentry`. Use the `cloudflare-module` preset to set up the SDK from `sentry.cloudflare.config.ts`.',
         );

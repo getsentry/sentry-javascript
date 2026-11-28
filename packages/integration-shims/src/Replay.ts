@@ -15,7 +15,6 @@ interface ReplayIntegration extends Integration, ReplaySpecificMethods {}
  */
 export function replayIntegrationShim(_options: unknown): ReplayIntegration {
   consoleSandbox(() => {
-    // eslint-disable-next-line no-console
     console.warn('You are using replayIntegration() even though this bundle does not include replay.');
   });
 

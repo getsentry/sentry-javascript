@@ -22,7 +22,6 @@ export function warnOnRemovedBuildOptions(
   removedKeys: string[],
   logWarning: (message: string) => void = message =>
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn(message);
     }),
 ): void {

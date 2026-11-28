@@ -219,7 +219,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       isStaticBeforeSendSpanCallback(beforeSendSpan) !== (traceLifecycle === 'static')
     ) {
       consoleSandbox(() => {
-        // oxlint-disable-next-line no-console
         console.warn(
           `Ignoring \`beforeSendSpan\`: ${
             traceLifecycle === 'static' ? 'wrap it with' : 'remove'

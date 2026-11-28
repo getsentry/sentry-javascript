@@ -17,7 +17,6 @@ export const sentry = <E extends Env>(app: Hono<E>, options?: SentryHonoMiddlewa
   const sentryClient = getClient();
   if (sentryClient === undefined) {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
       console.warn(
         '[@sentry/hono] Sentry is not initialized. Call `init()` from `@sentry/hono/node` in an `instrument.ts` file loaded via `--import` to set up Sentry for your application.',
       );
@@ -27,7 +26,6 @@ export const sentry = <E extends Env>(app: Hono<E>, options?: SentryHonoMiddlewa
 
     if (!isInitializedWithHonoSdk) {
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.warn(
           '[Sentry] Sentry was not initialized with `@sentry/hono/node`. Please import from `@sentry/hono/node` to ensure Hono-specific instrumentation is applied correctly.',
         );

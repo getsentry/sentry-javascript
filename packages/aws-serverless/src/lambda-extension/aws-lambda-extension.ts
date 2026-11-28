@@ -123,7 +123,6 @@ export class AwsLambdaExtension {
 
     if (!allowedDsnComponents) {
       consoleSandbox(() => {
-        // eslint-disable-next-line no-console
         console.warn(
           'Sentry Lambda extension: SENTRY_DSN is not set or is invalid. The /envelope tunnel will forward ' +
             'any DSN in the envelope header without allowlist validation. Set SENTRY_DSN to the same DSN as ' +

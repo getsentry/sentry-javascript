@@ -99,7 +99,6 @@ function withDenoFormats(loadHook: Function): Function {
  */
 function warn(message: string): void {
   consoleSandbox(() => {
-    // oxlint-disable-next-line no-console
     console.warn(`[Sentry] ${message}`);
   });
 }

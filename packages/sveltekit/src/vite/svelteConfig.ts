@@ -38,9 +38,7 @@ export async function loadSvelteConfig(): Promise<SvelteConfigFileContents> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     return (svelteConfigModule?.default as SvelteConfigFileContents) || {};
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.warn("[Source Maps Plugin] Couldn't load svelte.config.js:");
-    // eslint-disable-next-line no-console
     console.log(e);
 
     return {};
