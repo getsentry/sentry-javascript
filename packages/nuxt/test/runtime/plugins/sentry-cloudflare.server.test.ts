@@ -1,6 +1,7 @@
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { serveTunnelIntegration } from '@sentry/cloudflare';
 import { wrapRequestHandler } from '@sentry/cloudflare/request';
+import type { Integration } from '@sentry/core';
 import { getTunnelPath, SDK_VERSION } from '@sentry/core';
 import type { NitroApp } from 'nitropack';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -85,6 +86,23 @@ describe('sentryCloudflareNitroPlugin', () => {
       }),
       expect.any(Function),
     );
+  });
+
+  it('adds the integration for the tracing channels of Nuxt to the integrations of the app', async () => {
+    let options: CloudflareOptions | undefined;
+    vi.mocked(wrapRequestHandler).mockImplementationOnce(async (wrapperOptions, callback) => {
+      options = wrapperOptions.options;
+      return callback();
+    });
+
+    await handleRequest({ dsn: DSN, integrations: [serveTunnelIntegration()] });
+
+    const integrations = options?.integrations as (defaultIntegrations: Integration[]) => Integration[];
+    expect(integrations([{ name: 'Fetch' }]).map(integration => integration.name)).toEqual([
+      'Fetch',
+      'NuxtTracingChannel',
+      'ServeTunnel',
+    ]);
   });
 
   it('answers a managed tunnel request with the body Nitro read', async () => {

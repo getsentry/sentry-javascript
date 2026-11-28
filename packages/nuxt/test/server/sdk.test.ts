@@ -221,6 +221,24 @@ describe('Nuxt Server SDK', () => {
       });
     });
 
+    describe('Nuxt tracing channel integration', () => {
+      it('adds the integration to the default integrations', () => {
+        const client = init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+        expect(client?.getIntegrationByName('NuxtTracingChannel')).toBeDefined();
+      });
+
+      it('lets a user `integrations` function remove the integration', () => {
+        const client = init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          integrations: defaults => defaults.filter(integration => integration.name !== 'NuxtTracingChannel'),
+        });
+
+        expect(client).toBeDefined();
+        expect(client?.getIntegrationByName('NuxtTracingChannel')).toBeUndefined();
+      });
+    });
+
     describe('environment option', () => {
       const originalEnv = process.env.SENTRY_ENVIRONMENT;
 

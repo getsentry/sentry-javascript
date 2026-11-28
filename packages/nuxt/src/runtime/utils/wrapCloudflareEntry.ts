@@ -5,6 +5,7 @@ import { _INTERNAL_captureOptionsSetByUser, applySdkMetadata } from '@sentry/cor
 // A namespace import keeps a missing `withEnv` export a missing property instead of a module linking error.
 import * as cloudflareWorkers from 'cloudflare:workers';
 import { getBuildAssetRequestFilters } from './buildAssetRequestFilters';
+import { withNuxtTracingChannelIntegration } from './nuxtTracingChannelIntegration';
 
 type OptionsCallback = (env: unknown) => CloudflareOptions;
 type NitroDurableObjectClass = new (state: DurableObjectState, env: unknown) => object;
@@ -30,7 +31,7 @@ export function wrapNitroCloudflareEntryWithSentry<Handler extends ExportedHandl
     ]),
   ) as Handler;
 
-  const optionsCallbackWithMetadata = withNuxtSdkMetadata(optionsCallback);
+  const optionsCallbackWithMetadata = withNuxtSdkOptions(optionsCallback);
   // Nitro sends a request for a build file that the Cloudflare assets do not have to `env.ASSETS` before the Nitro app
   // runs, but `withSentry` sees the request.
   return withSentry(env => {
@@ -71,16 +72,17 @@ export function wrapNitroDurableObjectWithSentry(
     });
   }
 
-  return instrumentDurableObjectWithSentry(withNuxtSdkMetadata(optionsCallback), NitroDurableObjectWithEnv);
+  return instrumentDurableObjectWithSentry(withNuxtSdkOptions(optionsCallback), NitroDurableObjectWithEnv);
 }
 
 function runWithEnv(env: unknown, callback: () => unknown): unknown {
   return cloudflareWorkers.withEnv && env !== undefined ? cloudflareWorkers.withEnv(env, callback) : callback();
 }
 
-function withNuxtSdkMetadata(optionsCallback: OptionsCallback): OptionsCallback {
+function withNuxtSdkOptions(optionsCallback: OptionsCallback): OptionsCallback {
   return env => {
-    const options = _INTERNAL_captureOptionsSetByUser({ ...optionsCallback(env) });
+    const userOptions = _INTERNAL_captureOptionsSetByUser({ ...optionsCallback(env) });
+    const options = { ...userOptions, integrations: withNuxtTracingChannelIntegration(userOptions.integrations) };
     applySdkMetadata(options, 'nuxt', ['nuxt', 'cloudflare']);
     return options;
   };
