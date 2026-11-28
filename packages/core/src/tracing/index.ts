@@ -34,6 +34,13 @@ export {
 } from './dynamicSamplingContext';
 export { setMeasurement, timedEventsToMeasurements } from './measurement';
 export { sampleSpan } from './sampling';
+export {
+  getConsistentSessionSampleRand,
+  getSampleRandForNewTrace,
+  getTraceSamplingDecision,
+  sampleRandFromKey,
+} from './consistentSampling';
+export type { ConsistentSampling } from './consistentSampling';
 export { logSpanEnd, logSpanStart } from './logSpans';
 
 // Span Streaming

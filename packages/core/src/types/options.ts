@@ -9,6 +9,7 @@ import type { TracesSamplerSamplingContext } from './samplingcontext';
 import type { SdkMetadata } from './sdkmetadata';
 import type { SpanJSON, StreamedSpanJSON } from './span';
 import type { StackLineParser, StackParser } from './stacktrace';
+import type { ConsistentSampling } from '../tracing/consistentSampling';
 import type { TracePropagationTargets } from './tracing';
 import type { BaseTransportOptions, Transport } from './transport';
 
@@ -292,6 +293,30 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @default 1.0
    */
   sampleRate?: number;
+
+  /**
+   * PoC: Extends the trace sampling decision (`tracesSampleRate`, `tracesSampler`) to other telemetry and
+   * across traces. Requires tracing to be enabled.
+   *
+   * - `'off'`: Nothing changes. This is the same as not setting the option.
+   * - `'trace'`: Errors captured in a sampled trace are always sent. In an unsampled trace they fall back to
+   *   `sampleRate`. The SDK corrects the fallback rate, so that it still sends `sampleRate` of all errors: with
+   *   `tracesSampleRate: 0.2` and `sampleRate: 0.5`, 20% of all errors are sent in sampled traces and another 30%
+   *   as a fallback. If the trace sample rate is the higher one, there is no fallback.
+   * - `'session'`: In addition, all traces of a session share the sampling decision of the session's first trace,
+   *   so a session has either all of its traces or none. A new session is sampled again. Replays and profiles keep
+   *   their own sample rates, but are recorded in sessions whose traces are sampled if their rate is not higher
+   *   than the trace sample rate.
+   * - `'conversation'`: In addition, all traces started while a conversation id is set (`Sentry.setConversationId()`)
+   *   share one sampling decision, in every process that handles a part of the conversation.
+   *
+   * A trace that is continued from another service keeps the decision of that service. A session that starts
+   * with such a trace (a server-rendered pageload) takes over its decision.
+   *
+   * @experimental
+   * @default undefined
+   */
+  consistentSampling?: ConsistentSampling;
 
   /**
    * Maximum number of chars a single value can have before it will be truncated.
