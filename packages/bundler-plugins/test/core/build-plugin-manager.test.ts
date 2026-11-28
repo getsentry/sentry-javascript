@@ -569,6 +569,71 @@ describe('createSentryBuildPluginManager', () => {
     });
   });
 
+  describe('deleteArtifacts', () => {
+    const managerOptions = {
+      authToken: 't',
+      org: 'o',
+      project: 'p',
+      release: { name: 'some-release-name' },
+      telemetry: false,
+      silent: true,
+    };
+    const meta = { buildTool: 'esbuild', loggerPrefix: '[sentry-esbuild-plugin]' };
+
+    it("deletes the files of the user's and the SDK's globs once", async () => {
+      const rmSpy = vi.spyOn(fs.promises, 'rm').mockResolvedValue(undefined);
+      mockGlobFiles.mockImplementation(async patterns =>
+        patterns === 'user/**/*.map' ? ['/app/user/a.js.map', '/app/shared.js.map'] : ['/app/shared.js.map'],
+      );
+      const manager = createSentryBuildPluginManager(
+        {
+          ...managerOptions,
+          sourcemaps: {
+            filesToDeleteAfterUpload: 'user/**/*.map',
+            sdkFilesToDeleteAfterUpload: Promise.resolve(['sdk/**/*.map']),
+          },
+        },
+        meta,
+      );
+
+      await manager.deleteArtifacts();
+
+      expect(mockGlobFiles).toHaveBeenCalledWith('user/**/*.map');
+      expect(mockGlobFiles).toHaveBeenCalledWith(['sdk/**/*.map']);
+      expect(rmSpy).toHaveBeenCalledTimes(2);
+      expect(rmSpy).toHaveBeenCalledWith('/app/user/a.js.map', { force: true });
+      expect(rmSpy).toHaveBeenCalledWith('/app/shared.js.map', { force: true });
+    });
+
+    it('deletes the files of the SDK glob without a user glob', async () => {
+      const rmSpy = vi.spyOn(fs.promises, 'rm').mockResolvedValue(undefined);
+      mockGlobFiles.mockResolvedValue(['/app/sdk/a.js.map']);
+      const manager = createSentryBuildPluginManager(
+        { ...managerOptions, sourcemaps: { sdkFilesToDeleteAfterUpload: 'sdk/**/*.map' } },
+        meta,
+      );
+
+      await manager.deleteArtifacts();
+
+      expect(mockGlobFiles).toHaveBeenCalledTimes(1);
+      expect(mockGlobFiles).toHaveBeenCalledWith('sdk/**/*.map');
+      expect(rmSpy).toHaveBeenCalledWith('/app/sdk/a.js.map', { force: true });
+    });
+
+    it('deletes nothing without a glob', async () => {
+      const rmSpy = vi.spyOn(fs.promises, 'rm').mockResolvedValue(undefined);
+      const manager = createSentryBuildPluginManager(
+        { ...managerOptions, sourcemaps: { sdkFilesToDeleteAfterUpload: Promise.resolve(undefined) } },
+        meta,
+      );
+
+      await manager.deleteArtifacts();
+
+      expect(mockGlobFiles).not.toHaveBeenCalled();
+      expect(rmSpy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('injectDebugIds', () => {
     it('should call the CLI inject command for each build artifact path', async () => {
       mockSourcemapInject.mockResolvedValue(undefined);

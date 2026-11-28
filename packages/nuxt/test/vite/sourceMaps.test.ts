@@ -105,7 +105,7 @@ describe('getPluginOptions', () => {
         sourcemaps: expect.objectContaining({
           assets: ['custom-assets/**/*'],
           ignore: ['ignore-this.js'],
-          filesToDeleteAfterUpload: ['delete-this.js'],
+          sdkFilesToDeleteAfterUpload: ['delete-this.js'],
           rewriteSources: expect.any(Function),
         }),
         _metaOptions: expect.objectContaining({
@@ -256,7 +256,7 @@ describe('getPluginOptions', () => {
       expected: undefined,
     },
   ])(
-    'sets filesToDeleteAfterUpload correctly when $name',
+    'sets sdkFilesToDeleteAfterUpload correctly when $name',
     ({ clientFallback, serverFallback, customOptions = {}, serverDir = NODE_SERVER_DIR, expected }) => {
       const options = getPluginOptions(customOptions as SentryNuxtModuleOptions, {
         client: clientFallback,
@@ -264,7 +264,8 @@ describe('getPluginOptions', () => {
         serverDir: serverDir ?? undefined,
       });
 
-      expect(options?.sourcemaps?.filesToDeleteAfterUpload).toEqual(expected);
+      expect(options?.sourcemaps?.sdkFilesToDeleteAfterUpload).toEqual(expected);
+      expect(options?.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
     },
   );
 });

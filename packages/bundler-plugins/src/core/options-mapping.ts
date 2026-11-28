@@ -36,6 +36,7 @@ export type NormalizedOptions = {
         filesToDeleteAfterUpload?: string | string[] | Promise<string | string[] | undefined>;
         deleteSourcemapsAfterUpload?: boolean;
         sdkDeleteSourceMaps?: boolean | ((environment?: string) => boolean | undefined);
+        sdkFilesToDeleteAfterUpload?: string | string[] | Promise<string | string[] | undefined>;
       }
     | undefined;
   release: {

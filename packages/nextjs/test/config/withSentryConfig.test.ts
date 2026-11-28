@@ -4,6 +4,7 @@ import {
   filterInstrumentedExternals,
   ORCHESTRION_RUNTIME_EXTERNAL_PACKAGES,
 } from '../../src/config/diagnosticsChannelInjection';
+import { getDeleteSourceMapsOption } from '../../src/config/sourceMapOptions';
 import type { SentryBuildOptions } from '../../src/config/types';
 import * as util from '../../src/config/util';
 import { DEFAULT_SERVER_EXTERNAL_PACKAGES } from '../../src/config/withSentryConfig';
@@ -653,7 +654,7 @@ describe('withSentryConfig', () => {
       expect(finalConfig.productionBrowserSourceMaps).toBe(true);
     });
 
-    it('automatically enables deleteSourcemapsAfterUpload for turbopack builds when not explicitly set', () => {
+    it('turns source map deletion on for turbopack builds when not explicitly set', () => {
       process.env.TURBOPACK = '1';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
@@ -667,9 +668,9 @@ describe('withSentryConfig', () => {
 
       const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
-      // Both productionBrowserSourceMaps and deleteSourcemapsAfterUpload should be enabled
+      // Both source map generation and deletion should be enabled
       expect(finalConfig.productionBrowserSourceMaps).toBe(true);
-      expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
+      expect(getDeleteSourceMapsOption(sentryOptions)).toBe(true);
     });
 
     it('does not auto-enable source map generation when `disable` is "disable-upload"', () => {
@@ -690,7 +691,7 @@ describe('withSentryConfig', () => {
       // The SDK must not generate source maps it will neither upload nor delete - they would be served
       // publicly from `.next/static`. Generating them is the user's call via `productionBrowserSourceMaps`.
       expect(finalConfig.productionBrowserSourceMaps).toBeUndefined();
-      expect(sentryOptions.sourcemaps).not.toHaveProperty('deleteSourcemapsAfterUpload');
+      expect(getDeleteSourceMapsOption(sentryOptions)).toBeUndefined();
     });
 
     it('preserves explicitly configured deleteSourcemapsAfterUpload setting', () => {
@@ -708,7 +709,7 @@ describe('withSentryConfig', () => {
       expect(sentryOptions.sourcemaps.deleteSourcemapsAfterUpload).toBe(false);
     });
 
-    it('does not modify deleteSourcemapsAfterUpload when sourcemaps are disabled', () => {
+    it('does not turn source map deletion on when sourcemaps are disabled', () => {
       process.env.TURBOPACK = '1';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
@@ -720,10 +721,10 @@ describe('withSentryConfig', () => {
 
       materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
 
-      expect(sentryOptions.sourcemaps).not.toHaveProperty('deleteSourcemapsAfterUpload');
+      expect(getDeleteSourceMapsOption(sentryOptions)).toBeUndefined();
     });
 
-    it('does not enable deleteSourcemapsAfterUpload when user pre-configured productionBrowserSourceMaps: true', () => {
+    it('does not turn source map deletion on when user pre-configured productionBrowserSourceMaps: true', () => {
       process.env.TURBOPACK = '1';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
@@ -739,7 +740,7 @@ describe('withSentryConfig', () => {
       materializeFinalNextConfig(configWithSourceMapsPreEnabled, undefined, sentryOptions);
 
       // Should NOT automatically enable deletion because productionBrowserSourceMaps was already set by user
-      expect(sentryOptions.sourcemaps).not.toHaveProperty('deleteSourcemapsAfterUpload');
+      expect(getDeleteSourceMapsOption(sentryOptions)).toBeUndefined();
     });
 
     it('does not enable sourcemaps or deletion when user explicitly sets productionBrowserSourceMaps: false', () => {
@@ -759,7 +760,7 @@ describe('withSentryConfig', () => {
 
       // Should NOT modify productionBrowserSourceMaps or enable deletion when user explicitly set to false
       expect(finalConfig.productionBrowserSourceMaps).toBe(false);
-      expect(sentryOptions.sourcemaps).not.toHaveProperty('deleteSourcemapsAfterUpload');
+      expect(getDeleteSourceMapsOption(sentryOptions)).toBeUndefined();
     });
 
     it('logs correct message when enabling sourcemaps for turbopack', () => {
@@ -800,7 +801,7 @@ describe('withSentryConfig', () => {
       materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
+        '[@sentry/nextjs] Source maps will be deleted after the upload to Sentry. To keep them, set `sourcemaps.delete: false` in `withSentryConfig()`. To neither generate nor upload source maps, set `sourcemaps.upload: false`.',
       );
 
       consoleWarnSpy.mockRestore();
@@ -897,7 +898,7 @@ describe('withSentryConfig', () => {
 
         materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
-        expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
+        expect(getDeleteSourceMapsOption(sentryOptions)).toBe(true);
       });
 
       it('works when TURBOPACK env var is truthy string', () => {
@@ -937,7 +938,7 @@ describe('withSentryConfig', () => {
         const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
         expect(finalConfig.productionBrowserSourceMaps).toBe(true);
-        expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
+        expect(getDeleteSourceMapsOption(sentryOptions)).toBe(true);
         expect(finalConfig.env).toHaveProperty('_sentryTunnelRoute', '/custom-tunnel');
       });
 
@@ -963,7 +964,7 @@ describe('withSentryConfig', () => {
         const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
         expect(finalConfig.productionBrowserSourceMaps).toBe(true);
-        expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
+        expect(getDeleteSourceMapsOption(sentryOptions)).toBe(true);
         expect(finalConfig.env).toHaveProperty('_sentryRelease', 'custom-release-1.0.0');
 
         // Restore original env var

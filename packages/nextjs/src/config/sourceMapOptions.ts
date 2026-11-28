@@ -15,9 +15,29 @@ export function sentryEnablesSourceMaps(options: SentryBuildOptions): boolean {
   return (upload && hasSourceMapUploadCredentials(options)) || (sourcemaps?.delete === false && injectDebugIds);
 }
 
-/** Reads `sourcemaps.delete`. When it is unset, `sourcemaps.deleteSourcemapsAfterUpload` decides. */
-export function getDeleteSourceMapsOption(sourcemaps: SourceMapsOptions): boolean | undefined {
-  return sourcemaps?.delete ?? sourcemaps?.deleteSourcemapsAfterUpload;
+export const SDK_DELETES_SOURCE_MAPS_MESSAGE =
+  '[@sentry/nextjs] Source maps will be deleted after the upload to Sentry. To keep them, set `sourcemaps.delete: false` in `withSentryConfig()`. To neither generate nor upload source maps, set `sourcemaps.upload: false`.';
+
+// Every build phase that runs in this process gets the same options object.
+const sdkDeletesSourceMaps = new WeakSet<SentryBuildOptions>();
+
+/**
+ * Makes the SDK delete the source maps after the upload when the user set neither `sourcemaps.delete`
+ * nor `sourcemaps.deleteSourcemapsAfterUpload`.
+ */
+export function setSdkDeletesSourceMaps(options: SentryBuildOptions): void {
+  sdkDeletesSourceMaps.add(options);
+}
+
+/**
+ * Reads `sourcemaps.delete`. When it is unset, `sourcemaps.deleteSourcemapsAfterUpload` decides, and
+ * then `setSdkDeletesSourceMaps`.
+ */
+export function getDeleteSourceMapsOption(options: SentryBuildOptions): boolean | undefined {
+  const { sourcemaps } = options;
+  return (
+    sourcemaps?.delete ?? sourcemaps?.deleteSourcemapsAfterUpload ?? (sdkDeletesSourceMaps.has(options) || undefined)
+  );
 }
 
 /**
@@ -37,8 +57,7 @@ export function mergeFilesToDeleteAfterUpload(
 }
 
 /**
- * `disable`, `upload` and `injectDebugIds` for the bundler plugin. It warns when `disable` is set next to the
- * options that replace it, so `disable` gets no default then.
+ * `disable`, `upload` and `injectDebugIds` for the bundler plugin. `disable` is only ever the user's own value.
  */
 // TODO(v12): Remove `disable`.
 export function getSourceMapFeatureOptions(
@@ -46,10 +65,9 @@ export function getSourceMapFeatureOptions(
   skipSourcemapsUpload: boolean,
 ): Pick<NonNullable<SentryBuildPluginOptions['sourcemaps']>, 'disable' | 'upload' | 'injectDebugIds'> {
   if (skipSourcemapsUpload) {
-    return { disable: true };
+    return { upload: false, injectDebugIds: false };
   }
 
   const { disable, upload, injectDebugIds } = userSourcemaps ?? {};
-  const usesFeatureOptions = upload !== undefined || injectDebugIds !== undefined;
-  return { disable: disable ?? (usesFeatureOptions ? undefined : false), upload, injectDebugIds };
+  return { disable, upload, injectDebugIds };
 }

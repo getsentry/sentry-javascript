@@ -28,7 +28,7 @@ describe('getPluginOptions', () => {
         debug: false,
         silent: false,
         sourcemaps: expect.objectContaining({
-          filesToDeleteAfterUpload: ['/project/.output/server/**/*.map'],
+          sdkFilesToDeleteAfterUpload: ['/project/.output/server/**/*.map'],
           rewriteSources: expect.any(Function),
         }),
         _metaOptions: expect.objectContaining({
@@ -38,6 +38,7 @@ describe('getPluginOptions', () => {
         }),
       }),
     );
+    expect(options.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
     expect(options.org).toBeUndefined();
     expect(options.project).toBeUndefined();
     expect(options.authToken).toBeUndefined();
@@ -47,7 +48,7 @@ describe('getPluginOptions', () => {
   it('does not default filesToDeleteAfterUpload when user enabled sourcemaps themselves', () => {
     const options = getPluginOptions(undefined, false);
 
-    expect(options.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
+    expect(options.sourcemaps?.sdkFilesToDeleteAfterUpload).toBeUndefined();
   });
 
   it('respects user-provided filesToDeleteAfterUpload even when Sentry enabled sourcemaps', () => {
@@ -57,14 +58,16 @@ describe('getPluginOptions', () => {
       '/project/.output/server',
     );
 
-    expect(options.sourcemaps?.filesToDeleteAfterUpload).toEqual(['dist/**/*.map']);
+    expect(options.sourcemaps?.sdkFilesToDeleteAfterUpload).toEqual(['dist/**/*.map']);
   });
 
-  it('logs the default filesToDeleteAfterUpload glob in debug mode', () => {
+  it('logs the default deletion glob in debug mode', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     getPluginOptions({ debug: true }, true, '/project/.output/server');
 
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('/project/.output/server/**/*.map'));
+    expect(logSpy).toHaveBeenCalledWith(
+      '[@sentry/nitro] Deleting the generated source maps after the upload: /project/.output/server/**/*.map',
+    );
     logSpy.mockRestore();
   });
 
@@ -76,7 +79,7 @@ describe('getPluginOptions', () => {
       '/project/.output/server',
     );
 
-    expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining('filesToDeleteAfterUpload'));
+    expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining('Deleting the generated source maps'));
     logSpy.mockRestore();
   });
 
@@ -143,7 +146,7 @@ describe('getPluginOptions', () => {
     expect(options.release).toEqual({ name: 'v1.0.0' });
     expect(options.sourcemaps?.assets).toEqual(['dist/**']);
     expect(options.sourcemaps?.ignore).toEqual(['dist/test/**']);
-    expect(options.sourcemaps?.filesToDeleteAfterUpload).toEqual(['dist/**/*.map']);
+    expect(options.sourcemaps?.sdkFilesToDeleteAfterUpload).toEqual(['dist/**/*.map']);
   });
 
   it('normalizes source paths via rewriteSources', () => {
@@ -195,6 +198,14 @@ describe('configureSourcemapSettings', () => {
     expect(config.sourcemap).toBe(false);
     expect(result.sentryEnabledSourcemaps).toBe(false);
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('explicitly disabled source maps'));
+    warnSpy.mockRestore();
+  });
+
+  it('does not warn about `sourcemap: false` with `sourcemaps.upload: false`', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    configureSourcemapSettings({ sourcemap: false }, { sourcemaps: { upload: false } });
+
+    expect(warnSpy).not.toHaveBeenCalled();
     warnSpy.mockRestore();
   });
 
@@ -322,7 +333,7 @@ describe('getPluginOptions with the new source map options', () => {
       '/output/server',
     );
 
-    expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual(expected);
+    expect(result.sourcemaps?.sdkFilesToDeleteAfterUpload).toEqual(expected);
   });
 });
 

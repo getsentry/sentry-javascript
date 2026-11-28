@@ -459,7 +459,9 @@ describe('sentryOnBuildEnd', () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[Sentry] Automatically setting'));
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[Sentry] Deleting the generated source maps after the upload: '),
+    );
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Deleting asset after upload:'));
     expect(mockSentrySdkInstance.sourcemap.inject).toHaveBeenCalledWith({ directory: '/build' });
 

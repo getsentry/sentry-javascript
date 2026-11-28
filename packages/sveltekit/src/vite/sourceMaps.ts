@@ -85,7 +85,8 @@ export async function makeCustomSentryVitePlugins(
     },
     sourcemaps: {
       ...options?.sourcemaps,
-      filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
+      filesToDeleteAfterUpload: undefined,
+      sdkFilesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
       // The adapter runs after the bundler and still needs the source maps, so
       // the SDK deletes them from disk afterwards instead of the plugin.
       deleteSourcemapsAfterUpload: undefined,
@@ -180,9 +181,7 @@ export async function makeCustomSentryVitePlugins(
         debug &&
           // eslint-disable-next-line no-console
           console.info(
-            `[Sentry] Automatically setting \`sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
-              .map(file => `"${file}"`)
-              .join(', ')}]\` to delete generated source maps after they were uploaded to Sentry.`,
+            `[Sentry] Deleting the generated source maps after the upload: ${defaultFileDeletionGlob.join(', ')}`,
           );
 
         _resolveFilesToDeleteAfterUpload?.(
@@ -353,7 +352,7 @@ export async function makeCustomSentryVitePlugins(
  *     3. Users didn't set source maps generation
  *       - we enable 'hidden' source maps generation when Sentry uploads the maps, or when
  *         `sourcemaps.delete: false` keeps them for a manual upload. Otherwise we leave it unset
- *       - configure `filesToDeleteAfterUpload` to delete all .map files (we emit a log about this)
+ *       - delete all .map files after the upload (we emit a log about this)
  *
  * --> only exported for testing
  */
