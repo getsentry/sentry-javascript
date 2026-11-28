@@ -156,7 +156,7 @@ export interface Options {
     // TODO(v12): Remove `disable`. `upload` and `injectDebugIds` replace it.
     /**
      * @deprecated Use `sourcemaps.upload` and `sourcemaps.injectDebugIds` instead. `upload: false` replaces
-     * `"disable-upload"`, and `upload: false, injectDebugIds: false` replaces `true`.
+     * `"disable-upload"`, and `injectDebugIds: false` replaces `true`.
      *
      * Disables all functionality related to sourcemaps if set to `true`.
      *

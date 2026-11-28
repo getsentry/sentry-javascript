@@ -49,7 +49,7 @@ export function warnOnConflictingSourceMapOptions(
   // TODO(v12): Remove along with the deprecated options.
   if (sourcemaps.disable !== undefined) {
     warn(
-      "`sourcemaps.disable` is deprecated and will be removed in the next major version. Use `sourcemaps.upload: false` instead of `'disable-upload'`, and `sourcemaps: { upload: false, injectDebugIds: false }` instead of `true`.",
+      "`sourcemaps.disable` is deprecated and will be removed in the next major version. Use `sourcemaps.upload: false` instead of `'disable-upload'`, and `sourcemaps.injectDebugIds: false` instead of `true`.",
     );
   }
   if (sourcemaps.deleteSourcemapsAfterUpload !== undefined) {

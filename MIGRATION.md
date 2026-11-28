@@ -1271,33 +1271,6 @@ Because the integration owns error capture, `setupFastifyErrorHandler` no longer
 -});
 ```
 
-### `sourcemaps.disable`, `deleteSourcemapsAfterUpload` and `filesToDeleteAfterUpload` are deprecated
-
-Affected SDKs: the bundler plugins and all SDKs with build-time options.
-
-Three source map build options are deprecated. They still work, log a warning at build time, and will be removed in v12:
-
-| Deprecated option                                    | Replacement                                                |
-| ---------------------------------------------------- | ---------------------------------------------------------- |
-| `sourcemaps: { disable: 'disable-upload' }`          | `sourcemaps: { upload: false }`                            |
-| `sourcemaps: { disable: true }`                      | `sourcemaps: { upload: false, injectDebugIds: false }`     |
-| `sourcemaps.deleteSourcemapsAfterUpload`             | `sourcemaps.delete`                                        |
-| `sourcemaps.filesToDeleteAfterUpload`                | `sourcemaps.delete`, or a script that runs after the build |
-| `deleteSourcemapsAfterUpload` (Gatsby plugin option) | `sourcemaps.delete`                                        |
-
-`deleteSourcemapsAfterUpload: false` becomes `delete: false`. `delete: true` removes more than `deleteSourcemapsAfterUpload: true`: for source maps you turned on yourself, the old option only removed the maps of the chunks that were uploaded. `delete: true` removes every source map of the build, also CSS source maps and the maps of chunks that the upload leaves out, and it does so also when nothing is uploaded. In `@sentry/nextjs`, both options only apply to the client source maps.
-
-When `sourcemaps.delete` is unset, Sentry already removes the source maps it turned on itself, and `delete: true` removes all of them. If you used `filesToDeleteAfterUpload` to delete other files, delete them with a script after the build.
-
-Some SDKs turned on source maps for `disable: 'disable-upload'`, so that you could upload them yourself. With `upload: false`, they only do so when you also set `delete: false`.
-
-In `@sentry/astro`, `@sentry/nuxt` and `@sentry/solidstart`, `sourcemaps.disable: true` also leaves out the Sentry plugin, so no release is injected or created. In `@sentry/nitro`, it skips the release creation. The new options keep these release steps. To turn them off too, set:
-
-```js
-sourcemaps: { upload: false, injectDebugIds: false },
-release: { inject: false, create: false, finalize: false, setCommits: false, deploy: false },
-```
-
 ### `@sentry/nextjs`
 
 **Tracing removed from generated templates:** Tracing was removed from the generated Pages Router API handler, Edge API handler, and Middleware wrapper templates. Route handlers and middleware are still instrumented automatically, so no action is required for most users.
@@ -1509,7 +1482,7 @@ Affected SDKs: `@sentry/remix`.
 
 The plugin now also applies the build-time instrumentation transform. If you added `sentryOrchestrionPlugin()` from `@sentry/server-utils/orchestrion/vite` to your Vite config manually, remove it. Opt out with `sentryRemixVitePlugin({ buildTimeInstrumentation: false })`.
 
-It also injects debug IDs and uploads source maps once you pass `org`, `project` and `authToken` — opt out with `sentryRemixVitePlugin({ sourcemaps: { upload: false, injectDebugIds: false } })`.
+It also injects debug IDs and uploads source maps once you pass `org`, `project` and `authToken` — opt out with `sentryRemixVitePlugin({ sourcemaps: { injectDebugIds: false } })`.
 
 ### React: Simpler React Router setup via `@sentry/react/react-router`
 
@@ -1842,7 +1815,7 @@ tracing loaders and actions.
   instead of wrapping them individually.
 - The deprecated `sentryHandleRequest` export was removed. Use `wrapSentryHandleRequest` instead.
 
-The deprecated `sourceMapsUploadOptions` option was removed from `sentryReactRouter()`. Move its fields to the root level of the `sentryConfig` passed to `sentryReactRouter()`. Note that `enabled: false` becomes `sourcemaps: { upload: false, injectDebugIds: false }`.
+The deprecated `sourceMapsUploadOptions` option was removed from `sentryReactRouter()`. Move its fields to the root level of the `sentryConfig` passed to `sentryReactRouter()`. Note that `enabled: false` becomes `sourcemaps: { injectDebugIds: false }`.
 
 ### Browser and Node profiling
 
@@ -1949,7 +1922,7 @@ remains available on the React-based SDKs (`@sentry/nextjs`, `@sentry/react-rout
 
 The following bundler plugin options have no first-class equivalent and are no longer reachable:
 `release.uploadLegacySourcemaps`, `_experiments`, and the whole-plugin `disable` flag (use
-`sourcemaps: { upload: false, injectDebugIds: false }` instead).
+`sourcemaps: { injectDebugIds: false }` instead).
 
 ### `@sentry/nuxt`
 
@@ -1965,7 +1938,7 @@ sentry.server.config.ts
 
 After the rename, the SDK bundles the file into the Nitro server build and initializes itself at server startup. See ["the server config is bundled"](#sentrynuxt-the-server-config-is-bundled---import-is-no-longer-needed) above: the `--import` preload is no longer needed.
 
-The deprecated `sourceMapsUploadOptions` module option was removed. Move its fields to the root level of the `sentry` module options. Note that `url` was renamed to `sentryUrl`, and `enabled: false` becomes `sourcemaps: { upload: false, injectDebugIds: false }`. To also turn off the release steps, as `enabled: false` did, see [the deprecated source map options](#sourcemapsdisable-deletesourcemapsafterupload-and-filestodeleteafterupload-are-deprecated).
+The deprecated `sourceMapsUploadOptions` module option was removed. Move its fields to the root level of the `sentry` module options. Note that `url` was renamed to `sentryUrl`, and `enabled: false` becomes `sourcemaps: { injectDebugIds: false }`. To also turn off the release steps, as `enabled: false` did, see [the deprecated source map options](#sourcemapsdisable-deletesourcemapsafterupload-and-filestodeleteafterupload-are-deprecated).
 
 ```ts
 // nuxt.config.ts
@@ -2038,7 +2011,7 @@ export default defineConfig({
 
 ### `@sentry/astro`
 
-The deprecated `sourceMapsUploadOptions` option was removed from `sentryAstro()`. Move its fields to the top level of the `sentryAstro()` options. Note that `assets` moved into `sourcemaps`, `filesToDeleteAfterUpload` is replaced by `sourcemaps.delete`, and `enabled: false` becomes `sourcemaps: { upload: false, injectDebugIds: false }`. To also turn off the release steps, as `enabled: false` did, see [the deprecated source map options](#sourcemapsdisable-deletesourcemapsafterupload-and-filestodeleteafterupload-are-deprecated).
+The deprecated `sourceMapsUploadOptions` option was removed from `sentryAstro()`. Move its fields to the top level of the `sentryAstro()` options. Note that `assets` moved into `sourcemaps`, `filesToDeleteAfterUpload` is replaced by `sourcemaps.delete`, and `enabled: false` becomes `sourcemaps: { injectDebugIds: false }`. To also turn off the release steps, as `enabled: false` did, see [the deprecated source map options](#sourcemapsdisable-deletesourcemapsafterupload-and-filestodeleteafterupload-are-deprecated).
 
 ```js
 // astro.config.mjs
@@ -2118,7 +2091,7 @@ Sentry.init({
 ### `@sentry/solidstart`
 
 The `sourceMapsUploadOptions` build option was removed. Move its fields to the top level, matching every
-other meta-framework SDK. Note that `enabled: false` becomes `sourcemaps: { upload: false, injectDebugIds: false }`,
+other meta-framework SDK. Note that `enabled: false` becomes `sourcemaps: { injectDebugIds: false }`,
 and `filesToDeleteAfterUpload` is replaced by `sourcemaps.delete`. To also turn off the release steps, as
 `enabled: false` did, see [the deprecated source map options](#sourcemapsdisable-deletesourcemapsafterupload-and-filestodeleteafterupload-are-deprecated).
 
@@ -2417,6 +2390,31 @@ The main entry re-exported the build plugin statically, which pulled the whole b
     (env) => ({ dsn: env.SENTRY_DSN }),
     MyDOBase,
   );
+```
+
+## 7. Deprecations in 11.x
+
+### `sourcemaps.disable`, `deleteSourcemapsAfterUpload` and `filesToDeleteAfterUpload` are deprecated
+
+Affected SDKs: the bundler plugins and all SDKs with build-time options.
+
+Three source map build options are deprecated. They still work, log a warning at build time, and will be removed in v12:
+
+| Deprecated option                                    | Replacement                                                |
+| ---------------------------------------------------- | ---------------------------------------------------------- |
+| `sourcemaps: { disable: 'disable-upload' }`          | `sourcemaps: { upload: false }`                            |
+| `sourcemaps: { disable: true }`                      | `sourcemaps: { injectDebugIds: false }`                    |
+| `sourcemaps.deleteSourcemapsAfterUpload`             | `sourcemaps.delete`                                        |
+| `sourcemaps.filesToDeleteAfterUpload`                | `sourcemaps.delete`, or a script that runs after the build |
+| `deleteSourcemapsAfterUpload` (Gatsby plugin option) | `sourcemaps.delete`                                        |
+
+The [bundler plugin options](https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/bundler-plugin-options/#source-maps-options) in the docs describe what `upload`, `injectDebugIds` and `delete` do.
+
+In `@sentry/astro`, `@sentry/nuxt` and `@sentry/solidstart`, `sourcemaps.disable: true` also leaves out the Sentry plugin, so no release is injected or created. In `@sentry/nitro`, it skips the release creation. The new options keep these release steps. To turn them off too, set:
+
+```js
+sourcemaps: { injectDebugIds: false },
+release: { inject: false, create: false, finalize: false, setCommits: false, deploy: false },
 ```
 
 ## No Version Support Timeline

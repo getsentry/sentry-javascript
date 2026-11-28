@@ -248,7 +248,7 @@ interface SourceMapsOptions {
   // TODO(v12): Remove `disable`. `upload` and `injectDebugIds` replace it.
   /**
    * @deprecated Use `sourcemaps.upload` and `sourcemaps.injectDebugIds` instead. `upload: false` replaces
-   * `"disable-upload"`, and `upload: false, injectDebugIds: false` replaces `true`.
+   * `"disable-upload"`, and `injectDebugIds: false` replaces `true`.
    *
    * If this flag is `true`, any functionality related to source maps will be disabled. This includes the automatic upload of source maps.
    *

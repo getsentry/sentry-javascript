@@ -16,7 +16,7 @@ describe('warnOnConflictingSourceMapOptions', () => {
   });
 
   it.each([
-    [{ disable: true }, /^`sourcemaps\.disable` is deprecated.*`sourcemaps\.upload: false`/],
+    [{ disable: true }, /^`sourcemaps\.disable` is deprecated.*`sourcemaps\.injectDebugIds: false` instead of `true`/],
     [{ disable: 'disable-upload' }, /^`sourcemaps\.disable` is deprecated/],
     [{ disable: false }, /^`sourcemaps\.disable` is deprecated/],
     [
