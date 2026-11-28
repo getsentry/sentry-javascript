@@ -9,6 +9,7 @@ import type { TracesSamplerSamplingContext } from './samplingcontext';
 import type { SdkMetadata } from './sdkmetadata';
 import type { SpanJSON, StreamedSpanJSON } from './span';
 import type { StackLineParser, StackParser } from './stacktrace';
+import type { SampleBy } from '../tracing/samplingUnit';
 import type { TracePropagationTargets } from './tracing';
 import type { BaseTransportOptions, Transport } from './transport';
 
@@ -292,6 +293,38 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @default 1.0
    */
   sampleRate?: number;
+
+  /**
+   * PoC: What `consistentSampleRate` samples by: `'session'`, `'conversation'`, `'trace'`, or a function that
+   * returns any key, for example a tenant id or a request header.
+   *
+   * Pass several values to fall back, for example `['session', 'conversation']`. The first one that is
+   * available wins. If none is available, the existing options apply (`tracesSampleRate`, `sampleRate`, ...).
+   *
+   * @experimental
+   * @default undefined
+   */
+  sampleBy?: SampleBy | SampleBy[];
+
+  /**
+   * PoC: Sample rate for the units defined by `sampleBy`, for example sessions.
+   *
+   * The SDK makes one decision per unit. In a sampled unit it sends all spans and errors and records the replay
+   * and profile. In an unsampled unit, spans fall back to `tracesSampleRate` (or `tracesSampler`) and errors to
+   * `sampleRate`, and no replay or profile is recorded. Logs and metrics are not sampled, so they are sent in
+   * both cases. 0.0 samples no unit, 1.0 samples all units.
+   *
+   * The SDK corrects the fallback rates, so that it sends the same share of spans and errors as without this
+   * option: with `consistentSampleRate: 0.1` and `tracesSampleRate: 0.2`, 10% of all spans are sent in sampled
+   * units and another 10% as a fallback. Spans report `max(consistentSampleRate, tracesSampleRate)` as their
+   * sample rate. If `consistentSampleRate` is the higher one, there is no fallback.
+   *
+   * Inside a session, `replaysSessionSampleRate` and `profileSessionSampleRate` are not consulted.
+   *
+   * @experimental
+   * @default undefined
+   */
+  consistentSampleRate?: number;
 
   /**
    * Maximum number of chars a single value can have before it will be truncated.
