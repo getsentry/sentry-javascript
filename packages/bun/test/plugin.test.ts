@@ -73,6 +73,71 @@ describe('sentryBunPlugin', () => {
     },
   );
 
+  async function buildWithSourceMaps(
+    sourcemap: 'linked' | 'external' | true | undefined,
+    deleteSourceMaps: boolean | undefined,
+  ): Promise<{ maps: string[]; bundleSources: string[] }> {
+    const outdir = path.join(tmpDir, 'dist');
+    const result = await Bun.build({
+      entrypoints: [path.join(tmpDir, 'src', 'index.ts')],
+      outdir,
+      target: 'bun',
+      sourcemap,
+      splitting: true,
+      plugins: [sentryBunPlugin({ telemetry: false, sourcemaps: { delete: deleteSourceMaps } })],
+    });
+
+    expect(result.success).toBe(true);
+
+    const files = fs.readdirSync(outdir);
+    return {
+      maps: files.filter(file => file.endsWith('.map')),
+      bundleSources: files
+        .filter(file => file.endsWith('.js'))
+        .map(file => fs.readFileSync(path.join(outdir, file), 'utf8')),
+    };
+  }
+
+  test.each(['linked', 'external'] as const)(
+    'deletes the source maps and their URL comments with `sourcemaps.delete: true` (sourcemap: %s)',
+    async sourcemap => {
+      const { maps, bundleSources } = await buildWithSourceMaps(sourcemap, true);
+
+      expect(bundleSources.length).toBeGreaterThan(1);
+      expect(maps).toEqual([]);
+      for (const source of bundleSources) {
+        expect(source).not.toContain('sourceMappingURL');
+      }
+    },
+  );
+
+  test.each([
+    ['linked', false],
+    ['linked', undefined],
+    [true, undefined],
+  ] as const)(
+    'keeps linked source maps (sourcemap: %s, `sourcemaps.delete: %s`)',
+    async (sourcemap, deleteSourceMaps) => {
+      const { maps, bundleSources } = await buildWithSourceMaps(sourcemap, deleteSourceMaps);
+
+      expect(bundleSources.length).toBeGreaterThan(1);
+      expect(maps.length).toBe(bundleSources.length);
+      for (const source of bundleSources) {
+        expect(source).toMatch(/^\/\/# sourceMappingURL=.+\.js\.map$/m);
+      }
+    },
+  );
+
+  test('turns on hidden source maps and keeps them with `sourcemaps.delete: false`', async () => {
+    const { maps, bundleSources } = await buildWithSourceMaps(undefined, false);
+
+    expect(maps.length).toBe(bundleSources.length);
+    for (const source of bundleSources) {
+      expect(source).not.toContain('sourceMappingURL');
+      expect(source).toMatch(DEBUG_ID_MARKER);
+    }
+  });
+
   test('builds when Bun keeps the output in memory', async () => {
     const result = await Bun.build({
       entrypoints: [path.join(tmpDir, 'src', 'index.ts')],

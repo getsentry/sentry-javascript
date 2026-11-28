@@ -1,4 +1,4 @@
-import type { Options } from '../core';
+import type { Options, SourceMapDecision, SourceMapKind } from '../core';
 import {
   createSentryBuildPluginManager,
   generateReleaseInjectorCode,
@@ -7,6 +7,7 @@ import {
   createDebugIdUploadFunction,
   CodeInjection,
   getSourceMapFeatures,
+  isJsFile,
 } from '../core';
 import * as fs from 'node:fs';
 
@@ -15,9 +16,11 @@ interface BunBuildArtifact {
   kind: string;
 }
 
+type BunSourceMapSetting = 'none' | 'linked' | 'inline' | 'external' | boolean;
+
 interface BunBuildConfig {
   banner?: string;
-  sourcemap?: 'none' | 'linked' | 'inline' | 'external' | boolean;
+  sourcemap?: BunSourceMapSetting;
   outdir?: string;
   define?: Record<string, string>;
 }
@@ -42,6 +45,22 @@ const DEBUG_ID_PLACEHOLDER = 'sentry-bun-debug-id-placeholder-0000';
 // Bun writes `//# sourceMappingURL=` after this comment for linked and
 // inline source maps, so match the last debug ID line, not the file end.
 const BUN_DEBUG_ID_REGEX = /^\/\/# debugId=([0-9a-fA-F]{32})$(?![\s\S]*^\/\/# debugId=)/m;
+
+function sourceMapKindFromBunSetting(setting: BunSourceMapSetting | undefined): SourceMapKind {
+  switch (setting) {
+    case undefined:
+      return 'unset';
+    case false:
+    case 'none':
+      return 'off';
+    case 'external':
+      return 'hidden';
+    case 'inline':
+      return 'inline';
+    default:
+      return 'visible';
+  }
+}
 
 function bunDebugIdToUuid(bunDebugId: string): string {
   const hex = bunDebugId.toLowerCase();
@@ -68,9 +87,6 @@ export function sentryBunPlugin(userOptions: Options = {}): BunPlugin {
   }
 
   const sourceMapFeatures = getSourceMapFeatures(options);
-  if (options.sourcemaps?.delete !== undefined) {
-    logger.warn('The Sentry Bun plugin does not support `sourcemaps.delete`. It removes no source maps.');
-  }
 
   const staticInjectionCode = new CodeInjection();
 
@@ -126,8 +142,15 @@ export function sentryBunPlugin(userOptions: Options = {}): BunPlugin {
         return;
       }
 
-      // Without `outdir`, Bun writes no files that the placeholder can be
-      // replaced in.
+      // Without `outdir`, Bun keeps the output in memory, so there are no
+      // files to stamp, upload or delete.
+      const sourceMapDecision: SourceMapDecision = config.outdir
+        ? sentryBuildPluginManager.sourceMaps.decide(sourceMapKindFromBunSetting(config.sourcemap))
+        : { enableHidden: false, deleteAfterUpload: false };
+      if (sourceMapDecision.enableHidden) {
+        config.sourcemap = 'external';
+      }
+
       const injectDebugIds =
         sourceMapFeatures.injectDebugIds && !!config.outdir && !!config.sourcemap && config.sourcemap !== 'none';
 
@@ -154,9 +177,13 @@ export function sentryBunPlugin(userOptions: Options = {}): BunPlugin {
       const upload = createDebugIdUploadFunction({ sentryBuildPluginManager });
 
       build.onEnd(async result => {
+        const { sourceMaps } = sentryBuildPluginManager;
+        const allMaps = result.outputs.filter(output => output.kind === 'sourcemap').map(output => output.path);
+
         try {
           await sentryBuildPluginManager.createRelease();
 
+          const deleteWithoutUpload = sourceMapDecision.deleteAfterUpload && !sourceMaps.uploadPossible;
           if (injectDebugIds) {
             const bundlePaths = result.outputs
               .filter(output => output.kind === 'entry-point' || output.kind === 'chunk')
@@ -165,9 +192,39 @@ export function sentryBunPlugin(userOptions: Options = {}): BunPlugin {
             await Promise.all(bundlePaths.map(replaceDebugIdPlaceholder));
 
             if (sourceMapFeatures.upload) {
-              await upload(bundlePaths);
+              const { uploaded, uploadedSourceMapPaths } = await upload(bundlePaths);
+
+              // Bun writes before `onEnd` runs, so the maps are deleted from
+              // disk. A map the plugin turned on never stays in the output. A
+              // map the user turned on is only deleted once it was uploaded,
+              // unless `sourcemaps.delete` asks for it.
+              if (sourceMapDecision.deleteAfterUpload && !deleteWithoutUpload) {
+                const mapsToDelete = sourceMapDecision.removeAllSourceMaps ? allMaps : uploadedSourceMapPaths;
+
+                if (uploaded || options.sourcemaps?.delete === true) {
+                  await sourceMaps.deleteFromOutput(mapsToDelete);
+                } else if (mapsToDelete.length > 0) {
+                  logger.error('The source maps were not uploaded, so they stay in the build output.');
+                }
+              }
             }
           }
+
+          if (deleteWithoutUpload) {
+            const bundleOf = (map: string): string => map.slice(0, -'.map'.length);
+            const isUploaded = (map: string): boolean =>
+              isJsFile(bundleOf(map)) && sourceMaps.shouldUpload(bundleOf(map));
+            await sourceMaps.deleteFromOutput(
+              sourceMapDecision.removeAllSourceMaps ? allMaps : allMaps.filter(isUploaded),
+            );
+          }
+        } catch (error) {
+          // Bun already wrote the maps, and `sourcemaps.delete: true` also
+          // applies when the release or upload step fails.
+          if (options.sourcemaps?.delete === true && sourceMapDecision.deleteAfterUpload) {
+            await sourceMaps.deleteFromOutput(allMaps);
+          }
+          throw error;
         } finally {
           freeGlobalDependencyOnBuildArtifacts();
           await sentryBuildPluginManager.deleteArtifacts();
