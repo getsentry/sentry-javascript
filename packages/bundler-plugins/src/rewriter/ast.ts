@@ -99,6 +99,25 @@ export function declarationOf(node: BaseNode): BaseNode | null | undefined {
   return node.type === 'ExportNamedDeclaration' ? (node as ExportNamedNode).declaration : node;
 }
 
+/**
+ * The expression a class extends, looking through parentheses and through
+ * an assignment that caches it. Decorator transforms emit that assignment,
+ * as in `class A extends (_Base = Base)`.
+ */
+export function superClassTarget(superClass: BaseNode | null | undefined): BaseNode | null | undefined {
+  let node = superClass;
+  while (node) {
+    if (node.type === 'ParenthesizedExpression') {
+      node = (node as BaseNode & { expression?: BaseNode }).expression;
+    } else if (node.type === 'AssignmentExpression' && (node as BaseNode & { operator?: string }).operator === '=') {
+      node = (node as BaseNode & { right?: BaseNode }).right;
+    } else {
+      break;
+    }
+  }
+  return node;
+}
+
 /** Whether `node` calls `methodName`, either bare (`fn()`) or as a member (`ns.fn()`). */
 export function isCallToMethod(node: BaseNode, methodName: string): boolean {
   if (node.type !== 'CallExpression') return false;
