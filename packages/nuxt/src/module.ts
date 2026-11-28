@@ -10,6 +10,7 @@ import { setupCloudflareEntry } from './vite/cloudflare';
 import { addTunnelPlugin, setupNitroServer } from './vite/nitroServer';
 import { setupOrchestrion } from './vite/orchestrion';
 import { NUXT_RELEASE_RUNTIME_CONFIG_KEY, setupSourceMaps } from './vite/sourceMaps';
+import { enableNuxtTracingChannels } from './vite/tracingChannel';
 import { findCloudflareOptionsFile, findDefaultSdkInitFile, resolveServerApi } from './vite/utils';
 import { setupViteServer } from './vite/viteServer';
 import { stringifyForCodeInjection, warnOnConflictingSourceMapOptions } from '@sentry/core';
@@ -91,6 +92,11 @@ export default defineNuxtModule<ModuleOptions>({
     const cloudflareOptionsFile = await findCloudflareOptionsFile(nuxt, moduleOptions);
     const nuxtMajor = parseInt((nuxt as unknown as { _version: string })._version?.split('.')[0] ?? '3', 10);
     const isMinNuxtV4 = nuxtMajor >= 4;
+
+    // Only when the module also sets up the server SDK, which subscribes to the channels.
+    if (serverConfigFile || cloudflareOptionsFile) {
+      await enableNuxtTracingChannels(nuxt, serverApi);
+    }
 
     // Orchestrion runs on both the Node path (gated on a server config file) and the Cloudflare path
     // (which has no server config file, the SDK is set up via `withSentry` or `sentryCloudflareNitroPlugin`). The
