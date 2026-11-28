@@ -569,6 +569,52 @@ describe('createSentryBuildPluginManager', () => {
     });
   });
 
+  describe('deleteArtifacts', () => {
+    const managerOptions = {
+      authToken: 't',
+      org: 'o',
+      project: 'p',
+      release: { name: 'some-release-name' },
+      telemetry: false,
+      silent: true,
+      sourcemaps: {
+        filesToDeleteAfterUpload: ['/app/dist/*.map'],
+      },
+    };
+    const meta = { buildTool: 'webpack', loggerPrefix: '[sentry-webpack-plugin]' };
+
+    it('deletes the matching files', async () => {
+      mockGlobFiles.mockResolvedValue(['/app/dist/a.js.map', '/app/dist/b.js.map']);
+      const rmSpy = vi.spyOn(fs.promises, 'rm').mockResolvedValue(undefined);
+      const manager = createSentryBuildPluginManager(managerOptions, meta);
+
+      await manager.deleteArtifacts();
+
+      expect(rmSpy).toHaveBeenCalledWith('/app/dist/a.js.map', { force: true });
+      expect(rmSpy).toHaveBeenCalledWith('/app/dist/b.js.map', { force: true });
+    });
+
+    it('throws when a file cannot be deleted', async () => {
+      mockGlobFiles.mockResolvedValue(['/app/dist/a.js.map']);
+      const error = new Error('EACCES');
+      vi.spyOn(fs.promises, 'rm').mockRejectedValue(error);
+      const manager = createSentryBuildPluginManager(managerOptions, meta);
+
+      await expect(manager.deleteArtifacts()).rejects.toBe(error);
+    });
+
+    it('passes a failed delete to the error handler', async () => {
+      mockGlobFiles.mockResolvedValue(['/app/dist/a.js.map']);
+      const error = new Error('EPERM');
+      vi.spyOn(fs.promises, 'rm').mockRejectedValue(error);
+      const errorHandler = vi.fn();
+      const manager = createSentryBuildPluginManager({ ...managerOptions, errorHandler }, meta);
+
+      await expect(manager.deleteArtifacts()).resolves.toBeUndefined();
+      expect(errorHandler).toHaveBeenCalledWith(error);
+    });
+  });
+
   describe('injectDebugIds', () => {
     it('should call the CLI inject command for each build artifact path', async () => {
       mockSourcemapInject.mockResolvedValue(undefined);
