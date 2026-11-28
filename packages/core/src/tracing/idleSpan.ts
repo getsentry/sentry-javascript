@@ -19,6 +19,7 @@ import { timestampInSeconds } from '../utils/time';
 import { _INTERNAL_ensureBrowserSpanStreaming } from './browserSpanApi';
 import { SentryNonRecordingSpan, spanIsNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
+import { hasSpanStreamingEnabled } from './spans/hasSpanStreamingEnabled';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
 import { startInactiveSpan } from './trace';
 import { setCapturedScopesOnSpan } from './utils';
@@ -137,6 +138,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   }
 
   const previousActiveSpan = getActiveSpan();
+  const streamSpans = hasSpanStreamingEnabled(client);
 
   const span = startInactiveSpan(startSpanOptions);
   _setSpanForScope(getCurrentScope(), span);
@@ -173,37 +175,46 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 
       const ignoreSpans = client.getOptions().ignoreSpans;
 
-      const latestSpanEndTimestamp = spans?.reduce((acc: number | undefined, current) => {
-        const currentSpanJson = spanToStaticSpanJSON(current);
-        if (!currentSpanJson.timestamp) {
-          return acc;
-        }
+      let latestSpanEndTimestamp: number | undefined;
+      let latestRunningSpanStartTimestamp: number | undefined;
+      for (const child of spans) {
+        const childJson = spanToStaticSpanJSON(child);
         // Ignored spans will get dropped later (in the client) but since we already adjust
         // the idle span end timestamp here, we can already take to-be-ignored spans out of
         // the calculation here.
         if (
           ignoreSpans &&
           shouldIgnoreSpan(
-            { description: currentSpanJson.description, op: currentSpanJson.op, attributes: currentSpanJson.data },
+            { description: childJson.description, op: childJson.op, attributes: childJson.data },
             ignoreSpans,
           )
         ) {
-          return acc;
+          continue;
         }
-        return acc ? Math.max(acc, currentSpanJson.timestamp) : currentSpanJson.timestamp;
-      }, undefined);
+        if (childJson.timestamp) {
+          latestSpanEndTimestamp = Math.max(latestSpanEndTimestamp ?? -Infinity, childJson.timestamp);
+        } else {
+          latestRunningSpanStartTimestamp = Math.max(
+            latestRunningSpanStartTimestamp ?? -Infinity,
+            childJson.start_timestamp,
+          );
+        }
+      }
+
+      // Never trim to before a still running child started. Otherwise, that child would start after its parent ended.
+      const trimTimestamp = Math.max(latestSpanEndTimestamp || Infinity, latestRunningSpanStartTimestamp || -Infinity);
 
       // In reality this should always exist here, but type-wise it may be undefined...
       const spanStartTimestamp = spanJson.start_timestamp;
 
       // The final endTimestamp should:
       // * Never be before the span start timestamp
-      // * Be the latestSpanEndTimestamp, if there is one, and it is smaller than the passed span end timestamp
+      // * Be the trimTimestamp, if there is one, and it is smaller than the passed span end timestamp
       // * Otherwise be the passed end timestamp
       // Final timestamp can never be after finalTimeout
       const endTimestamp = Math.min(
         spanStartTimestamp ? spanStartTimestamp + finalTimeout / 1000 : Infinity,
-        Math.max(spanStartTimestamp || -Infinity, Math.min(spanEndTimestamp, latestSpanEndTimestamp || Infinity)),
+        Math.max(spanStartTimestamp || -Infinity, Math.min(spanEndTimestamp, trimTimestamp)),
       );
 
       onIdleSpanEnded(endTimestamp);
@@ -325,10 +336,22 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 
     const childSpans = getSpanDescendants(span).filter(child => child !== span);
 
+    // With span streaming, every span is sent on its own when it ends, so children still running when the idle span
+    // is cut short can end on their own. If it ended because we stopped waiting for them, they're likely stuck.
+    // Children that never end are cancelled once the final timeout has passed.
+    const letRunningChildrenEnd =
+      streamSpans && _finishReason !== FINISH_REASON_HEARTBEAT_FAILED && _finishReason !== FINISH_REASON_FINAL_TIMEOUT;
+    const runningChildSpans: Span[] = [];
+
     let discardedSpans = 0;
     childSpans.forEach(childSpan => {
-      // We cancel all pending spans with status "cancelled" to indicate the idle span was finished early
+      if (letRunningChildrenEnd && childSpan.isRecording()) {
+        runningChildSpans.push(childSpan);
+        return;
+      }
+
       if (childSpan.isRecording()) {
+        // We cancel all pending spans with status "cancelled" to indicate the idle span was finished early
         childSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
         // NOTE: This deliberately does not work for OTEL-provider spans (which use ms timestamps)
         // We do not really support OTEL in the browser, which is the only place that uses idle spans
@@ -363,6 +386,17 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 
     if (discardedSpans > 0) {
       span.setAttribute('sentry.idle_span_discarded_spans', discardedSpans);
+    }
+
+    if (runningChildSpans.length) {
+      setTimeout(() => {
+        runningChildSpans.forEach(childSpan => {
+          if (childSpan.isRecording()) {
+            childSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
+            childSpan.end();
+          }
+        });
+      }, finalTimeout);
     }
   }
 
