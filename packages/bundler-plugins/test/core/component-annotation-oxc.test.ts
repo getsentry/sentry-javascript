@@ -1,6 +1,6 @@
 import { parseSync, transformAsync, traverse, types as t } from '@babel/core';
 import { parse } from '@babel/parser';
-import MagicString from 'magic-string';
+import MagicString, { type SourceMap } from 'magic-string';
 import { describe, expect, it, vi } from 'vitest';
 
 import componentNameAnnotatePlugin, { experimentalComponentNameAnnotatePlugin } from '../../src/babel-plugin';
@@ -484,6 +484,18 @@ export const List = <T,>(props: Props<T>) => {
     expect(collectAnnotations(oxcResult?.code.toString() ?? '', id)).toEqual(
       await annotateWithBabel(code, id, ignoredComponents, true),
     );
+  });
+
+  it('keeps identifier names in the source map', async () => {
+    const code = `export function LoginButton() {
+  function handleLogin() {}
+  return <button onClick={handleLogin}>Log in</button>;
+}`;
+
+    const result = await annotateWithOxc(code, '/src/login-button.tsx', [], getParseAstAsync);
+    const map = result?.map as SourceMap;
+
+    expect(map.names).toEqual(['LoginButton', 'handleLogin', 'button', 'onClick']);
   });
 });
 

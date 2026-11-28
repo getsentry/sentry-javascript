@@ -1,12 +1,13 @@
 import path from 'node:path';
 
-import MagicString from 'magic-string';
+import MagicString, { SourceMap } from 'magic-string';
 
 import { KNOWN_INCOMPATIBLE_PLUGINS } from '../babel-plugin/constants';
 import { stripQueryAndHashFromPath } from './utils';
-import { isAstNode } from './component-annotation-oxc-ast';
+import { isAstNode, walkAst } from './component-annotation-oxc-ast';
 import { collectOxcComponentAnnotationInsertions } from './component-annotation-oxc-walk';
 import type {
+  AstNode,
   AttributeInsertion,
   ComponentAnnotationTransformMeta,
   ComponentAnnotationTransformResult,
@@ -85,15 +86,63 @@ function makeAttributeText(
   return `${prefix}${attributeText}${suffix}`;
 }
 
-function getMagicString(
-  code: string,
-  meta?: ComponentAnnotationTransformMeta,
-): { magicString: MagicStringLike; isNative: boolean } {
-  if (meta?.magicString) {
-    return { magicString: meta.magicString, isNative: true };
+function collectIdentifierNamesByOffset(ast: AstNode): Map<number, string> {
+  const namesByOffset = new Map<number, string>();
+
+  walkAst(ast, node => {
+    if (
+      (node.type === 'Identifier' || node.type === 'JSXIdentifier') &&
+      typeof node.name === 'string' &&
+      typeof node.start === 'number'
+    ) {
+      namesByOffset.set(node.start, node.name);
+    }
+  });
+
+  return namesByOffset;
+}
+
+// SWC, which runs after this transform in Next.js, takes names only from the
+// input map when it composes maps. Without names here, stack frames show
+// minified function names.
+function generateMapWithNames(magicString: MagicString, code: string, ast: AstNode, source: string): SourceMap {
+  const map = magicString.generateDecodedMap({
+    source,
+    includeContent: true,
+    hires: true,
+  });
+
+  const namesByOffset = collectIdentifierNamesByOffset(ast);
+  const lineOffsets = [0];
+  for (let i = code.indexOf('\n'); i !== -1; i = code.indexOf('\n', i + 1)) {
+    lineOffsets.push(i + 1);
   }
 
-  return { magicString: new MagicString(code), isNative: false };
+  const nameIndices = new Map<string, number>();
+  for (const line of map.mappings) {
+    for (let i = 0; i < line.length; i++) {
+      const segment = line[i];
+      if (segment?.length !== 4) {
+        continue;
+      }
+
+      const [generatedColumn, sourceIndex, sourceLine, sourceColumn] = segment;
+      const name = namesByOffset.get((lineOffsets[sourceLine] ?? NaN) + sourceColumn);
+      if (name === undefined) {
+        continue;
+      }
+
+      let nameIndex = nameIndices.get(name);
+      if (nameIndex === undefined) {
+        nameIndex = map.names.push(name) - 1;
+        nameIndices.set(name, nameIndex);
+      }
+
+      line[i] = [generatedColumn, sourceIndex, sourceLine, sourceColumn, nameIndex];
+    }
+  }
+
+  return new SourceMap(map);
 }
 
 async function annotateWithOxcParser(
@@ -124,26 +173,26 @@ async function annotateWithOxcParser(
     return null;
   }
 
-  const { magicString, isNative } = getMagicString(code, meta);
-
-  for (const insertion of insertions) {
-    magicString.appendLeft(insertion.offset, makeAttributeText(code, insertion.offset, insertion.attributes));
+  if (meta?.magicString) {
+    applyInsertions(meta.magicString, code, insertions);
+    return { code: meta.magicString as unknown as string };
   }
 
-  if (isNative) {
-    return { code: magicString as unknown as string };
-  }
+  const magicString = new MagicString(code);
+  applyInsertions(magicString, code, insertions);
 
   return {
     code: magicString.toString(),
     // No `file`, because magic-string would then make `source` relative to it
     // and drop the directory from `sources`.
-    map: magicString.generateMap?.({
-      source: idWithoutQueryAndHash,
-      includeContent: true,
-      hires: true,
-    }),
+    map: generateMapWithNames(magicString, code, ast, idWithoutQueryAndHash),
   };
+}
+
+function applyInsertions(magicString: MagicStringLike, code: string, insertions: AttributeInsertion[]): void {
+  for (const insertion of insertions) {
+    magicString.appendLeft(insertion.offset, makeAttributeText(code, insertion.offset, insertion.attributes));
+  }
 }
 
 export function createOxcComponentNameAnnotateHooks(
