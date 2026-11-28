@@ -15,7 +15,8 @@ test(import.meta.url, ({ runBundler, readOutputFiles }) => {
     				"@sentry/bundler-plugins",
     				"@vitejs/plugin-react",
     				"react",
-    				"vite"
+    				"vite",
+    				"vite-plugin-sri3"
     			],
     			"depsVersions": {
     				"react": 19,

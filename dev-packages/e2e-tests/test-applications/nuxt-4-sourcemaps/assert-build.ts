@@ -10,6 +10,8 @@ import {
   findInjectedDebugIds,
   findSourceMapFiles,
   findSourceMappingUrlComments,
+  findSubresourceIntegrityMismatches,
+  findHtmlIntegrities,
   getAssembleRequests,
   getChunkUploadPosts,
   getSourcemapSources,
@@ -334,6 +336,26 @@ if (!isStaticBuild && nitroPreset === 'node-server') {
   } finally {
     await server.close();
   }
+}
+
+// --- SRI hashes in the prerendered pages ---
+
+// `nuxt-security` hashes the client files after the Vite build, so they must already carry the Sentry injection.
+if (isStaticBuild) {
+  const integrities = findHtmlIntegrities(CLIENT_OUTPUT);
+  assert.ok(Object.keys(integrities).length > 0, `Expected integrity attributes in the pages in ${CLIENT_OUTPUT}`);
+  assert.deepEqual(
+    findSubresourceIntegrityMismatches(CLIENT_OUTPUT, integrities),
+    [],
+    'Expected the SRI hashes in the prerendered pages to match the client files',
+  );
+  assert.ok(
+    Object.keys(integrities).some(file =>
+      fs.readFileSync(path.join(CLIENT_OUTPUT, file), 'utf8').includes('sentry-dbid-'),
+    ),
+    'Expected hashed client files with a Sentry debug ID',
+  );
+  console.log(`  ${Object.keys(integrities).length} SRI hash(es) in the prerendered pages match the client files\n`);
 }
 
 console.log('All sourcemap assertions passed!');

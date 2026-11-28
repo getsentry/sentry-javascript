@@ -30,6 +30,8 @@ export {
   findFilesWithMultipleDebugIds,
   findFilesWithForeignSourcemaps,
   bundleReferencesModule,
+  findHtmlIntegrities,
+  findSubresourceIntegrityMismatches,
 } from './build-output';
 export type { OutputScanOptions } from './build-output';
 

@@ -1,4 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { findSubresourceIntegrityMismatches } from '@sentry-internal/test-utils';
+import * as fs from 'fs';
+import * as path from 'path';
+import { isVinext } from './isVinext';
 
 const isDevMode = !!process.env.TEST_ENV && process.env.TEST_ENV.includes('development');
 
@@ -56,5 +60,26 @@ test.describe('Subresource Integrity (SRI)', () => {
     await expect(page.locator('#sri-test-heading')).toBeVisible();
 
     expect(consoleErrors.filter(e => e.includes('integrity'))).toHaveLength(0);
+  });
+
+  test('integrity hashes match the client files after the Sentry build steps', () => {
+    test.skip(isDevMode || isVinext, 'Checks the Next.js production build output');
+
+    const nextDir = path.join(process.cwd(), '.next');
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(nextDir, 'server', 'subresource-integrity-manifest.json'), 'utf8'),
+    ) as Record<string, string>;
+    // Next.js hashes `_ssgManifest.js` before it writes the final file, also without Sentry.
+    const integrities = Object.fromEntries(
+      Object.entries(manifest).filter(([file]) => /\.(js|css)$/.test(file) && !file.endsWith('/_ssgManifest.js')),
+    );
+
+    expect(Object.keys(integrities).length).toBeGreaterThan(0);
+    expect(findSubresourceIntegrityMismatches(nextDir, integrities)).toEqual([]);
+    expect(
+      Object.keys(integrities).some(file =>
+        /\/\/# debugId=|sentry-dbid-/.test(fs.readFileSync(path.join(nextDir, file), 'utf8')),
+      ),
+    ).toBe(true);
   });
 });
