@@ -6,6 +6,8 @@ import * as Cause from 'effect/Cause';
 import * as Layer from 'effect/Layer';
 import * as Logger from 'effect/Logger';
 import * as LogLevel from 'effect/LogLevel';
+import * as Metric from 'effect/Metric';
+import * as MetricBoundaries from 'effect/MetricBoundaries';
 import * as Tracer from 'effect/Tracer';
 import { createServer } from 'http';
 
@@ -19,7 +21,16 @@ const SentryLayer = Layer.mergeAll(
   }),
   Sentry.layerTracer,
   Sentry.layerLogger,
+  Sentry.layerMetrics,
 );
+
+const ordersPlaced = Metric.counter('orders_placed').pipe(Metric.tagged('shop', 'e2e'));
+const queueDepth = Metric.gauge('queue_depth');
+const requestDuration = Metric.histogram(
+  'request_duration_ms',
+  MetricBoundaries.linear({ start: 0, width: 50, count: 10 }),
+);
+const cacheLookups = Metric.frequency('cache_lookups');
 
 const router = HttpRouter.empty.pipe(
   HttpRouter.get('/test-success', HttpServerResponse.json({ version: 'v1' })),
@@ -107,6 +118,27 @@ const router = HttpRouter.empty.pipe(
         Effect.annotateLogs('action', 'test'),
       );
       return yield* HttpServerResponse.json({ message: 'Log with context sent' });
+    }),
+  ),
+
+  HttpRouter.get(
+    '/test-metric-counter',
+    Effect.gen(function* () {
+      yield* Metric.update(ordersPlaced, 1);
+      return yield* HttpServerResponse.json({ status: 'ok' });
+    }),
+  ),
+
+  HttpRouter.get(
+    '/test-metrics',
+    Effect.gen(function* () {
+      yield* Metric.update(queueDepth, 7);
+      yield* Metric.update(requestDuration, 120);
+      yield* Metric.update(requestDuration, 80);
+      yield* Metric.update(cacheLookups, 'hit');
+      yield* Metric.update(cacheLookups, 'hit');
+      yield* Metric.update(cacheLookups, 'miss');
+      return yield* HttpServerResponse.json({ status: 'ok' });
     }),
   ),
 
