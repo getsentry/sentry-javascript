@@ -25,6 +25,8 @@ import { afterAll, describe, expect } from 'vitest';
 import { EXPECTED_SDK_NAME, supports } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests, describeWithDockerCompose } from '../../../utils/runner';
 
+const DB_RESPONSE_RETURNED_ROWS = 'db.response.returned_rows';
+
 const COMMON_DB_ATTRIBUTES = {
   [SENTRY_IS_LOCALHOST]: { type: 'boolean', value: false },
   [DB_CONNECTION_STRING]: { type: 'string', value: expect.stringMatching(/^postgresql:\/\/localhost:\d+\/tests$/) },
@@ -89,6 +91,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [SENTRY_OP]: { type: 'string', value: DB },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "User"' },
             [DB_OPERATION_NAME]: { type: 'string', value: 'INSERT' },
+            [DB_RESPONSE_RETURNED_ROWS]: { type: 'integer', value: 1 },
           },
           name: 'INSERT "User"',
           status: 'ok',
@@ -104,6 +107,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [SENTRY_OP]: { type: 'string', value: DB },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "User"' },
             [DB_OPERATION_NAME]: { type: 'string', value: 'SELECT' },
+            [DB_RESPONSE_RETURNED_ROWS]: { type: 'integer', value: 1 },
           },
           name: 'SELECT "User"',
           status: 'ok',
@@ -150,6 +154,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'CREATE TABLE "User"' },
             [DB_OPERATION_NAME]: { type: 'string', value: 'CREATE' },
+            [DB_RESPONSE_RETURNED_ROWS]: { type: 'integer', value: 0 },
           },
         },
         {
@@ -163,6 +168,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [DB_QUERY_TEXT]: { type: 'string', value: 'DROP TABLE "User"' },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'DROP TABLE "User"' },
             [DB_OPERATION_NAME]: { type: 'string', value: 'DROP' },
+            [DB_RESPONSE_RETURNED_ROWS]: { type: 'integer', value: 0 },
           },
         },
       ]),
@@ -226,6 +232,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                       [SENTRY_OP]: { type: 'string', value: DB },
                       [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "User"' },
                       [DB_OPERATION_NAME]: { type: 'string', value: 'INSERT' },
+                      [DB_RESPONSE_RETURNED_ROWS]: { type: 'integer', value: 1 },
                     },
                     name: 'INSERT "User"',
                     status: 'ok',
@@ -241,6 +248,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                       [SENTRY_OP]: { type: 'string', value: DB },
                       [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "User"' },
                       [DB_OPERATION_NAME]: { type: 'string', value: 'SELECT' },
+                      [DB_RESPONSE_RETURNED_ROWS]: { type: 'integer', value: 1 },
                     },
                     name: 'SELECT "User"',
                     status: 'ok',
@@ -260,6 +268,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                       },
                       [DB_QUERY_SUMMARY]: { type: 'string', value: 'CREATE TABLE "User"' },
                       [DB_OPERATION_NAME]: { type: 'string', value: 'CREATE' },
+                      [DB_RESPONSE_RETURNED_ROWS]: { type: 'integer', value: 0 },
                     },
                   },
                   {
@@ -273,6 +282,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
                       [DB_QUERY_TEXT]: { type: 'string', value: 'DROP TABLE "User"' },
                       [DB_QUERY_SUMMARY]: { type: 'string', value: 'DROP TABLE "User"' },
                       [DB_OPERATION_NAME]: { type: 'string', value: 'DROP' },
+                      [DB_RESPONSE_RETURNED_ROWS]: { type: 'integer', value: 0 },
                     },
                   },
                 ]),
@@ -427,6 +437,39 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
 
   // Deno: with a module load hook installed, Deno compiles a native addon (`libpq`) as JavaScript.
   // Bun: the `libpq` addon needs the Node symbol `node::EmitAsyncInit`, which Bun does not provide.
+  describe('returned rows', () => {
+    const querySpanWithRows = (alias: string, rows: number): unknown =>
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          [DB_QUERY_TEXT]: { type: 'string', value: expect.stringContaining(`AS ${alias}`) },
+          [DB_RESPONSE_RETURNED_ROWS]: { type: 'integer', value: rows },
+        }),
+        status: 'ok',
+      });
+
+    createEsmAndCjsTests(__dirname, 'scenario-returned-rows.mjs', 'instrument.mjs', (createTestRunner, test) => {
+      test(
+        'records `db.response.returned_rows` for promise, multi-statement, callback, and streamed queries',
+        { timeout: 90_000 },
+        async () => {
+          await createTestRunner()
+            .expect({
+              span: {
+                items: expect.arrayContaining([
+                  querySpanWithRows('single', 3),
+                  querySpanWithRows('multi', 3),
+                  querySpanWithRows('callback', 4),
+                  querySpanWithRows('streamed', 5),
+                ]),
+              },
+            })
+            .start()
+            .completed();
+        },
+      );
+    });
+  });
+
   describe.runIf(supports({ max: 25, runtimes: ['node'] }))('pg-native', () => {
     const EXPECTED_SPANS = {
       items: expect.arrayContaining([
@@ -459,6 +502,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [SENTRY_OP]: { type: 'string', value: DB },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'INSERT "NativeUser"' },
             [DB_OPERATION_NAME]: { type: 'string', value: 'INSERT' },
+            [DB_RESPONSE_RETURNED_ROWS]: { type: 'integer', value: 1 },
             [SERVER_ADDRESS]: { type: 'string', value: '127.0.0.1' },
             [DB_CONNECTION_STRING]: {
               type: 'string',
@@ -479,6 +523,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [SENTRY_OP]: { type: 'string', value: DB },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'SELECT "NativeUser"' },
             [DB_OPERATION_NAME]: { type: 'string', value: 'SELECT' },
+            [DB_RESPONSE_RETURNED_ROWS]: { type: 'integer', value: 1 },
             [SERVER_ADDRESS]: { type: 'string', value: '127.0.0.1' },
             [DB_CONNECTION_STRING]: {
               type: 'string',
@@ -507,6 +552,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'CREATE TABLE "NativeUser"' },
             [DB_OPERATION_NAME]: { type: 'string', value: 'CREATE' },
+            [DB_RESPONSE_RETURNED_ROWS]: { type: 'integer', value: 0 },
           },
         },
         {
@@ -524,6 +570,7 @@ describeWithDockerCompose('postgres auto instrumentation', { workingDirectory: [
             [DB_QUERY_TEXT]: { type: 'string', value: 'DROP TABLE "NativeUser"' },
             [DB_QUERY_SUMMARY]: { type: 'string', value: 'DROP TABLE "NativeUser"' },
             [DB_OPERATION_NAME]: { type: 'string', value: 'DROP' },
+            [DB_RESPONSE_RETURNED_ROWS]: { type: 'integer', value: 0 },
           },
         },
       ]),
