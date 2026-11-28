@@ -11,7 +11,7 @@ type SourceMapsOptions = SentryBuildOptions['sourcemaps'];
  *
  * @param uploadStepRuns Whether a build step runs that uploads and deletes the source maps.
  */
-export function sentryEnablesSourceMaps(options: SentryBuildOptions, uploadStepRuns: boolean = true): boolean {
+export function sentryEnablesSourceMaps(options: SentryBuildOptions, uploadStepRuns: boolean): boolean {
   const { sourcemaps } = options;
   const { injectDebugIds, upload } = resolveSourceMapsFeatures(sourcemaps);
   return (

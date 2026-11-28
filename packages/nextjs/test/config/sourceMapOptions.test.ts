@@ -36,14 +36,22 @@ describe('sentryEnablesSourceMaps', () => {
     [{ disable: 'disable-upload', delete: false }, true],
     [{ disable: true, upload: true }, true],
   ] as const)('with %j it returns %s', (sourcemaps, expected) => {
-    expect(sentryEnablesSourceMaps({ ...CREDENTIALS, sourcemaps })).toBe(expected);
+    expect(sentryEnablesSourceMaps({ ...CREDENTIALS, sourcemaps }, true)).toBe(expected);
   });
 
   it.each([
     [undefined, false],
     [{ delete: false }, true],
   ] as const)('without upload credentials, with %j it returns %s', (sourcemaps, expected) => {
-    expect(sentryEnablesSourceMaps({ sourcemaps })).toBe(expected);
+    expect(sentryEnablesSourceMaps({ sourcemaps }, true)).toBe(expected);
+  });
+
+  it.each([
+    [undefined, false],
+    [{ upload: true }, false],
+    [{ delete: false }, true],
+  ] as const)('without an upload step, with %j it returns %s', (sourcemaps, expected) => {
+    expect(sentryEnablesSourceMaps({ ...CREDENTIALS, sourcemaps }, false)).toBe(expected);
   });
 });
 
