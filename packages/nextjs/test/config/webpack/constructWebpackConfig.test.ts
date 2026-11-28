@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as getBuildPluginOptionsModule from '../../../src/config/getBuildPluginOptions';
 import { getDeleteSourceMapsOption } from '../../../src/config/sourceMapOptions';
 import type { SentryBuildOptions } from '../../../src/config/types';
+import * as util from '../../../src/config/util';
 import {
   CLIENT_SDK_CONFIG_FILE,
   clientBuildContext,
@@ -209,6 +210,48 @@ describe('constructWebpackConfigFunction()', () => {
     // publicly from `.next/static`. Generating them is the user's call via `devtool`.
     expect(finalWebpackConfig?.devtool).toBeUndefined();
   });
+
+  // With `useRunAfterProductionCompileHook`, the webpack plugins leave the upload and the deletion to
+  // the hook. Each row: why the hook is or is not set up, the Next.js config, the Next.js version,
+  // the user's `sourcemaps` options, and the client `devtool` of the final config.
+  it.each([
+    ['the hook is set up', {}, '15.4.1', undefined, 'hidden-source-map'],
+    ['the Next.js version does not support the hook', {}, '15.3.0', undefined, undefined],
+    [
+      '`compiler.runAfterProductionCompile` is not a function',
+      { compiler: { runAfterProductionCompile: 'not a function' } },
+      '15.4.1',
+      undefined,
+      undefined,
+    ],
+    ['the hook is not set up and `delete` is `false`', {}, '15.3.0', { delete: false }, 'hidden-source-map'],
+  ] as const)(
+    'sets the expected client devtool with `useRunAfterProductionCompileHook` when %s',
+    (_, nextConfig, nextJsVersion, sourcemaps, expectedDevtool) => {
+      const getNextjsVersionSpy = vi.spyOn(util, 'getNextjsVersion').mockReturnValue(nextJsVersion);
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const sentryOptions: SentryBuildOptions = { useRunAfterProductionCompileHook: true, sourcemaps };
+
+      const finalNextConfig = materializeFinalNextConfig(
+        {
+          ...exportedNextConfig,
+          ...nextConfig,
+          webpack: () => ({ ...clientWebpackConfig }) as any,
+        } as typeof exportedNextConfig,
+        undefined,
+        sentryOptions,
+      );
+
+      const finalWebpackConfig = finalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
+
+      // Without the hook, no step uploads or deletes the source maps. They would be served publicly
+      // from `.next/static`.
+      expect(finalWebpackConfig?.devtool).toBe(expectedDevtool);
+
+      getNextjsVersionSpy.mockRestore();
+      warnSpy.mockRestore();
+    },
+  );
 
   it('passes useRunAfterProductionCompileHook to getBuildPluginOptions when enabled', async () => {
     const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');

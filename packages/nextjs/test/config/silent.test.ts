@@ -101,7 +101,7 @@ describe('`silent` build option', () => {
     ],
     [
       'turbopack source map auto-enabling',
-      (silent?: boolean) => maybeEnableTurbopackSourcemaps({}, { silent, debug: true }, TURBOPACK_SUPPORTED),
+      (silent?: boolean) => maybeEnableTurbopackSourcemaps({}, { silent, debug: true }, TURBOPACK_SUPPORTED, true),
     ],
     [
       'undetectable Next.js version',
