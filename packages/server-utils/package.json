@@ -102,7 +102,7 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
-    "@sentry/conventions": "^0.36.0",
+    "@sentry/conventions": "^0.37.0",
     "@sentry/core": "11.20.0"
   },
   "devDependencies": {

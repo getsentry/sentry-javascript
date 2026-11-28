@@ -39,6 +39,7 @@ import {
   HARDWARECONCURRENCY,
   HTTP_RESPONSE_BODY_DECODED_SIZE,
   RESOURCE_RENDER_BLOCKING_STATUS,
+  _HTTP_RESPONSE_DELIVERY_TYPE,
 } from '@sentry/conventions/attributes';
 import {
   BROWSER_CACHE,
@@ -534,7 +535,8 @@ export function _addResourceSpans(
     ['renderBlockingStatus', RESOURCE_RENDER_BLOCKING_STATUS],
 
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/deliveryType
-    ['deliveryType', 'http.response_delivery_type'],
+    // oxlint-disable-next-line typescript/no-deprecated -- keep emitting http.response_delivery_type until consumers read http.response.delivery_type
+    ['deliveryType', _HTTP_RESPONSE_DELIVERY_TYPE],
   ]);
 
   const attributesWithResourceTiming: SpanAttributes = { ...attributes, ...resourceTimingToSpanAttributes(entry) };

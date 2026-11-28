@@ -1,4 +1,4 @@
-import { SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
+import { _HTTP_RESPONSE_DELIVERY_TYPE, SENTRY_OP, SENTRY_ORIGIN } from '@sentry/conventions/attributes';
 import type { Span, SpanAttributes } from '@sentry/core';
 import { getClient, getMainCarrier, SentrySpan, setCurrentClient, spanToJSON } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -586,7 +586,7 @@ describe('_addResourceSpans', () => {
 
       expect(spans).toHaveLength(1);
       expect(spanToJSON(spans[0]!).attributes).toMatchObject({
-        'http.response_delivery_type': deliveryType,
+        [_HTTP_RESPONSE_DELIVERY_TYPE]: deliveryType,
       });
     },
   );
@@ -909,7 +909,7 @@ describe('_setResourceRequestAttributes', () => {
 
     _setResourceRequestAttributes(entry, attributes, [
       ['transferSize', 'http.response.size'],
-      ['deliveryType', 'http.response_delivery_type'],
+      ['deliveryType', _HTTP_RESPONSE_DELIVERY_TYPE],
       ['renderBlockingStatus', 'resource.render_blocking_status'],
       ['responseStatus', 'http.response.status_code'],
       ['redirectStart', 'http.request.redirect_start'],
@@ -921,7 +921,7 @@ describe('_setResourceRequestAttributes', () => {
       'http.request.redirect_start': 100,
       'http.response.start': 200,
       'http.response.status_code': 200,
-      'http.response_delivery_type': 'cache',
+      [_HTTP_RESPONSE_DELIVERY_TYPE]: 'cache',
       'resource.render_blocking_status': 'non-blocking',
     });
   });
@@ -955,7 +955,7 @@ describe('_setResourceRequestAttributes', () => {
 
     _setResourceRequestAttributes(entry, attributes, [
       ['transferSize', 'http.response.size'],
-      ['deliveryType', 'http.response_delivery_type'],
+      ['deliveryType', _HTTP_RESPONSE_DELIVERY_TYPE],
       ['renderBlockingStatus', 'resource.render_blocking_status'],
     ]);
 

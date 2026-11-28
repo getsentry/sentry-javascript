@@ -27,6 +27,7 @@ import {
   RESOURCE_RENDER_BLOCKING_STATUS,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  _HTTP_RESPONSE_DELIVERY_TYPE,
 } from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
@@ -136,7 +137,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       [URL_FULL]: 'https://sentry-test-site.example/path/to/image.svg',
       // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
       // or render blocking status.
-      'http.response_delivery_type': '',
+      [_HTTP_RESPONSE_DELIVERY_TYPE]: '',
       ...(!isWebkitRun && {
         [HTTP_RESPONSE_STATUS_CODE]: expect.any(Number),
         [RESOURCE_RENDER_BLOCKING_STATUS]: 'non-blocking',
@@ -189,7 +190,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       [URL_FULL]: 'https://sentry-test-site.example/path/to/style.css',
       // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
       // or render blocking status.
-      'http.response_delivery_type': '',
+      [_HTTP_RESPONSE_DELIVERY_TYPE]: '',
       ...(!isWebkitRun && {
         [HTTP_RESPONSE_STATUS_CODE]: expect.any(Number),
         [RESOURCE_RENDER_BLOCKING_STATUS]: 'non-blocking',
@@ -235,7 +236,7 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
       [URL_FULL]: 'https://sentry-test-site.example/path/to/script.js',
       // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
       // or render blocking status.
-      'http.response_delivery_type': '',
+      [_HTTP_RESPONSE_DELIVERY_TYPE]: '',
       ...(!isWebkitRun && {
         [HTTP_RESPONSE_STATUS_CODE]: expect.any(Number),
         [RESOURCE_RENDER_BLOCKING_STATUS]: 'non-blocking',
