@@ -1,4 +1,5 @@
 name: 'CI: Build & Test'
+# Benchmark baseline for Next.js development sharding.
 on:
   push:
     branches:
