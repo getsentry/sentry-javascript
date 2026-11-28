@@ -137,7 +137,8 @@
         "runtime": "bun",
         "build-command": "pnpm install",
         "assert-command": "pnpm test:dev",
-        "label": "nextjs-16 (bun, turbopack, development)"
+        "label": "nextjs-16 (bun, turbopack, development)",
+        "test-shards": 2
       },
       {
         "runtime": "cloudflare",
