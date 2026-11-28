@@ -28,6 +28,7 @@ export interface TanstackAITool {
   name: string;
   description?: string;
   inputSchema?: unknown;
+  execute?: unknown;
 }
 
 /** Mirrors `ModelMessage`. */
@@ -75,6 +76,20 @@ export interface TanstackAIChunk {
   outcome?: { type: string };
 }
 
+export interface TanstackAIToolCallHookContext {
+  toolName: string;
+  toolCallId: string;
+  args: unknown;
+  tool?: TanstackAITool;
+}
+
+export interface TanstackAIAfterToolCallInfo {
+  toolCallId: string;
+  ok: boolean;
+  result?: unknown;
+  error?: unknown;
+}
+
 export interface TanstackAIChatMiddleware {
   name: string;
   [TANSTACK_AI_MIDDLEWARE_BRAND]: true;
@@ -82,6 +97,8 @@ export interface TanstackAIChatMiddleware {
   onChunk(ctx: TanstackAIMiddlewareContext, chunk: TanstackAIChunk): void;
   onInterruptBoundary(ctx: TanstackAIMiddlewareContext): void;
   onUsage(ctx: TanstackAIMiddlewareContext, usage: TanstackAIUsage): void;
+  onGuardToolCall(ctx: TanstackAIMiddlewareContext, hookCtx: TanstackAIToolCallHookContext): void;
+  onAfterToolCall(ctx: TanstackAIMiddlewareContext, info: TanstackAIAfterToolCallInfo): void;
   onFinish(ctx: TanstackAIMiddlewareContext): void;
   onAbort(ctx: TanstackAIMiddlewareContext): void;
   onError(ctx: TanstackAIMiddlewareContext): void;

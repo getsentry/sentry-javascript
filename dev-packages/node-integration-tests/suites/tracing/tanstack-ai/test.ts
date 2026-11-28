@@ -10,13 +10,15 @@ import {
   GEN_AI_RESPONSE_STREAMING,
   GEN_AI_RESPONSE_TIME_TO_FIRST_CHUNK,
   GEN_AI_SYSTEM_INSTRUCTIONS,
+  GEN_AI_TOOL_CALL_ARGUMENTS,
+  GEN_AI_TOOL_CALL_RESULT,
   GEN_AI_TOOL_DEFINITIONS,
   GEN_AI_USAGE_INPUT_TOKENS,
   GEN_AI_USAGE_OUTPUT_TOKENS,
   SENTRY_OP,
   SENTRY_ORIGIN,
 } from '@sentry/conventions/attributes';
-import { GEN_AI_CHAT, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
+import { GEN_AI_CHAT, GEN_AI_EXECUTE_TOOL, GEN_AI_INVOKE_AGENT } from '@sentry/conventions/op';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmTests } from '../../../utils/runner';
 
@@ -38,6 +40,7 @@ function runSpans(spans: SerializedStreamedSpan[], threadId: string) {
   return {
     agent,
     chats: children.filter(span => attr(span, SENTRY_OP) === GEN_AI_CHAT),
+    tools: children.filter(span => attr(span, SENTRY_OP) === GEN_AI_EXECUTE_TOOL),
   };
 }
 
@@ -48,7 +51,7 @@ describe('TanStack AI integration', () => {
 
   // `@tanstack/ai` is ESM-only.
   createEsmTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('records the agent run and its model calls', async () => {
+    test('records the agent run, its model calls and its tool runs', async () => {
       await createRunner()
         .unordered()
         .expect({
@@ -99,6 +102,15 @@ describe('TanStack AI integration', () => {
             expect(JSON.parse(String(attr(answer, GEN_AI_INPUT_MESSAGES)))).toHaveLength(3);
             expect(attr(answer, GEN_AI_RESPONSE_FINISH_REASONS)).toBe('["stop"]');
 
+            expect(streamed.tools).toHaveLength(1);
+            const [tool] = streamed.tools;
+            expect(tool!.name).toBe('execute_tool get_weather');
+            expect(tool!.start_timestamp).toBeGreaterThanOrEqual(toolCall!.end_timestamp);
+            expect(tool!.end_timestamp).toBeLessThanOrEqual(answer!.start_timestamp);
+            expect(attr(tool, 'gen_ai.tool.call.id')).toBe('call_1');
+            expect(attr(tool, GEN_AI_TOOL_CALL_ARGUMENTS)).toBe('{"city":"Kyoto"}');
+            expect(attr(tool, GEN_AI_TOOL_CALL_RESULT)).toBe('{"city":"Kyoto","temperature":21}');
+
             const plain = runSpans(spans, 'thread-plain');
             expect(plain.agent.parent_span_id).toBe(main.span_id);
             expect(plain.chats).toHaveLength(1);
@@ -118,10 +130,28 @@ describe('TanStack AI integration', () => {
   });
 
   createEsmTests(__dirname, 'scenario-errors.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('marks a failed model call, a stopped stream and their runs', async () => {
+    test('marks failed tool runs, model calls and stopped streams, and captures the tool error', async () => {
       await createRunner()
+        .unordered()
+        .expect({
+          event: {
+            exception: {
+              values: [
+                expect.objectContaining({
+                  value: 'Weather service down',
+                  mechanism: expect.objectContaining({ type: 'auto.ai.tanstack_ai', handled: false }),
+                }),
+              ],
+            },
+          },
+        })
         .expect({
           span: container => {
+            const toolError = runSpans(container.items, 'thread-tool-error');
+            expect(toolError.agent.status).toBe('ok');
+            expect(toolError.tools[0]!.status).toBe('error');
+            expect(attr(toolError.tools[0], GEN_AI_TOOL_CALL_RESULT)).toBeUndefined();
+
             const modelError = runSpans(container.items, 'thread-model-error');
             expect(modelError.agent.status).toBe('error');
             expect(modelError.chats.map(span => span.status)).toEqual(['error']);
