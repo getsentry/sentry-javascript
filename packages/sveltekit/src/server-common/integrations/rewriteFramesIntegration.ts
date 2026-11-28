@@ -7,7 +7,6 @@ import {
   join,
   rewriteFramesIntegration as originalRewriteFramesIntegration,
 } from '@sentry/core';
-import { WRAPPED_MODULE_SUFFIX } from '../../common/utils';
 import type { GlobalWithSentryValues } from '../../vite/injectGlobalValues';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
@@ -78,12 +77,6 @@ export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
   }
 
   delete frame.module;
-
-  // In dev-mode, the WRAPPED_MODULE_SUFFIX is still present in the frame's file name.
-  // We need to remove it to make sure that the frame's filename matches the actual file
-  if (frame.filename.endsWith(WRAPPED_MODULE_SUFFIX)) {
-    frame.filename = frame.filename.slice(0, -WRAPPED_MODULE_SUFFIX.length);
-  }
 
   return frame;
 }

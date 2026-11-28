@@ -55,7 +55,7 @@ if (process.env.E2E_VARIANT === 'manual-upload') {
   }
 } else {
   // Also covers the `delete-all` variant: the maps the app turned on are uploaded and removed.
-  const { requests, sourcemaps } = assertSourceMapUpload({
+  const { requests } = assertSourceMapUpload({
     outputDirs: [CLIENT_OUTPUT, SERVER_OUTPUT],
     // The server output keeps `sourceMappingURL` comments that point at the deleted maps. Nothing serves
     // it, so only the client output must be free of them.
@@ -72,13 +72,6 @@ if (process.env.E2E_VARIANT === 'manual-upload') {
     requests.some(r => r.url?.includes('/releases') && r.method === 'POST'),
     'Expected a POST to create the release',
   );
-
-  // The auto-instrument plugin loads wrapped modules under this suffix. It must be stripped before
-  // upload, or the uploaded sources don't match the frames Sentry receives.
-  const wrappedSources = sourcemaps
-    .flatMap(map => map.sourcemap.sources ?? [])
-    .filter(source => source.includes('?sentry-auto-wrap'));
-  assert.deepEqual(wrappedSources, [], 'Expected no uploaded source to carry the auto-wrap query suffix');
 }
 
 console.log('All sourcemap assertions passed!');
