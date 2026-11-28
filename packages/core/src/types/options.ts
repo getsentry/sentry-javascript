@@ -5,6 +5,7 @@ import type { ErrorEvent, EventHint, TransactionEvent } from './event';
 import type { Integration } from './integration';
 import type { Log } from './log';
 import type { Metric } from './metric';
+import type { RequestEventData } from './request';
 import type { TracesSamplerSamplingContext } from './samplingcontext';
 import type { SdkMetadata } from './sdkmetadata';
 import type { SpanJSON, StreamedSpanJSON } from './span';
@@ -292,6 +293,50 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @default 1.0
    */
   sampleRate?: number;
+
+  /**
+   * PoC: Sample rate for sessions.
+   *
+   * The SDK makes one decision per session. In a sampled session it sends all spans and errors and records the
+   * replay and profile. In an unsampled session, spans fall back to `tracesSampleRate` (or `tracesSampler`) and
+   * errors to `sampleRate`, and no replay or profile is recorded. Logs and metrics are not sampled, so they are
+   * sent in both cases. 0.0 samples no session, 1.0 samples all sessions.
+   *
+   * The SDK corrects the fallback rates, so that it sends the same share of spans and errors as without this
+   * option: with `sessionSampleRate: 0.1` and `tracesSampleRate: 0.2`, 10% of all spans are sent in sampled
+   * sessions and another 10% as a fallback. Spans report `max(sessionSampleRate, tracesSampleRate)` as their
+   * sample rate. If `sessionSampleRate` is the higher one, there is no fallback.
+   *
+   * Inside a session, `replaysSessionSampleRate` and `profileSessionSampleRate` are not consulted.
+   *
+   * @experimental
+   * @default undefined
+   */
+  sessionSampleRate?: number;
+
+  /**
+   * PoC: Sample rate for conversations, identified by `Sentry.setConversationId()`.
+   *
+   * Works like `sessionSampleRate`. Every process that handles a part of a conversation makes the same decision,
+   * because the decision is derived from the conversation id. A trace that already started when the conversation id
+   * is set keeps its own decision.
+   *
+   * @experimental
+   * @default undefined
+   */
+  conversationSampleRate?: number;
+
+  /**
+   * PoC: Returns the conversation id for an incoming request, for example from a header or the URL.
+   *
+   * The SDK calls this before it makes the sampling decision for the request's trace, so
+   * `conversationSampleRate` can decide for the whole trace. A conversation id that is set with
+   * `Sentry.setConversationId()` takes precedence.
+   *
+   * @experimental
+   * @default undefined
+   */
+  provideConversationId?: (request: RequestEventData) => string | null | undefined;
 
   /**
    * Maximum number of chars a single value can have before it will be truncated.

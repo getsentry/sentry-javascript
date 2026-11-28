@@ -26,7 +26,9 @@ export function sampleSpan(
   if (!resolved) {
     // `hasSpansEnabled` guarantees either `tracesSampleRate` or `tracesSampler` is set, so the only way to end up
     // without a sample rate is a throwing `tracesSampler` with nothing to fall back to.
-    return [false, undefined, undefined, 'callback_error'];
+    // PoC: With only `sessionSampleRate` or `conversationSampleRate` set, there is no rate for traces outside of
+    // a session or conversation. They are not sampled.
+    return typeof options.tracesSampler === 'function' ? [false, undefined, undefined, 'callback_error'] : [false];
   }
   const [sampleRate, localSampleRateWasApplied] = resolved;
 
@@ -72,6 +74,18 @@ export function sampleSpan(
   }
 
   return [shouldSample, parsedSampleRate, localSampleRateWasApplied];
+}
+
+/**
+ * PoC: The sample rate that `tracesSampler` or `tracesSampleRate` give for a root span, without a decision.
+ * Returns `undefined` if there is none, or if it is invalid.
+ */
+export function getTraceSampleRate(
+  options: Pick<CoreOptions, 'tracesSampleRate' | 'tracesSampler'>,
+  samplingContext: SamplingContext,
+): number | undefined {
+  const resolved = resolveSampleRate(options, samplingContext);
+  return resolved && parseSampleRate(resolved[0]);
 }
 
 /**

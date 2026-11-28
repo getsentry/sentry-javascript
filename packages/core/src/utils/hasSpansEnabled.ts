@@ -1,4 +1,5 @@
 import { getClient } from '../currentScopes';
+import { hasSamplingUnits } from '../tracing/samplingUnit';
 import type { CoreOptions } from '../types/options';
 
 // Treeshakable guard to remove all code related to tracing
@@ -21,7 +22,9 @@ declare const __SENTRY_TRACING__: boolean | undefined;
  * If this option is not provided, the function will use the current client's options.
  */
 export function hasSpansEnabled(
-  maybeOptions?: Pick<CoreOptions, 'tracesSampleRate' | 'tracesSampler'> | undefined,
+  maybeOptions?:
+    | Pick<CoreOptions, 'tracesSampleRate' | 'tracesSampler' | 'sessionSampleRate' | 'conversationSampleRate'>
+    | undefined,
 ): boolean {
   if (typeof __SENTRY_TRACING__ === 'boolean' && !__SENTRY_TRACING__) {
     return false;
@@ -31,6 +34,7 @@ export function hasSpansEnabled(
   return (
     !!options &&
     // Note: This check is `!= null`, meaning "nullish". `0` is not "nullish", `undefined` and `null` are. (This comment was brought to you by 15 minutes of questioning life)
-    (options.tracesSampleRate != null || !!options.tracesSampler)
+    // PoC: Sampling by session or conversation also turns span recording on, so one rate is enough to get traces.
+    (options.tracesSampleRate != null || !!options.tracesSampler || hasSamplingUnits(options))
   );
 }
