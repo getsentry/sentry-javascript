@@ -25,6 +25,7 @@ import { GLOBAL_OBJ } from './utils/worldwide';
  * @returns the id of the captured Sentry event.
  */
 export function captureException(exception: unknown, hint?: ExclusiveEventHintOrCaptureContext): string {
+  // oxlint-disable-next-line sdk/require-exception-mechanism -- public API, passes the caller's hint through
   return getCurrentScope().captureException(exception, parseEventHintOrCaptureContext(hint));
 }
 

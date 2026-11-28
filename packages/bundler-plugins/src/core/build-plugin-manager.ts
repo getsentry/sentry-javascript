@@ -1,4 +1,5 @@
 /* oxlint-disable max-lines */
+/* oxlint-disable sdk/require-exception-mechanism -- these calls report failures of the plugin itself to its own telemetry, not user errors */
 import { closeSession, DEFAULT_ENVIRONMENT, makeSession, setMeasurement, startSpan } from '@sentry/core';
 import * as fs from 'fs';
 import * as os from 'os';

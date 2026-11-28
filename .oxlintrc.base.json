@@ -260,6 +260,7 @@
         "no-restricted-globals": ["error", "window", "document", "location", "navigator"],
         "no-eval": "error",
         "no-new-func": "error",
+        "sdk/require-exception-mechanism": "error",
         "sdk/no-unsafe-html-writes": "error"
       }
     },

@@ -56,9 +56,7 @@ Keep reviews high-signal. Prefer actionable, high-confidence findings over specu
   - `SEMANTIC_ATTRIBUTE_SENTRY_OP` (`'sentry.op'`) with a proper span op
     - Span ops should be lower case only, and use snake_case. The `.` character is used to delimit op parts.
     - flag any non-conforming op values as invalid and link to the span op specification (https://develop.sentry.dev/sdk/telemetry/traces/span-operations/)
-- When calling `captureException`, always make sure that the `mechanism` is set:
-  - `handled`: must be set to `true` or `false`
-  - `type`: must be a proper identifier (i.e. identify the integration and part in the integration that caught the exception). The value should follow the same naming convention as `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN`, and align with the surrounding span's origin when one exists.
+- `sdk/require-exception-mechanism` checks that `captureException` sets `mechanism.handled` and `mechanism.type`. Still check that `mechanism.type` identifies the integration and the part of it that caught the exception, follows the same naming convention as `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN`, and aligns with the surrounding span's origin when one exists.
 - For automated structured logs, always set `sentry.origin` with a proper origin (same character rules as span origins).
 - When calling any `startSpan` API, check how errors in the instrumented code are handled:
   - Generally, errors in instrumented code should be allowed to bubble up so the end user can handle them. If they remain unhandled, they will eventually be captured by Sentry through the SDK's global error handlers — so instrumentation code should typically **not** call `captureException` itself.

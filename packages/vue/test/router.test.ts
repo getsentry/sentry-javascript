@@ -98,7 +98,9 @@ describe('instrumentVueRouter()', () => {
     onErrorCallback(testError);
 
     expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-    expect(captureExceptionSpy).toHaveBeenCalledWith(testError, { mechanism: { handled: false } });
+    expect(captureExceptionSpy).toHaveBeenCalledWith(testError, {
+      mechanism: { handled: false, type: 'auto.function.vue.router' },
+    });
   });
 
   it.each([

@@ -53,6 +53,7 @@ export async function captureRemixServerException(err: unknown, name: string, re
 
   const objectifiedErr = objectify(err);
 
+  // oxlint-disable-next-line sdk/require-exception-mechanism -- mechanism is set by the event processor below
   captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
     scope.setSDKProcessingMetadata({ normalizedRequest });
 

@@ -93,6 +93,7 @@ function consoleHandler(args: unknown[], level: string, handled: boolean): void 
 
     const error = args.find(arg => arg instanceof Error);
     if (error) {
+      // oxlint-disable-next-line sdk/require-exception-mechanism -- mechanism is set by the event processor above
       captureException(error, captureContext);
       return;
     }

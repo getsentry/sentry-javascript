@@ -173,7 +173,7 @@ export function wrap<T extends WrappableFunction, NonFunction>(
           return event;
         });
 
-        // no need to add a mechanism here, we already add it via an event processor above
+        // oxlint-disable-next-line sdk/require-exception-mechanism -- mechanism is set by the event processor above
         captureException(ex);
       });
 
