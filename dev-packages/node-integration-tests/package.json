@@ -70,6 +70,7 @@
     "@sentry/server-utils": "11.20.0",
     "@smithy/core": "3.38.1",
     "@smithy/node-http-handler": "4.12.1",
+    "@tanstack/ai": "^1.8.0",
     "@types/express": "^4.17.21",
     "@types/node-schedule": "^2.1.8",
     "@typesafe-ai/sdk": "^0.6.0",

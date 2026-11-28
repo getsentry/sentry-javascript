@@ -45,6 +45,7 @@ import { prismaConfig } from './prisma';
 import { redisConfig } from './redis';
 import { remixConfig } from './remix';
 import { remixV3Config } from './remix-v3';
+import { tanstackAiConfig } from './tanstack-ai';
 import { tediousConfig } from './tedious';
 import { togetherAiConfig } from './together-ai';
 import { typesafeConfig } from './typesafe';
@@ -109,6 +110,7 @@ export const SENTRY_INSTRUMENTATIONS: InstrumentationConfig[] = [
   ...redisConfig,
   ...remixConfig,
   ...remixV3Config,
+  ...tanstackAiConfig,
   ...tediousConfig,
   ...togetherAiConfig,
   ...typesafeConfig,
