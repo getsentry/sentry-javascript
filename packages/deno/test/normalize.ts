@@ -85,6 +85,11 @@ function normalizeEvent(event: Event): Event {
     event.sdk.integrations = ['{{integrations}}'];
   }
 
+  // Installed packages depend on the checkout, so collapse them to a placeholder.
+  if (event.modules) {
+    event.modules = { '{{modules}}': '{{version}}' };
+  }
+
   if (event.contexts?.app?.app_start_time) {
     event.contexts.app.app_start_time = '{{time}}';
   }
