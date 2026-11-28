@@ -20,6 +20,22 @@ describe('shapeFromAst', () => {
     );
   });
 
+  // Decorator transforms emit this form, e.g. Babel's for `@callable()`.
+  it('reads the superclass through an assignment that caches it', () => {
+    const shape = shapeFromAst(
+      parseModule(
+        ['var _B, _D;', 'class A extends (_B = B) {}', 'class C extends (_D = ns.D) {}'].join('\n'),
+        'module.js',
+      ),
+    );
+    expect(shape.classes).toEqual(
+      new Map([
+        ['A', { kind: 'identifier', name: 'B' }],
+        ['C', { kind: 'member', object: 'ns', property: 'D' }],
+      ]),
+    );
+  });
+
   it('collects named, default and namespace imports', () => {
     const shape = shapeFromAst(
       parseModule("import Def, { a as b, c } from 'm';\nimport * as ns from 'n';", 'module.js'),
