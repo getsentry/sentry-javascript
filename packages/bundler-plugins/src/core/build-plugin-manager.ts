@@ -1018,12 +1018,14 @@ export function createSentryBuildPluginManager(
           });
 
           await Promise.all(
-            filePathsToDelete.map(filePathToDelete =>
-              fs.promises.rm(filePathToDelete, { force: true }).catch(e => {
-                // This is allowed to fail - we just don't do anything
-                logger.debug(`An error occurred while attempting to delete asset: ${filePathToDelete}`, e);
-              }),
-            ),
+            filePathsToDelete.map(async filePathToDelete => {
+              try {
+                await fs.promises.rm(filePathToDelete, { force: true });
+              } catch (e) {
+                logger.error(`Could not delete source map ${filePathToDelete} from the build output.`);
+                throw e;
+              }
+            }),
           );
         }
       } catch (e) {
