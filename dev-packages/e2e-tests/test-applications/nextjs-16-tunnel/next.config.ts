@@ -5,7 +5,14 @@ import type { NextConfig } from 'next';
 const tunnelMode = process.env.NEXT_PUBLIC_E2E_TEST_TUNNEL_MODE;
 const isManagedMode = tunnelMode === 'managed';
 
-const nextConfig: NextConfig = isManagedMode ? { basePath: '/docs', trailingSlash: true } : {};
+const nextConfig: NextConfig = {
+  experimental: {
+    webpackBuildWorker: true,
+    parallelServerCompiles: true,
+    parallelServerBuildTraces: true,
+  },
+  ...(isManagedMode ? { basePath: '/docs', trailingSlash: true } : {}),
+};
 
 export default withSentryConfig(nextConfig, {
   silent: true,

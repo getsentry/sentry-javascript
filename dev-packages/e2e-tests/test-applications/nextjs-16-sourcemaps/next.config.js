@@ -5,7 +5,14 @@ const { withSentryConfig } = require('@sentry/nextjs/config');
 const variant = process.env.E2E_VARIANT;
 
 /** @type {import('next').NextConfig} */
-const nextConfig = variant === 'delete-option' ? { productionBrowserSourceMaps: true } : {};
+const nextConfig = {
+  experimental: {
+    webpackBuildWorker: true,
+    parallelServerCompiles: true,
+    parallelServerBuildTraces: true,
+  },
+  ...(variant === 'delete-option' ? { productionBrowserSourceMaps: true } : {}),
+};
 
 module.exports = withSentryConfig(nextConfig, {
   sentryUrl: 'http://localhost:3032',
