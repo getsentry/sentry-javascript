@@ -57,6 +57,8 @@ export {
 export { honoIntegration, honoMiddleware } from './integrations/hono';
 export type { HonoIntegrationOptions } from './integrations/hono';
 export { koaIntegration } from './integrations/koa';
+export { orpcIntegration } from './integrations/orpc';
+export type { ORPCIntegrationOptions } from './integrations/orpc';
 export { redisIntegration } from './integrations/redis';
 export { kafkaIntegration } from './integrations/kafkajs';
 export { knexIntegration } from './integrations/knex';

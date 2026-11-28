@@ -37,6 +37,7 @@ import { nitroIntegration } from './nitro';
 import { hapiIntegration } from './hapi';
 import { honoIntegration } from './hono';
 import { koaIntegration } from './koa';
+import { orpcIntegration } from './orpc';
 import type { Integration } from '@sentry/core';
 import { awsIntegration } from './aws-sdk';
 
@@ -95,5 +96,6 @@ export function getErrorIntegrations(): Integration[] {
     honoIntegration(),
     koaIntegration(),
     nitroIntegration(),
+    orpcIntegration(),
   ];
 }

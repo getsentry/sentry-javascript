@@ -124,6 +124,7 @@ export const NO_AUTO_INSTRUMENTATION = [
   'suites/tracing/openai/v6/test.ts',
   'suites/tracing/openai/v7/test.ts',
   'suites/tracing/orchestrion-lazy-registration/test.ts',
+  'suites/tracing/orpc/test.ts',
   'suites/tracing/pi-ai/test.ts',
   'suites/tracing/pi-durable/**',
   'suites/tracing/postgres/test.ts',
