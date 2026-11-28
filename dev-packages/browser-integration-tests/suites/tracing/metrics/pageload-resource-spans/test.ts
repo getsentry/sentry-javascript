@@ -26,6 +26,7 @@ import {
   RESOURCE_RENDER_BLOCKING_STATUS,
   SENTRY_OP,
   SENTRY_ORIGIN,
+  _HTTP_RESPONSE_DELIVERY_TYPE,
 } from '@sentry/conventions/attributes';
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
@@ -148,7 +149,7 @@ sentryTest(
         [URL_FULL]: { type: 'string', value: 'https://sentry-test-site.example/path/to/image.svg' },
         // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
         // or render blocking status.
-        'http.response_delivery_type': { type: 'string', value: '' },
+        [_HTTP_RESPONSE_DELIVERY_TYPE]: { type: 'string', value: '' },
         ...(!isWebkitRun && {
           [HTTP_RESPONSE_STATUS_CODE]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
           [RESOURCE_RENDER_BLOCKING_STATUS]: { type: 'string', value: 'non-blocking' },
@@ -214,7 +215,7 @@ sentryTest(
         [URL_FULL]: { type: 'string', value: 'https://sentry-test-site.example/path/to/style.css' },
         // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
         // or render blocking status.
-        'http.response_delivery_type': { type: 'string', value: '' },
+        [_HTTP_RESPONSE_DELIVERY_TYPE]: { type: 'string', value: '' },
         ...(!isWebkitRun && {
           [HTTP_RESPONSE_STATUS_CODE]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
           [RESOURCE_RENDER_BLOCKING_STATUS]: { type: 'string', value: 'non-blocking' },
@@ -273,7 +274,7 @@ sentryTest(
         [URL_FULL]: { type: 'string', value: 'https://sentry-test-site.example/path/to/script.js' },
         // WebKit reports `deliveryType` as of Playwright 1.63's build, but still no response status
         // or render blocking status.
-        'http.response_delivery_type': { type: 'string', value: '' },
+        [_HTTP_RESPONSE_DELIVERY_TYPE]: { type: 'string', value: '' },
         ...(!isWebkitRun && {
           [HTTP_RESPONSE_STATUS_CODE]: { type: expect.stringMatching(/^(integer|double)$/), value: expect.any(Number) },
           [RESOURCE_RENDER_BLOCKING_STATUS]: { type: 'string', value: 'non-blocking' },

@@ -59,7 +59,7 @@
   "dependencies": {
     "@sentry/browser": "11.20.0",
     "@sentry/core": "11.20.0",
-    "@sentry/conventions": "^0.36.0"
+    "@sentry/conventions": "^0.37.0"
   },
   "peerDependencies": {
     "react": "17.x || 18.x || 19.x",

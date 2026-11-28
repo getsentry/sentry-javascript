@@ -86,7 +86,7 @@
     "@sentry/browser": "11.20.0",
     "@sentry/cloudflare": "11.20.0",
     "@sentry/core": "11.20.0",
-    "@sentry/conventions": "^0.36.0",
+    "@sentry/conventions": "^0.37.0",
     "@sentry/node": "11.20.0",
     "@sentry/server-runtime-injection": "11.20.0",
     "@sentry/server-utils": "11.20.0",
