@@ -489,7 +489,7 @@ function instrumentPostgRESTFilterBuilder(
                 (res: SupabaseResponse) => {
                   if (span) {
                     if (res && typeof res === 'object' && 'status' in res) {
-                      setHttpStatus(span, res.status || 500);
+                      setHttpStatus(span, res.status ?? 500);
                     }
                     span.end();
                   }
