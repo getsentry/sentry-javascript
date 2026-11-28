@@ -643,6 +643,7 @@ function createSentryWebpackPlugin(userOptions: SentryWebpackPluginInternalOptio
 
       if (userOptions._experiments?.forceExitOnBuildCompletion && compiler.options.mode === 'production') {
         compiler.hooks.done.tap('sentry-webpack-plugin', () => {
+          // oxlint-disable-next-line sdk/require-timer-unref -- forces the process to exit after the build, so it has to fire
           setTimeout(() => {
             logger.debug('Exiting process after debug file upload');
             process.exit(0);

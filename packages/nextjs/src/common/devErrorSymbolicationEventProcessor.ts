@@ -42,6 +42,7 @@ function getDevServerBaseUrl(): string {
  */
 async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
   const controller = new AbortController();
+  // oxlint-disable-next-line sdk/require-timer-unref -- cleared when the fetch settles, and the pending fetch keeps the process alive anyway
   const timer = setTimeout(() => controller.abort(), 3000);
 
   return suppressTracing(() =>

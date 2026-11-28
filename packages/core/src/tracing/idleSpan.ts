@@ -236,6 +236,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
    */
   function _restartIdleTimeout(endTimestamp?: number): void {
     _cancelIdleTimeout();
+    // oxlint-disable-next-line sdk/require-timer-unref -- idle spans are only ever started from browser code
     _idleTimeoutID = setTimeout(() => {
       if (!_finished && activities.size === 0 && _autoFinishAllowed) {
         _finishReason = FINISH_REASON_IDLE_TIMEOUT;
@@ -249,6 +250,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
    */
   function _restartChildSpanTimeout(endTimestamp?: number): void {
     _cancelChildSpanTimeout();
+    // oxlint-disable-next-line sdk/require-timer-unref -- idle spans are only ever started from browser code
     _childSpanTimeoutID = setTimeout(() => {
       if (!_finished && _autoFinishAllowed) {
         _finishReason = FINISH_REASON_HEARTBEAT_FAILED;
@@ -419,6 +421,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     _restartIdleTimeout();
   }
 
+  // oxlint-disable-next-line sdk/require-timer-unref -- idle spans are only ever started from browser code
   _finalTimeoutID = setTimeout(() => {
     if (!_finished) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'deadline_exceeded' });

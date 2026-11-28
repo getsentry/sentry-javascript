@@ -164,3 +164,42 @@ describe('instrument > addFetchInstrumentationHandler', () => {
     });
   });
 });
+
+describe('instrument > addFetchEndInstrumentationHandler', () => {
+  const globalWithFetch = GLOBAL_OBJ as typeof GLOBAL_OBJ & { fetch?: (...args: unknown[]) => unknown };
+  const originalFetchDescriptor = Object.getOwnPropertyDescriptor(globalWithFetch, 'fetch');
+
+  afterEach(() => {
+    if (originalFetchDescriptor) {
+      Object.defineProperty(globalWithFetch, 'fetch', originalFetchDescriptor);
+    } else {
+      Reflect.deleteProperty(globalWithFetch, 'fetch');
+    }
+
+    vi.restoreAllMocks();
+  });
+
+  it('unrefs the body-read timeout timers so they cannot keep a Node process alive', async () => {
+    vi.resetModules();
+    const isBrowserModule = await import('../../../src/utils/isBrowser');
+    vi.spyOn(isBrowserModule, 'isBrowser').mockReturnValue(false);
+    const timerModule = await import('../../../src/utils/timer');
+    const safeUnrefSpy = vi.spyOn(timerModule, 'safeUnref');
+    const { addFetchEndInstrumentationHandler } = await import('../../../src/instrument/fetch');
+
+    globalWithFetch.fetch = vi.fn(() => Promise.resolve(new Response('body')));
+    const bodyResolved = new Promise<void>(resolve => {
+      addFetchEndInstrumentationHandler(() => resolve());
+    });
+
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+    await globalWithFetch.fetch('https://example.com');
+    await bodyResolved;
+
+    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 90_000);
+    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 5000);
+    for (const { value: timer } of setTimeoutSpy.mock.results) {
+      expect(safeUnrefSpy).toHaveBeenCalledWith(timer);
+    }
+  });
+});

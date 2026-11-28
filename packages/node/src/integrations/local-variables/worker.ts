@@ -184,6 +184,7 @@ startDebugger().catch(e => {
   log('Failed to start debugger', e);
 });
 
+// oxlint-disable-next-line sdk/require-timer-unref -- keeps the worker thread alive
 setInterval(() => {
   // Stop the worker from exiting
 }, 10_000);

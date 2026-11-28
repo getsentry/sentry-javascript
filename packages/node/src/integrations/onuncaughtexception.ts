@@ -141,6 +141,7 @@ export function makeErrorHandler(client: NodeClient, options: OnUncaughtExceptio
             // note that after hitting this branch, we might catch more errors where (caughtSecondError && !calledFatalError)
             //   we ignore them - they don't matter to us, we're just waiting for the second error timeout to finish
             caughtSecondError = true;
+            // oxlint-disable-next-line sdk/require-timer-unref -- has to fire so `onFatalError` runs before the process exits
             setTimeout(() => {
               if (!calledFatalError) {
                 // it was probably case 1, let's treat err as the sendErr and call onFatalError

@@ -1346,6 +1346,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     let ticked = 0;
 
     while (!timeout || ticked < timeout) {
+      // oxlint-disable-next-line sdk/require-timer-unref -- `flush()` and `close()` wait on this loop for in-flight processing to finish
       await new Promise(resolve => setTimeout(resolve, 1));
 
       if (!this._numProcessing) {
