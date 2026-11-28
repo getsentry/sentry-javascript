@@ -6,7 +6,7 @@ import type {
   MemberExpressionNode,
   ProgramBody,
 } from './ast';
-import { declarationOf } from './ast';
+import { declarationOf, superClassTarget } from './ast';
 
 /** A base class, named by the module it is imported from and its export name. */
 export interface BaseClassRef {
@@ -81,11 +81,12 @@ function collectBaseImports(ast: ProgramBody, base: BaseClassRef): BaseBindings 
 }
 
 function extendsBase(
-  superClass: BaseNode | null | undefined,
+  node: BaseNode | null | undefined,
   base: BaseClassRef,
   bases: BaseBindings,
   detected: Set<string>,
 ): boolean {
+  const superClass = superClassTarget(node);
   if (!superClass) return false;
   if (superClass.type === 'Identifier') {
     const name = (superClass as IdentifierNode).name;
