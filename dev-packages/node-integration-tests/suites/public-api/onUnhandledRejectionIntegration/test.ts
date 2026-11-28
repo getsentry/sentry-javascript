@@ -91,9 +91,24 @@ test rejection`);
     }));
 
   test('captures exceptions for unhandled rejections', async () => {
-    await createRunner(__dirname, 'scenario-warn.ts')
-      .expect({
-        event: {
+    // Deno exits on an unhandled rejection, so `globalHandlersIntegration` captures it as `fatal`.
+    const expectedEvent = supports({ runtimes: ['deno'] })
+      ? {
+          level: 'fatal',
+          exception: {
+            values: [
+              {
+                type: 'UnhandledRejection',
+                value: 'Non-Error promise rejection captured with value: test rejection',
+                mechanism: {
+                  type: 'auto.deno.global_handlers.unhandledrejection',
+                  handled: false,
+                },
+              },
+            ],
+          },
+        }
+      : {
           level: 'error',
           exception: {
             values: [
@@ -110,37 +125,41 @@ test rejection`);
               },
             ],
           },
-        },
-      })
-      .start()
-      .completed();
+        };
+
+    await createRunner(__dirname, 'scenario-warn.ts').expect({ event: expectedEvent }).start().completed();
   });
 
-  test('captures exceptions for unhandled rejections in strict mode', async () => {
-    await createRunner(__dirname, 'scenario-strict.ts')
-      .expect({
-        event: {
-          level: 'fatal',
-          exception: {
-            values: [
-              {
-                type: 'Error',
-                value: 'test rejection',
-                mechanism: {
-                  type: 'auto.node.onunhandledrejection',
-                  handled: false,
+  // Deno always exits on an unhandled rejection, so `@sentry/deno` has no `onUnhandledRejectionIntegration`
+  // and no strict mode to configure.
+  test.runIf(supports({ runtimes: ['node', 'bun'] }))(
+    'captures exceptions for unhandled rejections in strict mode',
+    async () => {
+      await createRunner(__dirname, 'scenario-strict.ts')
+        .expect({
+          event: {
+            level: 'fatal',
+            exception: {
+              values: [
+                {
+                  type: 'Error',
+                  value: 'test rejection',
+                  mechanism: {
+                    type: 'auto.node.onunhandledrejection',
+                    handled: false,
+                  },
+                  stacktrace: {
+                    frames: expect.any(Array),
+                  },
                 },
-                stacktrace: {
-                  frames: expect.any(Array),
-                },
-              },
-            ],
+              ],
+            },
           },
-        },
-      })
-      .start()
-      .completed();
-  });
+        })
+        .start()
+        .completed();
+    },
+  );
 
   test('handles unhandled rejection in spans', async () => {
     let segment: SerializedStreamedSpanContainer['items'][number] | undefined;
